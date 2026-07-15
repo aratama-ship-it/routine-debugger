@@ -1,0 +1,14 @@
+{
+  "name": "ルーティン・デバッガ",
+  "short_name": "ルーティンDbg",
+  "description": "パフォーマー向け失敗分析ランログ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e1013",
+  "theme_color": "#0e1013",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
