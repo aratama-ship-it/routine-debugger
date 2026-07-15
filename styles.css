@@ -87,8 +87,19 @@ button:active { opacity: .75; }
 .routine-row .name { font-weight: 600; font-size: 17px; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .routine-row .meta { color: var(--muted); font-size: 13px; display: block; font-weight: 400; margin-top: 1px; }
-.routine-row .actions { display: flex; gap: 8px; margin-top: 10px; }
-.routine-row .actions .btn.small { flex: 1; min-height: 38px; border-radius: 19px; }
+.routine-row .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.routine-row .actions .btn.small { flex: 1 1 44%; min-height: 38px; border-radius: 19px; }
+
+/* パート練習 */
+.part-band-bar { margin-top: 6px; height: 8px; }
+.part-band-bar .range { background: rgba(48, 209, 88, .5); }
+.part-point { display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: var(--hairline) solid var(--sep); }
+.part-point:last-of-type { border-bottom: none; }
+.part-point .pp-label { font-size: 13px; color: var(--muted); width: 48px; flex-shrink: 0; }
+.part-point .pp-time { flex: 1; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.part-point .mini-btn { width: 44px; font-size: 12px; }
+.part-point .btn.small { white-space: nowrap; font-size: 13px; padding: 0 10px; flex-shrink: 0; }
 
 /* 記録画面のステップリスト(結合セル) */
 .step-list { display: flex; flex-direction: column; margin: 0 -16px 6px; }

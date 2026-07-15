@@ -243,7 +243,10 @@ async function loadMusic(rt) {
   musicObjectUrl = URL.createObjectURL(blob);
   musicPlayer.src = musicObjectUrl;
   musicLoadedFor = rt.id;
-  if (view.name === "record") render();
+  if (view.name === "record" || view.name === "part") render();
+  musicPlayer.addEventListener("loadedmetadata", () => {
+    if (view.name === "part") render(); // ループ帯の表示に曲の長さが必要
+  }, { once: true });
 }
 function updateMusicUI() {
   const cur = document.getElementById("music-cur");
@@ -406,13 +409,15 @@ function go(name, params = {}) {
     musicPlayer.pause();
     if (recState) stopRecording();
   }
+  // パート練習を離れるとき: ループ停止+一時停止
+  if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   view = { name, params }; render(); window.scrollTo(0, 0);
 }
 
 function render() {
   const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats,
-    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail }[view.name];
+    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail, part: renderPart }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
@@ -427,8 +432,9 @@ function renderHome() {
         <div class="name">${esc(rt.name)}
           <span class="meta">${ver.steps.length}ステップ / v${rt.versions.length} / 通し${runCount}本</span></div>
         <div class="actions">
-          <button class="btn small primary" onclick="go('record',{id:'${rt.id}'})">記録</button>
-          <button class="btn small" onclick="go('stats',{id:'${rt.id}'})">統計</button>
+          <button class="btn small primary" onclick="go('record',{id:'${rt.id}'})">通し練習</button>
+          <button class="btn small" onclick="go('part',{id:'${rt.id}'})">パート練習</button>
+          <button class="btn small" onclick="go('stats',{id:'${rt.id}'})">分析</button>
           <button class="btn small ghost" onclick="go('edit',{id:'${rt.id}'})">編集</button>
         </div>
       </div>
@@ -574,7 +580,7 @@ function renderEdit() {
         <button class="btn small" onclick="addStep('trick')">＋ 技</button>
         <button class="btn small ghost" onclick="addStep('transition')">＋ 移行</button>
       </div>
-      <p class="hint">「移行」= 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップとして入れておくと分析対象になります。<br><br>「リスク度(1〜5)」=「この技はどれくらい失敗しそうか」という自分の感覚(事前予想)。実際の失敗率とのズレ(＝思い込みと結果の乖離)を統計画面で見るための指標です。編集で変更できますが、結果を見た後に数字を合わせに行くとズレが消えてしまうので、基本は最初の感覚のまま残すのがおすすめ。</p>
+      <p class="hint">「移行」= 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップとして入れておくと分析対象になります。<br><br>「リスク度(1〜5)」=「この技はどれくらい失敗しそうか」という自分の感覚(事前予想)。実際の失敗率とのズレ(＝思い込みと結果の乖離)を分析画面で見るための指標です。編集で変更できますが、結果を見た後に数字を合わせに行くとズレが消えてしまうので、基本は最初の感覚のまま残すのがおすすめ。</p>
     </div>
     <div class="card">
       <h2>楽曲(任意)</h2>
@@ -587,7 +593,7 @@ function renderEdit() {
     </div>
     <button class="btn primary" onclick="saveRoutine()">保存</button>
     ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>
-    <p class="hint">※ 記録済みの通しがある状態でステップ構成を変えると、新しいバージョン(v${rt.versions.length + 1})が作られ、統計は分かれます。順序や構成が違うデータを混ぜると条件付きの失敗率が壊れるためです。複製は「好調版/安牌版」のように別ルーティンとして育てたいときに(記録・統計は引き継ぎません)。</p>` : ""}`;
+    <p class="hint">※ 記録済みの通しがある状態でステップ構成を変えると、新しいバージョン(v${rt.versions.length + 1})が作られ、分析は分かれます。順序や構成が違うデータを混ぜると条件付きの失敗率が壊れるためです。複製は「好調版/安牌版」のように別ルーティンとして育てたいときに(記録・分析データは引き継ぎません)。</p>` : ""}`;
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.setRisk = (i, n) => { draft.steps[i].risk = n; render(); };
@@ -616,12 +622,13 @@ window.duplicateRoutine = async (id) => {
   }
   state.routines.push({
     id: uid(), name: `${src.name} (コピー)`, music, copiedFrom: src.id,
+    partLoop: src.partLoop ? { ...src.partLoop } : undefined,
     versions: [{ id: uid(), createdAt: Date.now(),
       steps: ver.steps.map((s) => ({ ...s, id: uid(),
         options: s.options ? s.options.map((o) => ({ ...o, id: uid() })) : undefined })) }],
   });
   saveState(); draft = null; go("home");
-  toast("複製しました(記録・統計は引き継ぎません)");
+  toast("複製しました(記録・分析データは引き継ぎません)");
 };
 window.addOpt = (i) => { draft.steps[i].options.push({ id: uid(), name: "", risk: 3 }); render(); };
 window.delOpt = (i, oi) => { draft.steps[i].options.splice(oi, 1); render(); };
@@ -639,22 +646,25 @@ window.attachMusic = (input) => {
   if (!file) return;
   if (file.size > 40 * 1024 * 1024) { input.value = ""; return toast("40MB以下の音源にしてください"); }
   draft._newMusicFile = file;
+  draft._removeMusic = false;
   input.value = "";
   render();
 };
-window.removeMusic = () => { draft._newMusicFile = null; draft.music = null; render(); };
+window.removeMusic = () => { draft._newMusicFile = null; draft.music = null; draft._removeMusic = true; render(); };
 
-// 添付/削除の差分を音声Blobストアに反映し、routine.musicメタを返す
+// 添付/削除の差分を音声Blobストアに反映し、routine.musicメタを返す。
+// 安全側の原則: 「削除」を明示的に押したときだけ既存Blobを消す。
+// それ以外は draft の状態がどうであれ既存の楽曲を維持する(想定外のdraft破損で音源を失わないため)
 async function applyMusicChange(prevMusic) {
   if (draft._newMusicFile) {
     const blobId = uid();
     const ok = await blobPut(blobId, draft._newMusicFile);
-    if (!ok) { toast("音源を保存できませんでした(音源なしで保存します)"); return prevMusic || null; }
+    if (!ok) { toast("音源を保存できませんでした(既存の音源を維持します)"); return prevMusic || null; }
     if (prevMusic) blobDel(prevMusic.blobId);
     return { blobId, name: draft._newMusicFile.name };
   }
-  if (!draft.music && prevMusic) { blobDel(prevMusic.blobId); return null; }
-  return draft.music || null;
+  if (draft._removeMusic && prevMusic) { blobDel(prevMusic.blobId); return null; }
+  return prevMusic || null;
 }
 
 window.saveRoutine = async () => {
@@ -680,7 +690,7 @@ window.saveRoutine = async () => {
     if (structuralChange && hasRuns) {
       // 技名・順序・種別が変わった → 新バージョン(統計を混ぜない)
       rt.versions.push({ id: uid(), createdAt: Date.now(), steps: draft.steps });
-      toast(`構成が変わったので v${rt.versions.length} を作成しました(統計は分かれます)`);
+      toast(`構成が変わったので v${rt.versions.length} を作成しました(分析は分かれます)`);
     } else {
       // 構成は同じ(リスク度だけの変更を含む)、または記録がまだない → 在版をその場で更新
       cur.steps = draft.steps;
@@ -1015,9 +1025,9 @@ function renderStats() {
   if (st.total === 0) {
     return `
       <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
-        <h1>${esc(rt.name)} 統計</h1></div>
+        <h1>${esc(rt.name)} 分析</h1></div>
       ${verSelect}
-      <div class="empty">v${verIndex} の通し記録はまだありません。<br>「記録」からクリーン/失敗を記録すると、ここに偏りが表示されます。</div>`;
+      <div class="empty">v${verIndex} の通し記録はまだありません。<br>「通し練習」からクリーン/失敗を記録すると、ここに偏りが表示されます。</div>`;
   }
 
   const cleanCiTxt = st.cleanCi ? `${pct(st.cleanCi[0])}〜${pct(st.cleanCi[1])}%` : "-";
@@ -1134,7 +1144,7 @@ function renderStats() {
 
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
-      <h1>${esc(rt.name)} 統計</h1><span class="sub">v${verIndex}</span></div>
+      <h1>${esc(rt.name)} 分析</h1><span class="sub">v${verIndex}</span></div>
     ${verSelect}
     ${overview}
     <div class="card">
@@ -1149,7 +1159,125 @@ function renderStats() {
     <div class="note-caveat">このアプリが示すのは「どこに偏りがあるか」までです。「なぜか」の帰属(例: 直前の大技のせい)は、順序を変えた比較実験で確かめる必要があります(フェーズ2で実装予定)。${st.excluded ? `<br><br>集計から除外中の通し: ${st.excluded}本(履歴から戻せます)` : ""}</div>
     <div style="height:10px"></div>
     <button class="btn" onclick="go('history',{id:'${rt.id}'})">セッション履歴・メモを見る</button>
-    <button class="btn" onclick="go('record',{id:'${rt.id}'})">この構成で記録する</button>`;
+    <button class="btn" onclick="go('record',{id:'${rt.id}'})">この構成で通し練習する</button>`;
+}
+
+// ========== パート練習(楽曲のA→Bループ) ==========
+// 通しと条件が違うため、パート練習は分析データに混ぜない(純粋な練習用ループ再生)
+let partLoopTimer = null;
+let partLoopActive = false;
+
+function stopPartLoop(pauseMusic) {
+  clearInterval(partLoopTimer);
+  partLoopTimer = null;
+  partLoopActive = false;
+  if (pauseMusic) musicPlayer.pause();
+}
+function partRange(rt) {
+  const p = rt.partLoop || {};
+  const dur = isFinite(musicPlayer.duration) ? musicPlayer.duration : null;
+  return { a: p.a ?? 0, b: p.b ?? dur }; // B未設定は曲末まで
+}
+function partTick() {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  if (!rt || view.name !== "part") return stopPartLoop(false);
+  const { a, b } = partRange(rt);
+  if (b != null && b > a && musicPlayer.currentTime >= b - 0.05) {
+    musicPlayer.currentTime = a;
+    if (musicPlayer.paused) musicPlayer.play();
+  }
+}
+window.partSetPoint = (which) => {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  rt.partLoop = rt.partLoop || {};
+  rt.partLoop[which] = Math.round(musicPlayer.currentTime * 10) / 10;
+  saveState(); render();
+};
+window.partNudge = (which, d) => {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  rt.partLoop = rt.partLoop || {};
+  const cur = which === "a" ? partRange(rt).a : partRange(rt).b;
+  if (cur == null) return toast("先に位置を設定してください");
+  rt.partLoop[which] = Math.max(0, Math.round((cur + d) * 10) / 10);
+  saveState(); render();
+};
+window.partClear = () => {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  delete rt.partLoop;
+  saveState(); render();
+};
+window.partPlayFromA = () => {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  const { a } = partRange(rt);
+  ensureAudioGraph();
+  musicPlayer.currentTime = a;
+  musicPlayer.play();
+  if (partLoopActive && !partLoopTimer) partLoopTimer = setInterval(partTick, 80);
+};
+window.partToggleLoop = () => {
+  partLoopActive = !partLoopActive;
+  if (partLoopActive) {
+    if (!partLoopTimer) partLoopTimer = setInterval(partTick, 80);
+  } else {
+    clearInterval(partLoopTimer); partLoopTimer = null;
+  }
+  render();
+};
+
+function renderPart() {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  if (!rt) return renderHome();
+  if (!rt.music) {
+    return `
+      <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+        <h1>${esc(rt.name)} パート練習</h1></div>
+      <div class="empty">パート練習は登録した楽曲の一部をループ再生する機能です。<br>まず「編集」から音源(MP3等)を添付してください。</div>
+      <button class="btn" onclick="go('edit',{id:'${rt.id}'})">編集画面へ</button>`;
+  }
+  if (musicLoadedFor !== rt.id) setTimeout(() => loadMusic(rt), 0);
+  const { a, b } = partRange(rt);
+  const dur = isFinite(musicPlayer.duration) ? musicPlayer.duration : null;
+  const bandStyle = dur && b != null
+    ? `left:${(a / dur) * 100}%;width:${Math.max(1, ((b - a) / dur) * 100)}%` : "left:0;width:0";
+  const abInvalid = b != null && b <= a;
+  const pointRow = (which, val, label) => `
+    <div class="part-point">
+      <span class="pp-label">${label}</span>
+      <span class="pp-time">${val != null ? fmtTimeFine(val) : "未設定(曲末)"}</span>
+      <button class="mini-btn" onclick="partNudge('${which}',-1)">−1s</button>
+      <button class="mini-btn" onclick="partNudge('${which}',1)">＋1s</button>
+      <button class="btn small" onclick="partSetPoint('${which}')">今の位置</button>
+    </div>`;
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+      <h1>${esc(rt.name)} パート練習</h1></div>
+    <div class="card music-card">
+      <div class="music-name">♪ ${esc(rt.music.name)}</div>
+      <div class="music-time big"><span id="music-cur">${fmtTimeFine(musicPlayer.currentTime)}</span><span class="dur"> / <span id="music-dur">${fmtTime(musicPlayer.duration)}</span></span></div>
+      <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
+      <div class="ci-bar part-band-bar"><div class="range" style="${bandStyle}"></div></div>
+      <div class="music-controls">
+        <button class="music-pill primary" id="music-toggle-pill" onclick="musicToggle()">▶ 再生</button>
+        <button class="music-pill" onclick="musicStop()">■ 停止</button>
+      </div>
+      <div class="volume-row">
+        <span class="vol-ico">🔈</span>
+        <input type="range" id="music-vol" min="0" max="1" step="0.02" value="${musicVolume}" oninput="musicSetVolume(this.value)">
+        <span class="vol-ico">🔊</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ループ区間 (曲を再生しながら「今の位置」で設定)</h2>
+      ${pointRow("a", rt.partLoop && rt.partLoop.a != null ? rt.partLoop.a : 0, "A 始点")}
+      ${pointRow("b", rt.partLoop ? rt.partLoop.b : null, "B 終点")}
+      ${abInvalid ? `<div class="gap-note">⚠︎ 終点Bが始点Aより前です。ループしません。</div>` : ""}
+      <div class="row-2" style="margin-top:12px">
+        <button class="btn primary" style="margin:0" onclick="partPlayFromA()">Aから再生</button>
+        <button class="btn ${partLoopActive ? "ok" : ""}" style="margin:0" onclick="partToggleLoop()">ループ ${partLoopActive ? "ON" : "OFF"}</button>
+      </div>
+      ${rt.partLoop ? `<button class="btn ghost" style="margin-top:10px" onclick="partClear()">区間をリセット</button>` : ""}
+      <p class="hint">Bに達すると自動でAに戻ります(ループON時)。区間はこのルーティンに保存されます。パート練習の結果は分析データには入りません(通しと条件が違うため)。失敗を記録したいときは通し練習を使ってください。</p>
+    </div>`;
 }
 
 // ========== 技の詳細(ステップ別のミス内訳) ==========
@@ -1266,7 +1394,7 @@ function renderHistory() {
     <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})">戻る</button>
       <h1>${esc(rt.name)} 履歴</h1></div>
     ${blocks}
-    <p class="hint">編集の方針: タグ・メモは自由に直せます。通しの成否そのものは書き換えず、間違えた通しは「集計から除外」して記録し直してください(統計の信頼性を守るため)。除外・編集は統計に件数表示されます。</p>`;
+    <p class="hint">編集の方針: タグ・メモは自由に直せます。通しの成否そのものは書き換えず、間違えた通しは「集計から除外」して記録し直してください(分析の信頼性を守るため)。除外・編集は分析に件数表示されます。</p>`;
 }
 
 window.toggleExcludeRun = (sessId, runId) => {
@@ -1353,7 +1481,7 @@ function renderSettings() {
       <button class="btn" onclick="document.getElementById('import-file').click()">JSONから復元する</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJson(this)">
       <button class="btn ghost" onclick="exportCsv()">CSVエクスポート(表計算用)</button>
-      <p class="hint">重要: iPhoneはしばらく使わないとブラウザ保存データを消すことがあります。データが溜まってきたら定期的にJSONを書き出して保存してください。なお音声(楽曲・練習録音)は容量が大きいためJSONには含まれません。残したい録音は統計画面の「↓」ボタンで個別に書き出せます。</p>
+      <p class="hint">重要: iPhoneはしばらく使わないとブラウザ保存データを消すことがあります。データが溜まってきたら定期的にJSONを書き出して保存してください。なお音声(楽曲・練習録音)は容量が大きいためJSONには含まれません。残したい録音は分析画面の「↓」ボタンで個別に書き出せます。</p>
     </div>`;
 }
 
