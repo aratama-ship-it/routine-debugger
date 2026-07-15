@@ -170,12 +170,16 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
   background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%;
   background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
 
-/* エディタ */
-.editor-step { display: flex; align-items: center; gap: 8px; padding: 8px 0;
-  border-bottom: var(--hairline) solid var(--sep); }
+/* エディタ(ステップは2段組: 1段目=番号+技名 / 2段目=種別・負荷・並べ替え・削除) */
+.editor-step { padding: 10px 0 12px; border-bottom: var(--hairline) solid var(--sep); }
 .editor-step:last-of-type { border-bottom: none; }
-.editor-step .nm { flex: 1; min-width: 0; }
-.editor-step input[type=text] { padding: 9px 10px; font-size: 15px; border-radius: 8px; }
+.editor-step .es-row1 { display: flex; align-items: center; gap: 10px; }
+.editor-step .es-row1 .no { color: var(--muted2); font-size: 15px; width: 22px; flex-shrink: 0;
+  text-align: center; font-variant-numeric: tabular-nums; }
+.editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
+  font-size: 17px; border-radius: 10px; }
+.editor-step .es-row2 { display: flex; align-items: center; gap: 8px; margin: 8px 0 0 32px; }
+.editor-step .es-spacer { flex: 1; }
 .mini-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card2); color: var(--text);
   border: none; font-size: 15px; flex-shrink: 0; }
 .mini-btn.del { color: var(--danger); }

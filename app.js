@@ -418,14 +418,19 @@ function renderEdit() {
   }
   const stepRows = draft.steps.map((s, i) => `
     <div class="editor-step">
-      <span class="no" style="color:var(--muted);font-size:13px;width:20px">${i + 1}</span>
-      <div class="nm"><input type="text" value="${esc(s.name)}" placeholder="${s.kind === "transition" ? "移行(例: 持ち替え)" : "技名"}"
-        onchange="draft.steps[${i}].name=this.value"></div>
-      <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
-      <button class="load-toggle load-${s.load}" onclick="toggleLoad(${i})">${LOAD_LABEL[s.load]}</button>
-      <button class="mini-btn" onclick="moveStep(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
-      <button class="mini-btn" onclick="moveStep(${i},1)" ${i === draft.steps.length - 1 ? "disabled" : ""}>↓</button>
-      <button class="mini-btn del" onclick="delStep(${i})">✕</button>
+      <div class="es-row1">
+        <span class="no">${i + 1}</span>
+        <input type="text" value="${esc(s.name)}" placeholder="${s.kind === "transition" ? "移行(例: 持ち替え)" : "技名"}"
+          onchange="draft.steps[${i}].name=this.value">
+      </div>
+      <div class="es-row2">
+        <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
+        <button class="load-toggle load-${s.load}" onclick="toggleLoad(${i})">${LOAD_LABEL[s.load]}</button>
+        <span class="es-spacer"></span>
+        <button class="mini-btn" onclick="moveStep(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="mini-btn" onclick="moveStep(${i},1)" ${i === draft.steps.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="mini-btn del" onclick="delStep(${i})">✕</button>
+      </div>
     </div>`).join("");
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('home')">戻る</button>
