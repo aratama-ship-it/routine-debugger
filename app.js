@@ -421,13 +421,16 @@ function renderHome() {
   const rows = state.routines.map((rt) => {
     const ver = latestVersion(rt);
     const runCount = state.sessions.filter((s) => s.routineId === rt.id).reduce((a, s) => a + s.runs.length, 0);
-    return `<div class="routine-row">
-      <div class="name">${esc(rt.name)}
-        <span class="meta">${ver.steps.length}ステップ / v${rt.versions.length} / 通し${runCount}本</span></div>
-      <div class="actions">
-        <button class="btn small primary" onclick="go('record',{id:'${rt.id}'})">記録</button>
-        <button class="btn small" onclick="go('stats',{id:'${rt.id}'})">統計</button>
-        <button class="btn small ghost" onclick="go('edit',{id:'${rt.id}'})">編集</button>
+    return `<div class="swipe-wrap">
+      <button class="swipe-del" onclick="deleteRoutine('${rt.id}')">削除</button>
+      <div class="routine-row">
+        <div class="name">${esc(rt.name)}
+          <span class="meta">${ver.steps.length}ステップ / v${rt.versions.length} / 通し${runCount}本</span></div>
+        <div class="actions">
+          <button class="btn small primary" onclick="go('record',{id:'${rt.id}'})">記録</button>
+          <button class="btn small" onclick="go('stats',{id:'${rt.id}'})">統計</button>
+          <button class="btn small ghost" onclick="go('edit',{id:'${rt.id}'})">編集</button>
+        </div>
       </div>
     </div>`;
   }).join("");
@@ -439,8 +442,74 @@ function renderHome() {
       ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
-    <p class="hint">β版: 通し練習(ラン)を「クリーン1タップ / 失敗1タップ」で記録し、どこで落ちるかの偏りを見るためのアプリです。</p>`;
+    <p class="hint">β版: 通し練習(ラン)を「クリーン1タップ / 失敗1タップ」で記録し、どこで落ちるかの偏りを見るためのアプリです。ルーティンの行を左にスワイプすると削除できます。</p>`;
 }
+
+// ルーティン削除(行の左スワイプ→削除)。セッション記録・音源・録音Blobまで完全に消す
+window.deleteRoutine = async (id) => {
+  const rt = state.routines.find((r) => r.id === id);
+  if (!rt) return;
+  const sessions = state.sessions.filter((s) => s.routineId === id);
+  const runCount = sessions.reduce((a, s) => a + s.runs.length, 0);
+  const msg = `「${rt.name}」を削除しますか?\n` +
+    (runCount ? `セッション${sessions.length}件・通し${runCount}本の記録と音声も一緒に削除されます。元に戻せません。\n(残したい場合は先に設定からJSONバックアップを)` : "元に戻せません。");
+  if (!confirm(msg)) { closeAllSwipes(); return; }
+  // 音声Blobの後始末(楽曲+このルーティンのセッション録音)
+  if (rt.music) blobDel(rt.music.blobId);
+  for (const s of sessions) for (const rec of s.recordings || []) blobDel(rec.blobId);
+  state.routines = state.routines.filter((r) => r.id !== id);
+  state.sessions = state.sessions.filter((s) => s.routineId !== id);
+  if (musicLoadedFor === id) { musicPlayer.pause(); musicPlayer.removeAttribute("src"); musicLoadedFor = null; }
+  saveState(); render(); toast("削除しました");
+};
+
+// ---------- 行の左スワイプ(メーラー式)。縦スクロールを妨げないよう横優位のときだけ動かす ----------
+const SWIPE_W = 88;
+let swipeDrag = null;
+let swipeSuppressClick = false;
+function closeAllSwipes() {
+  document.querySelectorAll(".swipe-wrap.open").forEach((w) => {
+    w.classList.remove("open");
+    const row = w.querySelector(".routine-row");
+    if (row) row.style.transform = "";
+  });
+}
+document.addEventListener("pointerdown", (e) => {
+  const wrap = e.target.closest(".swipe-wrap");
+  if (!wrap) { closeAllSwipes(); return; }
+  const row = wrap.querySelector(".routine-row");
+  swipeDrag = { wrap, row, startX: e.clientX, startY: e.clientY, dx: 0, moved: false,
+    baseOpen: wrap.classList.contains("open") };
+}, true);
+document.addEventListener("pointermove", (e) => {
+  if (!swipeDrag) return;
+  const dx = e.clientX - swipeDrag.startX, dy = e.clientY - swipeDrag.startY;
+  if (!swipeDrag.moved) {
+    if (Math.abs(dx) < 8) return;
+    if (Math.abs(dy) > Math.abs(dx)) { swipeDrag = null; return; } // 縦スクロール優先
+    swipeDrag.moved = true;
+  }
+  const base = swipeDrag.baseOpen ? -SWIPE_W : 0;
+  const t = Math.min(0, Math.max(-SWIPE_W, base + dx));
+  swipeDrag.row.style.transition = "none";
+  swipeDrag.row.style.transform = `translateX(${t}px)`;
+  swipeDrag.dx = dx;
+});
+document.addEventListener("pointerup", () => {
+  if (!swipeDrag) return;
+  const s = swipeDrag; swipeDrag = null;
+  if (!s.moved) return;
+  s.row.style.transition = "";
+  const open = ((s.baseOpen ? -SWIPE_W : 0) + s.dx) < -SWIPE_W / 2;
+  s.wrap.classList.toggle("open", open);
+  s.row.style.transform = open ? `translateX(-${SWIPE_W}px)` : "";
+  // スワイプ直後のclickが行内ボタンに落ちるのを防ぐ
+  swipeSuppressClick = true;
+  setTimeout(() => { swipeSuppressClick = false; }, 80);
+});
+document.addEventListener("click", (e) => {
+  if (swipeSuppressClick) { e.stopPropagation(); e.preventDefault(); }
+}, true);
 
 // ========== ルーティン編集 ==========
 let draft = null; // { id?, name, steps: [{id,name,kind,load}] }
