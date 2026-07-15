@@ -219,14 +219,49 @@ function updateMusicUI() {
     seek.max = musicPlayer.duration;
     seek.value = musicPlayer.currentTime;
   }
-  const tg = document.getElementById("music-toggle");
-  if (tg) tg.textContent = musicPlayer.paused ? "▶" : "❚❚";
+  const tg = document.getElementById("music-toggle-pill");
+  if (tg) tg.innerHTML = musicPlayer.paused ? "▶ 再生" : "❚❚ 一時停止";
+  const vol = document.getElementById("music-vol");
+  if (vol && !vol.matches(":active")) vol.value = musicVolume;
 }
 ["timeupdate", "loadedmetadata", "play", "pause", "ended"].forEach((ev) =>
   musicPlayer.addEventListener(ev, updateMusicUI));
-window.musicToggle = () => { if (musicPlayer.paused) musicPlayer.play(); else musicPlayer.pause(); };
-window.musicRestart = () => { musicPlayer.currentTime = 0; musicPlayer.play(); };
+
+// 音量: iOS Safariは audio.volume を無視するため、Web Audio APIのGainNodeを通して制御する
+let musicVolume = Number(localStorage.getItem("rd_volume") || 1);
+let audioCtx = null, gainNode = null;
+function ensureAudioGraph() {
+  if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  try {
+    audioCtx = new AC();
+    const src = audioCtx.createMediaElementSource(musicPlayer);
+    gainNode = audioCtx.createGain();
+    src.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.value = musicVolume;
+  } catch (_) { audioCtx = null; gainNode = null; }
+}
+window.musicSetVolume = (v) => {
+  musicVolume = Number(v);
+  if (gainNode) gainNode.gain.value = musicVolume;
+  musicPlayer.volume = musicVolume; // GainNodeが使えない環境向けのフォールバック
+  try { localStorage.setItem("rd_volume", String(musicVolume)); } catch (_) {}
+};
+window.musicToggle = () => {
+  if (musicPlayer.paused) { ensureAudioGraph(); musicPlayer.play(); }
+  else musicPlayer.pause();
+};
+window.musicStop = () => { musicPlayer.pause(); musicPlayer.currentTime = 0; updateMusicUI(); };
 window.musicSeek = (v) => { musicPlayer.currentTime = Number(v); updateMusicUI(); };
+// 通しの記録が確定したら曲を頭に戻す(次の通しは▶を押すだけ)
+function musicResetForNextRun() {
+  if (!musicPlayer.src) return;
+  musicPlayer.pause();
+  musicPlayer.currentTime = 0;
+  updateMusicUI();
+}
 
 // ---------- 練習録音(MediaRecorder) ----------
 let recState = null; // { rec, chunks, id, startedAt, timer, stream }
@@ -498,13 +533,19 @@ function renderRecord() {
     <div class="card music-card">
       ${musicMissing && musicLoadedFor === rt.id
         ? `<div class="hint">♪ 音源データが見つかりません(バックアップ復元後は編集画面で再添付してください)</div>`
-        : `<div class="music-row">
-             <button class="music-btn" id="music-toggle" onclick="musicToggle()">▶</button>
-             <div class="music-time"><span id="music-cur">0:00.0</span><span class="dur"> / <span id="music-dur">-:--</span></span></div>
-             <button class="music-btn text" onclick="musicRestart()">頭から</button>
-           </div>
+        : `<div class="music-name">♪ ${esc(rt.music.name)}</div>
+           <div class="music-time big"><span id="music-cur">0:00.0</span><span class="dur"> / <span id="music-dur">-:--</span></span></div>
            <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
-           <div class="hint" style="margin-top:4px">失敗タップの瞬間の曲位置が自動で残ります</div>`}
+           <div class="music-controls">
+             <button class="music-pill primary" id="music-toggle-pill" onclick="musicToggle()">▶ 再生</button>
+             <button class="music-pill" onclick="musicStop()">■ 停止(頭に戻す)</button>
+           </div>
+           <div class="volume-row">
+             <span class="vol-ico">🔈</span>
+             <input type="range" id="music-vol" min="0" max="1" step="0.02" value="${musicVolume}" oninput="musicSetVolume(this.value)">
+             <span class="vol-ico">🔊</span>
+           </div>
+           <div class="hint" style="margin-top:8px">使い方: 通しを始めるとき「▶ 再生」(曲は毎回頭から) → 失敗したら下の技をタップ=曲は自動停止し、その瞬間の曲位置が記録されます。クリーン/中止を記録すると曲は自動で頭に戻ります。</div>`}
     </div>` : "";
 
   // 録音コントロール
@@ -589,6 +630,7 @@ window.recordClean = () => {
   const sess = activeSession(rt.id);
   if (!sess) return sheetStartSession(rt);
   sess.runs.push({ id: uid(), at: Date.now(), outcome: "clean", events: [], reachedIndex: latestVersion(rt).steps.length - 1 });
+  musicResetForNextRun();
   saveState(); render(); toast(`クリーン記録 (今日${sess.runs.length}本目)`);
 };
 
@@ -600,7 +642,8 @@ window.finishOpenRun = () => {
     id: uid(), at: Date.now(), outcome: "finished",
     events: openRun.events, reachedIndex: latestVersion(rt).steps.length - 1,
   });
-  openRun = null; saveState(); render(); toast("完走(失敗あり)を記録");
+  openRun = null; musicResetForNextRun();
+  saveState(); render(); toast("完走(失敗あり)を記録");
 };
 
 let pendingCapture = null; // 失敗タップ瞬間の曲位置/録音位置
@@ -658,6 +701,7 @@ window.commitEvent = (stepIndex) => {
     const events = (openRun && openRun.routineId === rt.id) ? [...openRun.events, ev] : [ev];
     sess.runs.push({ id: uid(), at: Date.now(), outcome: "aborted", events, reachedIndex: stepIndex });
     openRun = null;
+    musicResetForNextRun();
     toast(`中止を記録 (${stepIndex + 1}. ${ver.steps[stepIndex].name})`);
   } else {
     // 続行: 通しを開いたまま追加失敗を待つ
