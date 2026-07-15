@@ -273,6 +273,54 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .bd-row .k { color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .bd-row .v { color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
+/* 選択スロット(A/B分岐) */
+.step-btn.slot { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+.step-btn.slot .no { margin-top: 6px; }
+.slot-body { flex: 1; min-width: 0; }
+.slot-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.slot-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt-chip { padding: 8px 14px; border-radius: 17px; background: var(--card2); color: var(--muted);
+  border: none; font-size: 14px; font-weight: 600; }
+.opt-chip.selected { background: var(--accent-tint); color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent); }
+.opt-chip.small { padding: 4px 10px; font-size: 12px; }
+.slot-mark { font-size: 10px; color: var(--accent); background: var(--accent-tint);
+  border-radius: 8px; padding: 1px 6px; vertical-align: middle; }
+.slot-opt-stat { margin: 8px 0 0 14px; padding: 6px 0; }
+.slot-opt-stat .head { display: flex; align-items: baseline; gap: 8px; }
+.slot-opt-stat .head .nm { flex: 1; font-size: 14px; color: var(--text); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-opt-stat .head .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* エディタの選択肢行 */
+.es-opt { display: flex; align-items: center; gap: 8px; margin: 8px 0 0 32px; }
+.es-opt .es-opt-mark { color: var(--accent); font-size: 13px; font-weight: 700; width: 16px; flex-shrink: 0; }
+.es-opt input[type=text] { flex: 1; min-width: 0; padding: 9px 10px; font-size: 15px; border-radius: 8px; }
+.es-risk.opt { margin-left: 56px; }
+
+/* セッション開始時の前回リキャップ */
+.recap { background: var(--card2); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.recap-h { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.recap-plan { font-size: 14px; color: var(--accent); margin: 4px 0; line-height: 1.5; }
+.recap-line { font-size: 13px; color: var(--text); margin: 2px 0; line-height: 1.5; }
+
+/* 履歴 */
+.run-block { border-top: var(--hairline) solid var(--sep); padding: 10px 0; }
+.run-block .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.run-block .head .k { font-size: 14px; font-weight: 600; }
+.run-block.excluded { opacity: .45; }
+.run-block.excluded .head .k { text-decoration: line-through; }
+.ev-row { position: relative; background: var(--card2); border-radius: 10px; padding: 8px 12px; margin-top: 8px;
+  font-size: 13px; cursor: pointer; }
+.ev-row:active { background: var(--card3); }
+.ev-row .k { color: var(--text); }
+.ev-row .ev-tags { display: inline-block; color: var(--accent); font-size: 12px; margin-left: 6px; }
+.ev-row .ev-edit { position: absolute; right: 12px; top: 8px; font-size: 11px; color: var(--muted2); }
+.note-line { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+.note-line.plan { color: var(--accent); }
+.run-choice { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.run-choice .k { font-size: 12px; color: var(--muted); }
+
 /* トースト */
 #toast { position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(86px + var(--safe-bottom)); background: rgba(44, 44, 46, .92);

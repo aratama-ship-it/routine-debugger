@@ -151,16 +151,34 @@ function runsOfVersion(routineId, versionId) {
   return runs;
 }
 
+// 選択スロット: step.options([{id,name,risk}] 2つ以上)を持つステップ。
+// 通しごとに「どれを選んだか」を run.choices[stepId] に記録し、選択肢別の分母を作る
+const isSlot = (st) => Array.isArray(st.options) && st.options.length >= 2;
+const stepLabel = (st) => isSlot(st) ? (st.name || st.options.map((o) => o.name).join("/")) : st.name;
+const runChoice = (run, st) => run.choices ? run.choices[st.id] : undefined;
+
 function versionStats(routine, versionId) {
   const ver = getVersion(routine, versionId);
-  const runs = runsOfVersion(routine.id, versionId);
+  const allRuns = runsOfVersion(routine.id, versionId);
+  const excluded = allRuns.filter((r) => r.excluded).length;
+  const runs = allRuns.filter((r) => !r.excluded); // 集計除外を反映
   const total = runs.length;
   const clean = runs.filter((r) => r.outcome === "clean").length;
   // ステップ別: 到達数を分母にする(全通し数ではない)
   const steps = ver.steps.map((st, i) => {
     const reached = runs.filter((r) => r.reachedIndex >= i).length;
     const failRuns = runs.filter((r) => r.events.some((e) => e.stepIndex === i)).length;
-    return { step: st, index: i, reached, failed: failRuns, ci: wilson(failRuns, reached) };
+    const row = { step: st, index: i, reached, failed: failRuns, ci: wilson(failRuns, reached) };
+    if (isSlot(st)) {
+      // 選択肢別: 分母 = そこに到達し、かつその選択肢を選んだ通し数
+      row.options = st.options.map((opt) => {
+        const optRuns = runs.filter((r) => r.reachedIndex >= i && runChoice(r, st) === opt.id);
+        const optFailed = optRuns.filter((r) => r.events.some((e) => e.stepIndex === i)).length;
+        return { opt, reached: optRuns.length, failed: optFailed, ci: wilson(optFailed, optRuns.length) };
+      });
+      row.choiceUnknown = runs.filter((r) => r.reachedIndex >= i && !runChoice(r, st)).length;
+    }
+    return row;
   });
   // 回復率 = 継続できた失敗 / 全失敗イベント(回避は除外)
   let recov = 0, fails = 0;
@@ -179,7 +197,7 @@ function versionStats(routine, versionId) {
   // 仮説タグ集計
   const tagCount = {};
   for (const r of runs) for (const e of r.events) for (const t of e.tags || []) tagCount[t] = (tagCount[t] || 0) + 1;
-  return { ver, runs, total, clean, cleanCi: wilson(clean, total), steps, recov, fails, byRunNo, byFeeling, tagCount };
+  return { ver, runs, total, clean, cleanCi: wilson(clean, total), steps, recov, fails, byRunNo, byFeeling, tagCount, excluded };
 }
 
 // ---------- シート/トースト ----------
@@ -393,7 +411,8 @@ function go(name, params = {}) {
 }
 
 function render() {
-  const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats, settings: renderSettings }[view.name];
+  const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats,
+    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
@@ -434,27 +453,43 @@ function renderEdit() {
           music: rt.music ? { ...rt.music } : null, _newMusicFile: null }
       : { _for: "new", name: "", steps: [], music: null, _newMusicFile: null };
   }
+  const riskSeg = (selected, onclickTpl) => `
+    <div class="risk-seg">
+      ${RISK_LEVELS.map((n) => `<button class="risk-seg-btn risk-${n} ${selected === n ? "selected" : ""}"
+        onclick="${onclickTpl.replace("%N%", n)}">${n}</button>`).join("")}
+    </div>`;
   const stepRows = draft.steps.map((s, i) => `
     <div class="editor-step">
       <div class="es-row1">
         <span class="no">${i + 1}</span>
-        <input type="text" value="${esc(s.name)}" placeholder="${s.kind === "transition" ? "移行(例: 持ち替え)" : "技名"}"
+        <input type="text" value="${esc(s.name)}" placeholder="${isSlot(s) ? "分岐の名前(例: ラスト技)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "技名"}"
           onchange="draft.steps[${i}].name=this.value">
       </div>
       <div class="es-row2">
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
+        <button class="kind-toggle ${isSlot(s) ? "t" : ""}" onclick="toggleSlot(${i})">${isSlot(s) ? "A/B解除" : "A/B化"}</button>
         <span class="es-spacer"></span>
         <button class="mini-btn" onclick="moveStep(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
         <button class="mini-btn" onclick="moveStep(${i},1)" ${i === draft.steps.length - 1 ? "disabled" : ""}>↓</button>
         <button class="mini-btn del" onclick="delStep(${i})">✕</button>
       </div>
+      ${isSlot(s) ? s.options.map((o, oi) => `
+        <div class="es-opt">
+          <span class="es-opt-mark">${String.fromCharCode(65 + oi)}</span>
+          <input type="text" value="${esc(o.name)}" placeholder="選択肢${String.fromCharCode(65 + oi)}の技名"
+            onchange="draft.steps[${i}].options[${oi}].name=this.value">
+          ${s.options.length > 2 ? `<button class="mini-btn del" onclick="delOpt(${i},${oi})">✕</button>` : ""}
+        </div>
+        <div class="es-risk opt">
+          <span class="es-risk-label">リスク度</span>
+          ${riskSeg(o.risk || 3, `setOptRisk(${i},${oi},%N%)`)}
+        </div>`).join("") + (s.options.length < 3 ? `
+        <button class="btn small ghost" style="margin:8px 0 0 32px" onclick="addOpt(${i})">＋ 選択肢を追加</button>` : "")
+      : `
       <div class="es-risk">
         <span class="es-risk-label">リスク度</span>
-        <div class="risk-seg">
-          ${RISK_LEVELS.map((n) => `<button class="risk-seg-btn risk-${n} ${(s.risk || 3) === n ? "selected" : ""}"
-            onclick="setRisk(${i},${n})">${n}</button>`).join("")}
-        </div>
-      </div>
+        ${riskSeg(s.risk || 3, `setRisk(${i},%N%)`)}
+      </div>`}
     </div>`).join("");
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('home')">戻る</button>
@@ -482,17 +517,53 @@ function renderEdit() {
       <p class="hint">曲に合わせて演技する場合に添付。記録画面で再生でき、失敗をタップした瞬間の曲位置(♪1:23など)が一緒に記録されます。音源はこの端末のブラウザ内にのみ保存され、JSONバックアップには含まれません。</p>
     </div>
     <button class="btn primary" onclick="saveRoutine()">保存</button>
-    ${rt ? `<p class="hint">※ 記録済みの通しがある状態でステップ構成を変えると、新しいバージョン(v${rt.versions.length + 1})が作られ、統計は分かれます。順序や構成が違うデータを混ぜると条件付きの失敗率が壊れるためです。</p>` : ""}`;
+    ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>
+    <p class="hint">※ 記録済みの通しがある状態でステップ構成を変えると、新しいバージョン(v${rt.versions.length + 1})が作られ、統計は分かれます。順序や構成が違うデータを混ぜると条件付きの失敗率が壊れるためです。複製は「好調版/安牌版」のように別ルーティンとして育てたいときに(記録・統計は引き継ぎません)。</p>` : ""}`;
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.setRisk = (i, n) => { draft.steps[i].risk = n; render(); };
+// A/B化: 既存の技名を選択肢Aに移し、スロット(分岐)にする。解除は選択肢Aを技に戻す
+window.toggleSlot = (i) => {
+  const s = draft.steps[i];
+  if (isSlot(s)) {
+    const a = s.options[0];
+    s.name = a.name || s.name; s.risk = a.risk || 3;
+    delete s.options;
+  } else {
+    s.options = [{ id: uid(), name: s.name, risk: s.risk || 3 }, { id: uid(), name: "", risk: 3 }];
+    s.name = "";
+  }
+  render();
+};
+window.setOptRisk = (i, oi, n) => { draft.steps[i].options[oi].risk = n; render(); };
+window.duplicateRoutine = async (id) => {
+  const src = state.routines.find((r) => r.id === id);
+  if (!src) return;
+  const ver = latestVersion(src);
+  let music = null;
+  if (src.music) {
+    const blob = await blobGet(src.music.blobId);
+    if (blob) { const bid = uid(); if (await blobPut(bid, blob)) music = { blobId: bid, name: src.music.name }; }
+  }
+  state.routines.push({
+    id: uid(), name: `${src.name} (コピー)`, music, copiedFrom: src.id,
+    versions: [{ id: uid(), createdAt: Date.now(),
+      steps: ver.steps.map((s) => ({ ...s, id: uid(),
+        options: s.options ? s.options.map((o) => ({ ...o, id: uid() })) : undefined })) }],
+  });
+  saveState(); draft = null; go("home");
+  toast("複製しました(記録・統計は引き継ぎません)");
+};
+window.addOpt = (i) => { draft.steps[i].options.push({ id: uid(), name: "", risk: 3 }); render(); };
+window.delOpt = (i, oi) => { draft.steps[i].options.splice(oi, 1); render(); };
 window.moveStep = (i, d) => { const [s] = draft.steps.splice(i, 1); draft.steps.splice(i + d, 0, s); render(); };
 window.delStep = (i) => { draft.steps.splice(i, 1); render(); };
 window.addStep = (kind) => { draft.steps.push({ id: uid(), name: "", kind, risk: kind === "transition" ? 2 : 3 }); render(); };
 
-// バージョン分割は「構成の変更(技名・種別・順序)」でのみ発生させる。
+// バージョン分割は「構成の変更(技名・種別・順序・選択肢)」でのみ発生させる。
 // リスク度は主観アノテーションなので、変えても統計を分割しない(在版を更新するだけ)。
-const stepsSignature = (steps) => steps.map((s) => `${s.name}|${s.kind}`).join("//");
+const stepsSignature = (steps) => steps.map((s) =>
+  `${s.name}|${s.kind}|${(s.options || []).map((o) => o.name).join("+")}`).join("//");
 
 window.attachMusic = (input) => {
   const file = input.files[0];
@@ -518,7 +589,15 @@ async function applyMusicChange(prevMusic) {
 }
 
 window.saveRoutine = async () => {
-  draft.steps = draft.steps.filter((s) => s.name.trim());
+  // スロットは選択肢名があれば残す(ラベル自体は任意)。空の選択肢は落とす
+  for (const s of draft.steps) {
+    if (Array.isArray(s.options)) {
+      s.options = s.options.filter((o) => o.name.trim());
+      if (s.options.length === 1) { s.name = s.name || s.options[0].name; s.risk = s.options[0].risk; delete s.options; }
+      else if (s.options.length === 0) delete s.options;
+    }
+  }
+  draft.steps = draft.steps.filter((s) => isSlot(s) || s.name.trim());
   if (!draft.name.trim()) return toast("ルーティン名を入れてください");
   if (draft.steps.length < 2) return toast("ステップを2つ以上登録してください");
   if (draft.id) {
@@ -549,6 +628,22 @@ window.saveRoutine = async () => {
 function activeSession(routineId) {
   return state.sessions.find((s) => s.routineId === routineId && !s.endedAt);
 }
+// スロットの現在の選択(セッションの既定値。演技中に変えたらチップで切り替える)
+function currentChoice(sess, st) {
+  return (sess && sess.slotDefaults && sess.slotDefaults[st.id]) || st.options[0].id;
+}
+function currentChoices(ver, sess) {
+  const out = {};
+  for (const st of ver.steps) if (isSlot(st)) out[st.id] = currentChoice(sess, st);
+  return Object.keys(out).length ? out : undefined;
+}
+window.setSlotChoice = (stepId, optId) => {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  const sess = activeSession(rt.id);
+  if (!sess) return;
+  sess.slotDefaults = { ...(sess.slotDefaults || {}), [stepId]: optId };
+  saveState(); render();
+};
 
 function renderRecord() {
   const rt = state.routines.find((r) => r.id === view.params.id);
@@ -598,6 +693,20 @@ function renderRecord() {
 
   const stepBtns = ver.steps.map((s, i) => {
     const hit = isOpen && openRun.events.some((e) => e.stepIndex === i);
+    if (isSlot(s)) {
+      const sel = currentChoice(sess, s);
+      const selOpt = s.options.find((o) => o.id === sel) || s.options[0];
+      const risk = selOpt.risk || 3;
+      return `<div class="step-btn slot" onclick="tapStep(${i})">
+        <span class="no">${i + 1}</span>
+        <div class="slot-body">
+          ${s.name ? `<span class="slot-label">${esc(s.name)}</span>` : ""}
+          <div class="slot-chips">${s.options.map((o) => `<button class="opt-chip ${sel === o.id ? "selected" : ""}"
+            onclick="event.stopPropagation();setSlotChoice('${s.id}','${o.id}')">${esc(o.name)}</button>`).join("")}</div>
+        </div>
+        ${hit ? `<span class="badge hit">記録済</span>` : risk >= 3 ? `<span class="badge risk-${risk}">${RISK_LABEL[risk]}</span>` : ""}
+      </div>`;
+    }
     const risk = s.risk || 3;
     return `<button class="step-btn ${s.kind}" onclick="tapStep(${i})">
       <span class="no">${i + 1}</span><span class="nm">${esc(s.name)}</span>
@@ -630,9 +739,22 @@ function renderRecord() {
 }
 
 function sheetStartSession(rt) {
+  // 前回セッションの振り返り/次回試すことを冒頭に出す(記録を次の行動につなげる)
+  const last = state.sessions
+    .filter((s) => s.routineId === rt.id && s.endedAt)
+    .sort((a, b) => b.startedAt - a.startedAt)[0];
+  const lastClean = last ? last.runs.filter((r) => r.outcome === "clean").length : 0;
+  const recap = last ? `
+    <div class="recap">
+      <div class="recap-h">前回 ${last.date} — ${last.runs.length}本 / クリーン${lastClean}</div>
+      ${last.nextPlan ? `<div class="recap-plan">▶ 前回決めた「次回試すこと」: <b>${esc(last.nextPlan)}</b></div>` : ""}
+      ${last.review ? `<div class="recap-line">振り返り: ${esc(last.review)}</div>` : ""}
+      ${last.note ? `<div class="recap-line">メモ: ${esc(last.note)}</div>` : ""}
+    </div>` : "";
   showSheet(`
     <h3>セッション開始</h3>
     <div class="sheet-sub">${esc(rt.name)} / ${today()}</div>
+    ${recap}
     <div class="tag-label">今日の体調(開始時の主観)</div>
     <div class="segmented" id="feel-grid">
       ${FEELINGS.map((f) => `<button class="choice ${f.v === 2 ? "selected" : ""}" data-v="${f.v}"
@@ -663,7 +785,9 @@ window.recordClean = () => {
   const rt = state.routines.find((r) => r.id === view.params.id);
   const sess = activeSession(rt.id);
   if (!sess) return sheetStartSession(rt);
-  sess.runs.push({ id: uid(), at: Date.now(), outcome: "clean", events: [], reachedIndex: latestVersion(rt).steps.length - 1 });
+  const verC = latestVersion(rt);
+  sess.runs.push({ id: uid(), at: Date.now(), outcome: "clean", events: [],
+    reachedIndex: verC.steps.length - 1, choices: currentChoices(verC, sess) });
   musicResetForNextRun();
   saveState(); render(); toast(`クリーン記録 (今日${sess.runs.length}本目)`);
 };
@@ -672,9 +796,10 @@ window.finishOpenRun = () => {
   const rt = state.routines.find((r) => r.id === view.params.id);
   const sess = activeSession(rt.id);
   if (!openRun || !sess) return;
+  const verF = latestVersion(rt);
   sess.runs.push({
     id: uid(), at: Date.now(), outcome: "finished",
-    events: openRun.events, reachedIndex: latestVersion(rt).steps.length - 1,
+    events: openRun.events, reachedIndex: verF.steps.length - 1, choices: currentChoices(verF, sess),
   });
   openRun = null; musicResetForNextRun();
   saveState(); render(); toast("完走(失敗あり)を記録");
@@ -701,9 +826,17 @@ window.tapStep = (stepIndex) => {
     pendingCapture.musicTime != null ? `♪ 曲 ${fmtTime(pendingCapture.musicTime)}` : "",
     pendingCapture.recTime != null ? `● 録音 ${fmtTime(pendingCapture.recTime)}` : "",
   ].filter(Boolean).join(" / ");
+  const sessNow = activeSession(rt.id);
+  const slotChips = isSlot(step) ? `
+    <div class="tag-label">どちらをやった?</div>
+    <div class="slot-chips" id="opt-grid" style="margin-bottom:12px">
+      ${step.options.map((o) => `<button class="opt-chip choice ${currentChoice(sessNow, step) === o.id ? "selected" : ""}"
+        data-o="${o.id}" onclick="selectOne('opt-grid',this)">${esc(o.name)}</button>`).join("")}
+    </div>` : "";
   showSheet(`
-    <h3>${stepIndex + 1}. ${esc(step.name)}</h3>
+    <h3>${stepIndex + 1}. ${esc(stepLabel(step))}</h3>
     <div class="sheet-sub">何が起きた?(初期値: ドロップして中止)${capBadges ? ` — <b>${capBadges}</b> を記録` : ""}</div>
+    ${slotChips}
     <div class="choice-grid" id="type-grid">
       ${EVENT_TYPES.map((t, i) => `<button class="choice ${t.abort ? "abort" : ""} ${i === 0 ? "selected" : ""}"
         data-t="${t.id}" onclick="selectOne('type-grid',this)">${t.label}<span class="d">${t.desc}</span></button>`).join("")}
@@ -729,11 +862,19 @@ window.commitEvent = (stepIndex) => {
   const note = document.getElementById("ev-note").value.trim();
   const ev = { stepId: ver.steps[stepIndex].id, stepIndex, type: typeId, tags, note, ...(pendingCapture || {}) };
   pendingCapture = null;
+  // スロットで失敗した場合: どちらをやったかを記録し、セッションの既定選択も追随させる
+  const stepObj = ver.steps[stepIndex];
+  if (isSlot(stepObj)) {
+    const optId = document.querySelector("#opt-grid .selected")?.dataset.o || currentChoice(sess, stepObj);
+    ev.optionId = optId;
+    sess.slotDefaults = { ...(sess.slotDefaults || {}), [stepObj.id]: optId };
+  }
 
   if (type.abort) {
     // 中止: 前段は成功扱い(到達済み)、後段は未到達
     const events = (openRun && openRun.routineId === rt.id) ? [...openRun.events, ev] : [ev];
-    sess.runs.push({ id: uid(), at: Date.now(), outcome: "aborted", events, reachedIndex: stepIndex });
+    sess.runs.push({ id: uid(), at: Date.now(), outcome: "aborted", events, reachedIndex: stepIndex,
+      choices: currentChoices(ver, sess) });
     openRun = null;
     musicResetForNextRun();
     toast(`中止を記録 (${stepIndex + 1}. ${ver.steps[stepIndex].name})`);
@@ -772,7 +913,9 @@ window.endSessionAsk = (routineId) => {
     <h3>セッション終了</h3>
     <div class="sheet-sub">今日 ${sess.runs.length} 本 / クリーン ${sess.runs.filter((r) => r.outcome === "clean").length} 本</div>
     <label class="fld">振り返りメモ(任意 — 気づいた仮説など)</label>
-    <textarea id="end-note" rows="3" placeholder="例: 3本目以降、腕が重くなってからリング系が怪しい"></textarea>
+    <textarea id="end-note" rows="2" placeholder="例: 3本目以降、腕が重くなってからリング系が怪しい"></textarea>
+    <label class="fld">次回試すこと(任意 — 次のセッション開始時に表示されます)</label>
+    <textarea id="end-plan" rows="2" placeholder="例: 持ち替え→ソロクラブの移行だけ10回反復してから通す"></textarea>
     <div style="height:14px"></div>
     <button class="btn primary" onclick="endSession('${routineId}')">終了する</button>
     <button class="btn ghost" onclick="hideSheet()">まだ続ける</button>`);
@@ -781,8 +924,8 @@ window.endSession = async (routineId) => {
   if (recState) await stopRecording(); // 録音中なら先に保存(セッションを閉じる前に)
   const sess = activeSession(routineId);
   sess.endedAt = Date.now();
-  const memo = document.getElementById("end-note").value.trim();
-  if (memo) sess.note = sess.note ? `${sess.note} / 振り返り: ${memo}` : `振り返り: ${memo}`;
+  sess.review = document.getElementById("end-note").value.trim();
+  sess.nextPlan = document.getElementById("end-plan").value.trim();
   saveState(); hideSheet(); go("stats", { id: routineId });
 };
 
@@ -842,19 +985,48 @@ function renderStats() {
     const timeChips = musicTimes.length
       ? `<div class="time-chips">${musicTimes.map((t) => `<span class="time-chip">♪ ${fmtTime(t)}</span>`).join("")}</div>` : "";
     // 認識と結果のズレ: 事前のリスク度(自己評価)と実際の失敗率を突き合わせる
-    const risk = s.step.risk || 3;
-    let gap = "";
-    if (s.reached >= MIN_N_FOR_PATTERN) {
-      if (risk <= 2 && s.failed >= 2 && rate >= 0.25) {
-        gap = `⚠︎ 認識とのズレ: 自己評価は<b>リスク${risk}(低め)</b>なのに失敗<b>${pct(rate)}%</b> — 思っているより難しい技かも`;
-      } else if (risk >= 4 && s.failed === 0) {
-        gap = `✓ 認識とのズレ: 自己評価は<b>リスク${risk}(高め)</b>だが失敗<b>0</b> — 思っているより安定している`;
-      }
+    const gapNote = (risk, failed, reached, r) => {
+      if (reached < MIN_N_FOR_PATTERN) return "";
+      if (risk <= 2 && failed >= 2 && r >= 0.25)
+        return `⚠︎ 認識とのズレ: 自己評価は<b>リスク${risk}(低め)</b>なのに失敗<b>${pct(r)}%</b> — 思っているより難しい技かも`;
+      if (risk >= 4 && failed === 0)
+        return `✓ 認識とのズレ: 自己評価は<b>リスク${risk}(高め)</b>だが失敗<b>0</b> — 思っているより安定している`;
+      return "";
+    };
+    const knTxt = (o) => `${o.failed}/${o.reached}${o.ci && o.reached ? ` (${pct(o.ci[0])}〜${pct(o.ci[1])}%)` : ""}`;
+    const openDetail = `onclick="go('stepdetail',{id:'${rt.id}',versionId:'${st.ver.id}',stepIndex:${s.index}})"`;
+
+    if (s.options) {
+      // スロット: 選択肢別に分母を分けて表示
+      const optRows = s.options.map((o) => {
+        const oRate = o.reached ? o.failed / o.reached : 0;
+        const oGap = gapNote(o.opt.risk || 3, o.failed, o.reached, oRate);
+        const oBar = o.ci ? `<div class="ci-bar"><div class="range" style="left:${pct(o.ci[0])}%;width:${Math.max(1, pct(o.ci[1]) - pct(o.ci[0]))}%"></div><div class="pt" style="left:${pct(oRate)}%"></div></div>` : "";
+        return `<div class="slot-opt-stat">
+          <div class="head"><span class="nm">└ ${esc(o.opt.name)}</span>
+            <span class="risk-chip risk-${o.opt.risk || 3}">${RISK_LABEL[o.opt.risk || 3]}</span>
+            <span class="kn">${knTxt(o)}</span></div>
+          ${o.reached ? oBar : ""}
+          ${oGap ? `<div class="gap-note">${oGap}</div>` : ""}
+        </div>`;
+      }).join("");
+      return `<div class="step-stat ${s.step.kind}" ${openDetail}>
+        <div class="head"><span class="nm">${s.index + 1}. ${esc(stepLabel(s.step))} <span class="slot-mark">A/B</span></span>
+          <span class="kn">${knTxt(s)} ›</span></div>
+        ${optRows}
+        ${s.choiceUnknown ? `<div class="evidence">選択未記録 ${s.choiceUnknown}本(履歴から修正できます)</div>` : ""}
+        <div class="evidence">注意: どちらを選ぶかは調子に左右されるため、選択肢同士の失敗率の直接比較には偏りがあります</div>
+        ${timeChips}
+        ${evidence ? `<div class="evidence ${evClass}">${evidence}</div>` : ""}
+      </div>`;
     }
-    return `<div class="step-stat ${s.step.kind}">
+
+    const risk = s.step.risk || 3;
+    const gap = gapNote(risk, s.failed, s.reached, rate);
+    return `<div class="step-stat ${s.step.kind}" ${openDetail}>
       <div class="head"><span class="nm">${s.index + 1}. ${esc(s.step.name)}</span>
         <span class="risk-chip risk-${risk}">${RISK_LABEL[risk]}</span>
-        <span class="kn">${s.failed}/${s.reached}${s.ci && s.reached ? ` (${pct(s.ci[0])}〜${pct(s.ci[1])}%)` : ""}</span></div>
+        <span class="kn">${knTxt(s)} ›</span></div>
       ${s.reached ? bar : ""}
       ${timeChips}
       ${gap ? `<div class="gap-note">${gap}</div>` : ""}
@@ -905,10 +1077,195 @@ function renderStats() {
     <div class="card"><h2>何本目で崩れるか</h2>${bdRows(st.byRunNo)}</div>
     <div class="card"><h2>体調別</h2>${bdRows(st.byFeeling)}</div>
     ${tagRows ? `<div class="card"><h2>原因の仮説タグ(本人の推測の集計 — 客観データではありません)</h2>${tagRows}</div>` : ""}
-    <div class="note-caveat">このアプリが示すのは「どこに偏りがあるか」までです。「なぜか」の帰属(例: 直前の大技のせい)は、順序を変えた比較実験で確かめる必要があります(フェーズ2で実装予定)。</div>
+    <div class="note-caveat">このアプリが示すのは「どこに偏りがあるか」までです。「なぜか」の帰属(例: 直前の大技のせい)は、順序を変えた比較実験で確かめる必要があります(フェーズ2で実装予定)。${st.excluded ? `<br><br>集計から除外中の通し: ${st.excluded}本(履歴から戻せます)` : ""}</div>
     <div style="height:10px"></div>
+    <button class="btn" onclick="go('history',{id:'${rt.id}'})">セッション履歴・メモを見る</button>
     <button class="btn" onclick="go('record',{id:'${rt.id}'})">この構成で記録する</button>`;
 }
+
+// ========== 技の詳細(ステップ別のミス内訳) ==========
+const typeLabel = (id) => (EVENT_TYPES.find((t) => t.id === id) || {}).label || id;
+
+function renderStepDetail() {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  if (!rt) return renderHome();
+  const ver = getVersion(rt, view.params.versionId);
+  const i = view.params.stepIndex;
+  const step = ver.steps[i];
+  if (!step) return renderStats();
+  const runs = runsOfVersion(rt.id, ver.id).filter((r) => !r.excluded);
+  const reached = runs.filter((r) => r.reachedIndex >= i).length;
+  const evs = [];
+  for (const r of runs) for (const e of r.events) if (e.stepIndex === i) evs.push({ ...e, run: r });
+  const failRuns = runs.filter((r) => r.events.some((e) => e.stepIndex === i)).length;
+  const ci = wilson(failRuns, reached);
+
+  const optName = (e) => {
+    if (!isSlot(step) || !e.optionId) return "";
+    const o = step.options.find((o2) => o2.id === e.optionId);
+    return o ? `[${o.name}] ` : "";
+  };
+  // 最新メモを上に(Codex指摘: 細かいチャートより実用価値が高い)
+  const noteRows = evs.slice().sort((a, b) => b.run.at - a.run.at).slice(0, 15).map((e) => `
+    <div class="bd-row"><span class="k">${e.run.session.date} ${optName(e)}${typeLabel(e.type)}${(e.tags || []).length ? ` / ${e.tags.join("・")}` : ""}${e.musicTime != null ? ` / ♪${fmtTime(e.musicTime)}` : ""}</span>
+      <span class="v">${e.note ? "" : ""}</span></div>
+    ${e.note ? `<div class="note-line">${esc(e.note)}</div>` : ""}`).join("");
+
+  const typeCounts = EVENT_TYPES.map((t) => ({ t, n: evs.filter((e) => e.type === t.id).length })).filter((x) => x.n);
+  const tagCounts = {};
+  for (const e of evs) for (const tg of e.tags || []) tagCounts[tg] = (tagCounts[tg] || 0) + 1;
+  const musicTimes = evs.filter((e) => e.musicTime != null).map((e) => e.musicTime).sort((a, b) => a - b);
+
+  const optBreakdown = isSlot(step) ? step.options.map((o) => {
+    const oReached = runs.filter((r) => r.reachedIndex >= i && runChoice(r, step) === o.id).length;
+    const oFailed = runs.filter((r) => r.reachedIndex >= i && runChoice(r, step) === o.id && r.events.some((e) => e.stepIndex === i)).length;
+    return `<div class="bd-row"><span class="k">${esc(o.name)}</span><span class="v">失敗 ${oFailed}/${oReached}</span></div>`;
+  }).join("") : "";
+
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}',versionId:'${ver.id}'})">戻る</button>
+      <h1>${esc(stepLabel(step))}</h1></div>
+    <div class="stat-overview" style="grid-template-columns:1fr 1fr">
+      <div class="stat-box"><div class="v">${reached}</div><div class="l">到達した通し</div></div>
+      <div class="stat-box"><div class="v">${failRuns}/${reached}</div><div class="l">失敗した通し</div>
+        <div class="ci">${ci && reached ? `95%区間 ${pct(ci[0])}〜${pct(ci[1])}%` : ""}</div></div>
+    </div>
+    ${optBreakdown ? `<div class="card"><h2>選択肢別</h2>${optBreakdown}</div>` : ""}
+    ${noteRows ? `<div class="card"><h2>この技の失敗の記録(新しい順)</h2>${noteRows}</div>` : `<div class="empty">この技の失敗記録はまだありません</div>`}
+    ${typeCounts.length ? `<div class="card"><h2>失敗の種類(全${evs.length}件中)</h2>
+      ${typeCounts.map((x) => `<div class="bd-row"><span class="k">${x.t.label}</span><span class="v">${x.n}件</span></div>`).join("")}</div>` : ""}
+    ${Object.keys(tagCounts).length ? `<div class="card"><h2>原因の仮説タグ(本人の推測・複数選択のため合計は失敗数と一致しません)</h2>
+      ${Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="bd-row"><span class="k">${esc(t)}</span><span class="v">${c}回</span></div>`).join("")}</div>` : ""}
+    ${musicTimes.length ? `<div class="card"><h2>失敗した曲位置</h2>
+      <div class="time-chips" style="margin:6px 0 10px">${musicTimes.map((t) => `<span class="time-chip">♪ ${fmtTime(t)}</span>`).join("")}</div></div>` : ""}
+    <p class="hint">これは「どこで・どう失敗したか」の観測記録です。原因の断定はできません(直前の技/位置/疲労の影響は未分離)。</p>`;
+}
+
+// ========== セッション履歴(見返し・編集) ==========
+function renderHistory() {
+  const rt = state.routines.find((r) => r.id === view.params.id);
+  if (!rt) return renderHome();
+  const sessions = state.sessions
+    .filter((s) => s.routineId === rt.id)
+    .sort((a, b) => b.startedAt - a.startedAt);
+  if (!sessions.length) {
+    return `<div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})">戻る</button>
+      <h1>履歴</h1></div><div class="empty">まだセッションがありません</div>`;
+  }
+  const blocks = sessions.map((sess) => {
+    const ver = getVersion(rt, sess.versionId);
+    const vno = rt.versions.findIndex((v) => v.id === ver.id) + 1;
+    const feel = (FEELINGS.find((f) => f.v === sess.feeling) || {}).label || "-";
+    const runRows = sess.runs.map((run, ri) => {
+      const outcomeTxt = run.outcome === "clean" ? "クリーン"
+        : run.outcome === "finished" ? "完走(失敗あり)"
+        : `中止 @${ri >= 0 && ver.steps[run.reachedIndex] ? esc(stepLabel(ver.steps[run.reachedIndex])) : "?"}`;
+      const evRows = run.events.map((e, ei) => {
+        const st = ver.steps[e.stepIndex];
+        const oName = st && isSlot(st) && e.optionId ? (st.options.find((o) => o.id === e.optionId) || {}).name : "";
+        return `<div class="ev-row" onclick="sheetEditEvent('${sess.id}','${run.id}',${ei})">
+          <span class="k">${e.stepIndex + 1}. ${st ? esc(stepLabel(st)) : "?"}${oName ? ` [${esc(oName)}]` : ""} — ${typeLabel(e.type)}${e.musicTime != null ? ` ♪${fmtTime(e.musicTime)}` : ""}</span>
+          ${(e.tags || []).length ? `<span class="ev-tags">${e.tags.join("・")}</span>` : ""}
+          ${e.note ? `<div class="note-line">${esc(e.note)}</div>` : ""}
+          <span class="ev-edit">タップで編集 ›</span>
+        </div>`;
+      }).join("");
+      // スロットの選択修正チップ(その場で変えたのに記録し損ねた通しを直す)
+      const slotFix = ver.steps.filter(isSlot).map((st) => {
+        const cur = run.choices ? run.choices[st.id] : undefined;
+        return `<div class="run-choice"><span class="k">${esc(stepLabel(st))}:</span>
+          ${st.options.map((o) => `<button class="opt-chip small ${cur === o.id ? "selected" : ""}"
+            onclick="setRunChoice('${sess.id}','${run.id}','${st.id}','${o.id}')">${esc(o.name)}</button>`).join("")}
+          ${!cur ? `<span class="ev-tags">未記録</span>` : ""}</div>`;
+      }).join("");
+      return `<div class="run-block ${run.excluded ? "excluded" : ""}">
+        <div class="head"><span class="k">${ri + 1}本目 — ${outcomeTxt}${run.editedAt ? " (編集済)" : ""}</span>
+          <button class="btn small ghost" onclick="toggleExcludeRun('${sess.id}','${run.id}')">${run.excluded ? "集計に戻す" : "集計から除外"}</button></div>
+        ${evRows}${slotFix}
+      </div>`;
+    }).join("");
+    return `<div class="card">
+      <h2>${sess.date} — v${vno} / 体調${feel} / ${sess.runs.length}本
+        <button class="btn small ghost" style="float:right" onclick="sheetEditSession('${sess.id}')">メモ編集</button></h2>
+      ${sess.note ? `<div class="note-line">条件: ${esc(sess.note)}</div>` : ""}
+      ${sess.review ? `<div class="note-line">振り返り: ${esc(sess.review)}</div>` : ""}
+      ${sess.nextPlan ? `<div class="note-line plan">次回試すこと: ${esc(sess.nextPlan)}</div>` : ""}
+      ${runRows || `<div class="hint">通しの記録なし</div>`}
+    </div>`;
+  }).join("");
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})">戻る</button>
+      <h1>${esc(rt.name)} 履歴</h1></div>
+    ${blocks}
+    <p class="hint">編集の方針: タグ・メモは自由に直せます。通しの成否そのものは書き換えず、間違えた通しは「集計から除外」して記録し直してください(統計の信頼性を守るため)。除外・編集は統計に件数表示されます。</p>`;
+}
+
+window.toggleExcludeRun = (sessId, runId) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  const run = sess && sess.runs.find((r) => r.id === runId);
+  if (!run) return;
+  if (!run.excluded && !confirm("この通しを集計から除外しますか?(データは残り、いつでも戻せます)")) return;
+  run.excluded = !run.excluded;
+  run.editedAt = Date.now();
+  saveState(); render();
+  toast(run.excluded ? "集計から除外しました" : "集計に戻しました");
+};
+window.setRunChoice = (sessId, runId, stepId, optId) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  const run = sess && sess.runs.find((r) => r.id === runId);
+  if (!run) return;
+  run.choices = { ...(run.choices || {}), [stepId]: optId };
+  run.editedAt = Date.now();
+  saveState(); render();
+};
+window.sheetEditEvent = (sessId, runId, evi) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  const run = sess.runs.find((r) => r.id === runId);
+  const e = run.events[evi];
+  showSheet(`
+    <h3>記録の編集</h3>
+    <div class="sheet-sub">${sess.date} / ${typeLabel(e.type)}(種類は変更不可 — 間違いなら通しを除外して記録し直し)</div>
+    <div class="tag-label">原因の仮説(本人の推測として保存)</div>
+    <div class="tag-row" id="edit-tag-row">
+      ${HYPOTHESIS_TAGS.map((t) => `<button class="tag ${(e.tags || []).includes(t) ? "selected" : ""}" data-t="${esc(t)}"
+        onclick="this.classList.toggle('selected')">${t}</button>`).join("")}
+    </div>
+    <label class="fld">メモ</label>
+    <input type="text" id="edit-ev-note" value="${esc(e.note || "")}">
+    <div style="height:14px"></div>
+    <button class="btn primary" onclick="commitEditEvent('${sessId}','${runId}',${evi})">保存</button>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`);
+};
+window.commitEditEvent = (sessId, runId, evi) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  const run = sess.runs.find((r) => r.id === runId);
+  const e = run.events[evi];
+  e.tags = [...document.querySelectorAll("#edit-tag-row .tag.selected")].map((el) => el.dataset.t);
+  e.note = document.getElementById("edit-ev-note").value.trim();
+  saveState(); hideSheet(); render(); toast("保存しました");
+};
+window.sheetEditSession = (sessId) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  showSheet(`
+    <h3>セッションのメモ編集</h3>
+    <div class="sheet-sub">${sess.date}</div>
+    <label class="fld">条件メモ</label>
+    <input type="text" id="edit-sess-note" value="${esc(sess.note || "")}">
+    <label class="fld">振り返り</label>
+    <textarea id="edit-sess-review" rows="2">${esc(sess.review || "")}</textarea>
+    <label class="fld">次回試すこと</label>
+    <textarea id="edit-sess-plan" rows="2">${esc(sess.nextPlan || "")}</textarea>
+    <div style="height:14px"></div>
+    <button class="btn primary" onclick="commitEditSession('${sessId}')">保存</button>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`);
+};
+window.commitEditSession = (sessId) => {
+  const sess = state.sessions.find((s) => s.id === sessId);
+  sess.note = document.getElementById("edit-sess-note").value.trim();
+  sess.review = document.getElementById("edit-sess-review").value.trim();
+  sess.nextPlan = document.getElementById("edit-sess-plan").value.trim();
+  saveState(); hideSheet(); render(); toast("保存しました");
+};
 
 // ========== 設定(バックアップ) ==========
 function renderSettings() {
@@ -959,7 +1316,7 @@ window.importJson = (input) => {
   input.value = "";
 };
 window.exportCsv = () => {
-  const rows = [["date", "routine", "version", "feeling", "session_note", "run_no", "outcome", "reached_step", "step_no", "step_name", "step_risk", "event_type", "hypothesis_tags", "event_note", "music_time_sec", "rec_time_sec"]];
+  const rows = [["date", "routine", "version", "feeling", "session_note", "run_no", "outcome", "reached_step", "excluded", "run_choices", "step_no", "step_name", "step_risk", "event_type", "hypothesis_tags", "event_note", "music_time_sec", "rec_time_sec"]];
   const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
   for (const sess of state.sessions) {
     const rt = state.routines.find((r) => r.id === sess.routineId);
@@ -967,11 +1324,19 @@ window.exportCsv = () => {
     const ver = getVersion(rt, sess.versionId);
     const vno = rt.versions.findIndex((v) => v.id === ver.id) + 1;
     sess.runs.forEach((run, i) => {
-      const base = [sess.date, rt.name, `v${vno}`, sess.feeling, sess.note, i + 1, run.outcome, run.reachedIndex + 1];
+      const choicesTxt = ver.steps.filter(isSlot).map((st) => {
+        const o = st.options.find((o2) => o2.id === (run.choices || {})[st.id]);
+        return `${stepLabel(st)}:${o ? o.name : "?"}`;
+      }).join(";");
+      const base = [sess.date, rt.name, `v${vno}`, sess.feeling, sess.note, i + 1, run.outcome, run.reachedIndex + 1,
+        run.excluded ? 1 : "", choicesTxt];
       if (!run.events.length) rows.push([...base, "", "", "", "", "", "", "", ""]);
       for (const e of run.events) {
         const st = ver.steps[e.stepIndex];
-        rows.push([...base, e.stepIndex + 1, st ? st.name : "?", st ? (st.risk || 3) : "", e.type, (e.tags || []).join(";"), e.note,
+        const opt = st && isSlot(st) && e.optionId ? st.options.find((o) => o.id === e.optionId) : null;
+        const stName = st ? (opt ? `${stepLabel(st)}→${opt.name}` : stepLabel(st)) : "?";
+        const stRisk = st ? (opt ? (opt.risk || 3) : (st.risk || 3)) : "";
+        rows.push([...base, e.stepIndex + 1, stName, stRisk, e.type, (e.tags || []).join(";"), e.note,
           e.musicTime != null ? e.musicTime.toFixed(1) : "", e.recTime != null ? e.recTime.toFixed(1) : ""]);
       }
     });
