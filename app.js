@@ -263,6 +263,7 @@ function updateMusicUI() {
   if (tg) tg.innerHTML = musicPlayer.paused ? "▶ 再生" : "❚❚ 一時停止";
   const vol = document.getElementById("music-vol");
   if (vol && !vol.matches(":active")) vol.value = musicVolume;
+  if (view.name === "builder") builderTickUI(); // タイムラインのプレイヘッドと現在技
 }
 ["timeupdate", "loadedmetadata", "play", "pause", "ended"].forEach((ev) =>
   musicPlayer.addEventListener(ev, updateMusicUI));
@@ -412,6 +413,7 @@ function go(name, params = {}) {
   }
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
+  if (view.name === "builder" && name !== "builder") musicPlayer.pause();
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   // 技撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
@@ -421,7 +423,8 @@ function go(name, params = {}) {
 function render() {
   const r = { home: renderHome, routines: renderRoutines, edit: renderEdit, record: renderRecord,
     stats: renderStats, settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail,
-    part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec }[view.name];
+    part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec,
+    builder: renderBuilder }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
@@ -473,6 +476,7 @@ function renderRoutines() {
       ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
+    <button class="btn" onclick="go('builder')">♪ タイムラインで組む</button>
 `;
 }
 
@@ -1739,6 +1743,207 @@ function renderTrickRec() {
       </button>`}`;
 }
 
+// ========== 構成ビルダー(RDB-05③: 技を音楽タイムラインに配置してルーティンを組む) ==========
+// 作業内容は state.builder に永続化(1ワークスペース)。書き出すと通常のルーティンになる
+function builderState() {
+  if (!state.builder) state.builder = { music: null, items: [] };
+  return state.builder;
+}
+const round1 = (x) => Math.round(x * 10) / 10;
+function builderStarts(b) { let t = 0; return b.items.map((x) => { const s = t; t += x.duration; return s; }); }
+function builderTotal(b) { return round1(b.items.reduce((a, x) => a + x.duration, 0)); }
+
+async function loadBuilderMusic() {
+  const b = builderState();
+  if (!b.music) return;
+  musicMissing = false;
+  const blob = await blobGet(b.music.blobId);
+  if (!blob) { musicMissing = true; musicLoadedFor = "builder"; if (view.name === "builder") render(); return; }
+  if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
+  musicObjectUrl = URL.createObjectURL(blob);
+  musicPlayer.src = musicObjectUrl;
+  musicLoadedFor = "builder";
+  if (view.name === "builder") render();
+  musicPlayer.addEventListener("loadedmetadata", () => {
+    if (view.name === "builder") render(); // タイムライン帯の縮尺に曲の長さが必要
+  }, { once: true });
+}
+window.builderAttachMusic = async (input) => {
+  const file = input.files[0];
+  input.value = "";
+  if (!file) return;
+  if (file.size > 40 * 1024 * 1024) return toast("40MB以下の音源にしてください");
+  const b = builderState();
+  const blobId = uid();
+  if (!(await blobPut(blobId, file))) return toast("音源を保存できませんでした");
+  if (b.music) blobDel(b.music.blobId);
+  b.music = { blobId, name: file.name };
+  musicLoadedFor = null;
+  saveState();
+  loadBuilderMusic();
+};
+window.builderPickTrick = () => {
+  const tricks = (state.tricks || []).slice().sort((a, b2) => b2.createdAt - a.createdAt);
+  if (!tricks.length) {
+    return showSheet(`
+      <h3>技を配置</h3>
+      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+  }
+  showSheet(`
+    <h3>技を配置</h3>
+    <div class="sheet-sub">タップで末尾に追加 / ▶で動画を確認</div>
+    ${tricks.map((t) => `
+      <div class="pick-trick-row" onclick="builderAddTrick('${t.id}')">
+        <span class="nm">${esc(t.name)}</span>
+        <span class="kn">${t.duration.toFixed(1)}s</span>
+        <button class="mini-btn play" onclick="event.stopPropagation();playTrickVideo('${t.id}')">▶</button>
+      </div>`).join("")}
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+};
+window.builderAddTrick = (trickId) => {
+  const t = (state.tricks || []).find((x) => x.id === trickId);
+  if (!t) return;
+  builderState().items.push({ id: uid(), trickId: t.id, name: t.name, duration: round1(t.duration) });
+  saveState(); hideSheet(); render();
+};
+window.builderAddGap = () => {
+  builderState().items.push({ id: uid(), trickId: null, name: "間", duration: 2 });
+  saveState(); render();
+};
+window.builderAdjDur = (i, d) => {
+  const item = builderState().items[i];
+  item.duration = Math.max(0.5, round1(item.duration + d));
+  saveState(); render();
+};
+window.builderMove = (i, d) => {
+  const items = builderState().items;
+  const [x] = items.splice(i, 1);
+  items.splice(i + d, 0, x);
+  saveState(); render();
+};
+window.builderDel = (i) => { builderState().items.splice(i, 1); saveState(); render(); };
+window.builderSeekItem = (i) => {
+  const b = builderState();
+  if (!b.music || musicLoadedFor !== "builder" || musicMissing) return;
+  musicPlayer.currentTime = builderStarts(b)[i];
+  ensureAudioGraph();
+  musicPlayer.play();
+};
+window.builderClearAsk = () => {
+  if (!confirm("タイムラインを空にしますか?(音源は残ります)")) return;
+  builderState().items = [];
+  saveState(); render();
+};
+// 再生位置に合わせて現在の技をハイライト(再描画せずDOMだけ更新)
+function builderTickUI() {
+  const b = state.builder;
+  if (!b) return;
+  const cur = musicPlayer.currentTime;
+  const starts = builderStarts(b);
+  let active = -1;
+  for (let i = 0; i < b.items.length; i++) {
+    if (cur >= starts[i] && cur < starts[i] + b.items[i].duration) { active = i; break; }
+  }
+  document.querySelectorAll(".bi-row").forEach((el, i) => el.classList.toggle("current", i === active));
+  const ph = document.getElementById("tl-playhead");
+  if (ph && isFinite(musicPlayer.duration) && musicPlayer.duration > 0) {
+    ph.style.left = `${Math.min(100, (cur / musicPlayer.duration) * 100)}%`;
+  }
+  const now = document.getElementById("b-now");
+  if (now) now.textContent = active >= 0 ? b.items[active].name : "";
+}
+window.builderExportAsk = () => {
+  const b = builderState();
+  if (b.items.length < 2) return toast("ステップを2つ以上配置してください");
+  showSheet(`
+    <h3>ルーティンとして書き出し</h3>
+    <div class="sheet-sub">通し練習・分析ができる通常のルーティンになります(タイムラインは残ります)</div>
+    <input type="text" id="builder-name" value="新ルーティン ${today()}">
+    <div style="height:14px"></div>
+    <button class="btn primary" onclick="builderExport()">書き出す</button>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`);
+};
+window.builderExport = async () => {
+  const b = builderState();
+  const name = document.getElementById("builder-name").value.trim() || `新ルーティン ${today()}`;
+  let music = null;
+  if (b.music) {
+    const blob = await blobGet(b.music.blobId);
+    if (blob) { const bid = uid(); if (await blobPut(bid, blob)) music = { blobId: bid, name: b.music.name }; }
+  }
+  const steps = b.items.map((it) => it.trickId
+    ? { id: uid(), name: it.name, kind: "trick", risk: 3, trickId: it.trickId }
+    : { id: uid(), name: it.name, kind: "transition", risk: 2 });
+  state.routines.push({ id: uid(), name, music,
+    versions: [{ id: uid(), createdAt: Date.now(), steps }] });
+  saveState(); hideSheet(); go("routines");
+  toast(`「${name}」を作成しました`);
+};
+
+function renderBuilder() {
+  const b = builderState();
+  if (b.music && musicLoadedFor !== "builder") setTimeout(loadBuilderMusic, 0);
+  const songDur = musicLoadedFor === "builder" && isFinite(musicPlayer.duration) ? musicPlayer.duration : null;
+  const starts = builderStarts(b);
+  const total = builderTotal(b);
+  const over = songDur && total > songDur + 0.5;
+
+  // タイムラインバー(曲の長さに対する各技の帯)
+  const base = songDur || Math.max(total, 1);
+  const segs = b.items.map((it, i) => {
+    const left = (starts[i] / base) * 100;
+    const w = Math.max(0.5, (it.duration / base) * 100);
+    return `<div class="tl-seg ${it.trickId ? "" : "gap"}" style="left:${left}%;width:${Math.min(w, 100 - left)}%" title="${esc(it.name)}"></div>`;
+  }).join("");
+
+  const rows = b.items.map((it, i) => `
+    <div class="bi-row" onclick="builderSeekItem(${i})">
+      <span class="bi-time">♪${fmtTime(starts[i])}</span>
+      <span class="nm">${it.trickId ? "" : "␣ "}${esc(it.name)}</span>
+      <span class="kn">${it.duration.toFixed(1)}s</span>
+      ${it.trickId
+        ? `<button class="mini-btn play" onclick="event.stopPropagation();playTrickVideo('${it.trickId}')">▶</button>`
+        : `<button class="mini-btn" onclick="event.stopPropagation();builderAdjDur(${i},-0.5)">−</button>
+           <button class="mini-btn" onclick="event.stopPropagation();builderAdjDur(${i},0.5)">＋</button>`}
+      <button class="mini-btn" onclick="event.stopPropagation();builderMove(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
+      <button class="mini-btn" onclick="event.stopPropagation();builderMove(${i},1)" ${i === b.items.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="mini-btn del" onclick="event.stopPropagation();builderDel(${i})">✕</button>
+    </div>`).join("");
+
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
+      <h1>タイムラインで組む</h1></div>
+    <div class="card music-card">
+      ${b.music ? (musicMissing && musicLoadedFor === "builder"
+        ? `<div class="hint">♪ 音源データが見つかりません。再添付してください。</div>
+           <button class="btn small" onclick="document.getElementById('builder-music').click()">音源を添付</button>`
+        : `<div class="music-name">♪ ${esc(b.music.name)}</div>
+           <div class="music-time big"><span id="music-cur">${fmtTimeFine(musicPlayer.currentTime)}</span><span class="dur"> / <span id="music-dur">${fmtTime(musicPlayer.duration)}</span></span></div>
+           <div class="tl-bar">${segs}<div id="tl-playhead"></div></div>
+           <div class="b-now-line" id="b-now"></div>
+           <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
+           <div class="music-controls">
+             <button class="music-pill primary" id="music-toggle-pill" onclick="ensureAudioGraph();musicToggle()">▶ 再生</button>
+             <button class="music-pill" onclick="musicStop()">■ 停止</button>
+           </div>`)
+      : `<button class="btn small" onclick="document.getElementById('builder-music').click()">＋ 音源を添付(MP3等)</button>`}
+      <input type="file" id="builder-music" accept="audio/*" class="hidden" onchange="builderAttachMusic(this)">
+    </div>
+    <div class="card">
+      <h2>構成 (合計 ${fmtTime(total)}${songDur ? ` / 曲 ${fmtTime(songDur)}` : ""})${over ? ` <span style="color:var(--danger)">曲より長い</span>` : ""}</h2>
+      ${rows || `<div class="empty">「＋ 技を配置」で技ライブラリから並べていきます。<br>行をタップするとその技の曲位置から再生されます。</div>`}
+      <div class="row-2" style="margin:12px 0 10px">
+        <button class="btn small" onclick="builderPickTrick()">＋ 技を配置</button>
+        <button class="btn small ghost" onclick="builderAddGap()">＋ 間(2秒)</button>
+      </div>
+    </div>
+    <button class="btn primary" onclick="builderExportAsk()">ルーティンとして書き出す</button>
+    ${b.items.length ? `<button class="btn ghost" onclick="builderClearAsk()">タイムラインを空にする</button>` : ""}`;
+}
+
 // ========== 使い方(UIから追い出した説明の集約先) ==========
 function renderHelp() {
   return `
@@ -1779,6 +1984,10 @@ function renderHelp() {
     <div class="card">
       <h2>技ライブラリ</h2>
       <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。紐づいた技は、編集・通し練習・技の詳細の各画面にある<b>▶</b>からワンタップで動画を確認できます(通し練習では▶を押しても失敗記録にはなりません)。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+    </div>
+    <div class="card">
+      <h2>タイムラインで組む(構成ビルダー)</h2>
+      <div class="help-body">ルーティン一覧の「♪ タイムラインで組む」から。音源を添付し、技ライブラリの技を順に配置すると、<b>各技が曲の何分何秒に当たるか</b>が自動で計算されます。技と技の間には「間」(長さ調整可)を挟めます。<br><br>再生すると緑のプレイヘッドがタイムライン上を動き、いま曲のどこ=どの技かがハイライトされます。行をタップするとその技の曲位置から再生。<br><br>組み上がったら「ルーティンとして書き出す」で通常のルーティンになり、そのまま通し練習・分析に使えます(タイムラインの作業内容は残ります)。</div>
     </div>
     <div class="card">
       <h2>データの保存</h2>
