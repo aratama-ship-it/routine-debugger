@@ -568,6 +568,8 @@ function renderEdit() {
       <div class="es-row2">
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
         <button class="kind-toggle ${isSlot(s) ? "t" : ""}" onclick="toggleSlot(${i})">${isSlot(s) ? "A/B解除" : "A/B化"}</button>
+        ${s.trickId && (state.tricks || []).some((t) => t.id === s.trickId)
+          ? `<button class="mini-btn play" onclick="playTrickVideo('${s.trickId}')">▶</button>` : ""}
         <span class="es-spacer"></span>
         <button class="mini-btn" onclick="moveStep(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
         <button class="mini-btn" onclick="moveStep(${i},1)" ${i === draft.steps.length - 1 ? "disabled" : ""}>↓</button>
@@ -603,6 +605,7 @@ function renderEdit() {
       ${stepRows || `<div class="empty">「＋ 技」で最初の技を追加</div>`}
       <div class="row-2" style="margin-top:12px">
         <button class="btn small" onclick="addStep('trick')">＋ 技</button>
+        <button class="btn small" onclick="sheetPickTrick()">＋ 技リストから</button>
         <button class="btn small ghost" onclick="addStep('transition')">＋ 移行</button>
       </div>
     </div>
@@ -657,6 +660,36 @@ window.delOpt = (i, oi) => { draft.steps[i].options.splice(oi, 1); render(); };
 window.moveStep = (i, d) => { const [s] = draft.steps.splice(i, 1); draft.steps.splice(i + d, 0, s); render(); };
 window.delStep = (i) => { draft.steps.splice(i, 1); render(); };
 window.addStep = (kind) => { draft.steps.push({ id: uid(), name: "", kind, risk: kind === "transition" ? 2 : 3 }); render(); };
+
+// 技ライブラリから選んでステップに追加(trickIdで動画に紐づく)
+window.sheetPickTrick = () => {
+  const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+  if (!tricks.length) {
+    return showSheet(`
+      <h3>技リストから追加</h3>
+      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+  }
+  showSheet(`
+    <h3>技リストから追加</h3>
+    <div class="sheet-sub">タップで追加 / ▶で動画を確認</div>
+    ${tricks.map((t) => `
+      <div class="pick-trick-row" onclick="addStepFromTrick('${t.id}')">
+        <span class="nm">${esc(t.name)}</span>
+        <span class="kn">${fmtTime(t.duration)}</span>
+        <button class="mini-btn play" onclick="event.stopPropagation();playTrickVideo('${t.id}',true)">▶</button>
+      </div>`).join("")}
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+};
+window.addStepFromTrick = (trickId) => {
+  const t = (state.tricks || []).find((x) => x.id === trickId);
+  if (!t || !draft) return hideSheet();
+  draft.steps.push({ id: uid(), name: t.name, kind: "trick", risk: 3, trickId: t.id });
+  hideSheet(); render();
+  toast(`「${t.name}」を追加しました`);
+};
 
 // バージョン分割は「構成の変更(技名・種別・順序・選択肢)」でのみ発生させる。
 // リスク度は主観アノテーションなので、変えても統計を分割しない(在版を更新するだけ)。
@@ -805,10 +838,12 @@ function renderRecord() {
       </div>`;
     }
     const risk = s.risk || 3;
-    return `<button class="step-btn ${s.kind}" onclick="tapStep(${i})">
+    const hasVideo = s.trickId && (state.tricks || []).some((t) => t.id === s.trickId);
+    return `<div class="step-btn ${s.kind}" onclick="tapStep(${i})">
       <span class="no">${i + 1}</span><span class="nm">${esc(s.name)}</span>
+      ${hasVideo ? `<button class="mini-btn play" onclick="event.stopPropagation();playTrickVideo('${s.trickId}')">▶</button>` : ""}
       ${hit ? `<span class="badge hit">記録済</span>` : risk >= 3 ? `<span class="badge risk-${risk}">${RISK_LABEL[risk]}</span>` : ""}
-    </button>`;
+    </div>`;
   }).join("");
 
   return `
@@ -1343,6 +1378,8 @@ function renderStepDetail() {
       <div class="stat-box"><div class="v">${failRuns}/${reached}</div><div class="l">失敗した通し</div>
         <div class="ci">${ci && reached ? `95%区間 ${pct(ci[0])}〜${pct(ci[1])}%` : ""}</div></div>
     </div>
+    ${step.trickId && (state.tricks || []).some((t) => t.id === step.trickId)
+      ? `<button class="btn" onclick="playTrickVideo('${step.trickId}')">▶ 技の動画を見る</button>` : ""}
     ${optBreakdown ? `<div class="card"><h2>選択肢別</h2>${optBreakdown}</div>` : ""}
     ${noteRows ? `<div class="card"><h2>この技の失敗の記録(新しい順)</h2>${noteRows}</div>` : `<div class="empty">この技の失敗記録はまだありません</div>`}
     ${typeCounts.length ? `<div class="card"><h2>失敗の種類(全${evs.length}件中)</h2>
@@ -1514,6 +1551,25 @@ function renderTricks() {
       ${rows || `<div class="empty">まだ技がありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
     </div>`;
 }
+
+// 技動画をシートで再生(どの画面からでもワンタップ)。fromPicker=trueなら「この技を追加」を出す
+let sheetVideoUrl = null;
+window.playTrickVideo = async (trickId, fromPicker) => {
+  const t = (state.tricks || []).find((x) => x.id === trickId);
+  if (!t) return toast("動画が見つかりません(技ライブラリから削除されています)");
+  const blob = await blobGet(t.blobId);
+  if (!blob) return toast("動画データが見つかりません");
+  if (sheetVideoUrl) URL.revokeObjectURL(sheetVideoUrl);
+  sheetVideoUrl = URL.createObjectURL(blob);
+  showSheet(`
+    <h3>${esc(t.name)}</h3>
+    <div class="sheet-sub">${fmtTime(t.duration)}</div>
+    <video class="trick-video" style="margin-top:0" src="${sheetVideoUrl}" controls autoplay playsinline loop></video>
+    <div style="height:14px"></div>
+    ${fromPicker ? `<button class="btn primary" onclick="addStepFromTrick('${t.id}')">この技をルーティンに追加</button>
+      <button class="btn ghost" onclick="sheetPickTrick()">技リストに戻る</button>`
+    : `<button class="btn ghost" onclick="hideSheet()">閉じる</button>`}`);
+};
 
 window.trickPlay = async (id) => {
   if (trickPlayingId === id) { trickPlayingId = null; render(); return; }
@@ -1722,7 +1778,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。紐づいた技は、編集・通し練習・技の詳細の各画面にある<b>▶</b>からワンタップで動画を確認できます(通し練習では▶を押しても失敗記録にはなりません)。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>データの保存</h2>

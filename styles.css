@@ -373,6 +373,14 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .trick-video.main { margin-top: 0; aspect-ratio: 16/9; object-fit: cover; }
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .clean-btn.recording { background: var(--danger); color: #fff; }
+.mini-btn.play { color: var(--accent); background: var(--accent-tint); font-size: 12px; }
+.pick-trick-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px;
+  border-bottom: var(--hairline) solid var(--sep); cursor: pointer; }
+.pick-trick-row:last-of-type { border-bottom: none; }
+.pick-trick-row:active { background: var(--card3); }
+.pick-trick-row .nm { flex: 1; font-size: 16px; font-weight: 500; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-trick-row .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .center { text-align: center; }
 .row-2 { display: flex; gap: 10px; }
 .row-2 > * { flex: 1; }
