@@ -348,6 +348,8 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 @keyframes toastin { from { transform: translate(-50%, 10px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
 .empty { text-align: center; color: var(--muted); padding: 34px 10px; font-size: 14px; line-height: 1.7; }
+.help-body { font-size: 14px; color: var(--text); line-height: 1.8; padding: 2px 0 14px; }
+.help-body b { color: var(--accent); font-weight: 600; }
 .center { text-align: center; }
 .row-2 { display: flex; gap: 10px; }
 .row-2 > * { flex: 1; }

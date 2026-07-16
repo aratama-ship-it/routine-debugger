@@ -417,7 +417,8 @@ function go(name, params = {}) {
 
 function render() {
   const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats,
-    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail, part: renderPart }[view.name];
+    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail, part: renderPart,
+    help: renderHelp }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
@@ -442,13 +443,14 @@ function renderHome() {
   }).join("");
   return `
     <div class="topbar"><h1>ルーティン・デバッガ</h1>
+      <button class="nav-action" onclick="go('help')">使い方</button>
       <button class="nav-action" onclick="go('settings')">設定</button></div>
     <div class="card">
       <h2>ルーティン</h2>
       ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
-    <p class="hint">β版: 通し練習(ラン)を「クリーン1タップ / 失敗1タップ」で記録し、どこで落ちるかの偏りを見るためのアプリです。ルーティンの行を左にスワイプすると削除できます。</p>`;
+`;
 }
 
 // ルーティン削除(行の左スワイプ→削除)。セッション記録・音源・録音Blobまで完全に消す
@@ -580,7 +582,6 @@ function renderEdit() {
         <button class="btn small" onclick="addStep('trick')">＋ 技</button>
         <button class="btn small ghost" onclick="addStep('transition')">＋ 移行</button>
       </div>
-      <p class="hint">「移行」= 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップとして入れておくと分析対象になります。<br><br>「リスク度(1〜5)」=「この技はどれくらい失敗しそうか」という自分の感覚(事前予想)。実際の失敗率とのズレ(＝思い込みと結果の乖離)を分析画面で見るための指標です。編集で変更できますが、結果を見た後に数字を合わせに行くとズレが消えてしまうので、基本は最初の感覚のまま残すのがおすすめ。</p>
     </div>
     <div class="card">
       <h2>楽曲(任意)</h2>
@@ -589,11 +590,9 @@ function renderEdit() {
              <button class="btn small danger-ghost" onclick="removeMusic()">削除</button></div>`
         : `<button class="btn small" onclick="document.getElementById('music-file').click()">＋ 音源を添付(MP3等)</button>`}
       <input type="file" id="music-file" accept="audio/*" class="hidden" onchange="attachMusic(this)">
-      <p class="hint">曲に合わせて演技する場合に添付。記録画面で再生でき、失敗をタップした瞬間の曲位置(♪1:23など)が一緒に記録されます。音源はこの端末のブラウザ内にのみ保存され、JSONバックアップには含まれません。</p>
     </div>
     <button class="btn primary" onclick="saveRoutine()">保存</button>
-    ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>
-    <p class="hint">※ 記録済みの通しがある状態でステップ構成を変えると、新しいバージョン(v${rt.versions.length + 1})が作られ、分析は分かれます。順序や構成が違うデータを混ぜると条件付きの失敗率が壊れるためです。複製は「好調版/安牌版」のように別ルーティンとして育てたいときに(記録・分析データは引き継ぎません)。</p>` : ""}`;
+    ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>` : ""}`;
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.setRisk = (i, n) => { draft.steps[i].risk = n; render(); };
@@ -751,8 +750,7 @@ function renderRecord() {
              <span class="vol-ico">🔈</span>
              <input type="range" id="music-vol" min="0" max="1" step="0.02" value="${musicVolume}" oninput="musicSetVolume(this.value)">
              <span class="vol-ico">🔊</span>
-           </div>
-           <div class="hint" style="margin-top:8px">使い方: 通しを始めるとき「▶ 再生」(曲は毎回頭から) → 失敗したら下の技をタップ=曲は自動停止し、その瞬間の曲位置が記録されます。クリーン/中止を記録すると曲は自動で頭に戻ります。</div>`}
+           </div>`}
     </div>` : "";
 
   // 録音コントロール
@@ -764,10 +762,7 @@ function renderRecord() {
              <div class="music-time"><span class="rec-dot"></span><span id="rec-elapsed">0:00.0</span></div>
              <span class="hint" style="margin:0">録音中 — 停止で保存</span>
            </div>`
-        : `<div class="music-row">
-             <button class="btn small" style="flex-shrink:0" onclick="toggleRecording()">● 練習を録音する</button>
-             <span class="hint" style="margin:0;flex:1">失敗タップに録音内の位置も残ります</span>
-           </div>`}
+        : `<button class="btn small" onclick="toggleRecording()">● 練習を録音する</button>`}
     </div>`;
 
   const stepBtns = ver.steps.map((s, i) => {
@@ -920,7 +915,7 @@ window.tapStep = (stepIndex) => {
       ${EVENT_TYPES.map((t, i) => `<button class="choice ${t.abort ? "abort" : ""} ${i === 0 ? "selected" : ""}"
         data-t="${t.id}" onclick="selectOne('type-grid',this)">${t.label}<span class="d">${t.desc}</span></button>`).join("")}
     </div>
-    <div class="tag-label">原因の仮説(任意 — これは観測ではなく本人の推測として保存されます)</div>
+    <div class="tag-label">原因の仮説(任意)</div>
     <div class="tag-row" id="tag-row">
       ${HYPOTHESIS_TAGS.map((t) => `<button class="tag" data-t="${esc(t)}" onclick="this.classList.toggle('selected')">${t}</button>`).join("")}
     </div>
@@ -1045,9 +1040,9 @@ function renderStats() {
     const rate = s.reached ? s.failed / s.reached : 0;
     let evidence, evClass = "";
     if (s.reached < MIN_N_FOR_PATTERN) {
-      evidence = `観測不足(到達${s.reached}本) — 件数のみ参考`;
+      evidence = `観測不足(到達${s.reached}本)`;
     } else if (s.ci && s.ci[0] > overallFailRate && s.failed >= 2) {
-      evidence = "パターン候補 — 偏りあり。ただし直前の技/位置/疲労の影響は未分離";
+      evidence = "パターン候補(直前の技/位置/疲労は未分離)";
       evClass = "candidate";
     } else {
       evidence = "";
@@ -1093,8 +1088,8 @@ function renderStats() {
         <div class="head"><span class="nm">${s.index + 1}. ${esc(stepLabel(s.step))} <span class="slot-mark">A/B</span></span>
           <span class="kn">${knTxt(s)} ›</span></div>
         ${optRows}
-        ${s.choiceUnknown ? `<div class="evidence">選択未記録 ${s.choiceUnknown}本(履歴から修正できます)</div>` : ""}
-        <div class="evidence">注意: どちらを選ぶかは調子に左右されるため、選択肢同士の失敗率の直接比較には偏りがあります</div>
+        ${s.choiceUnknown ? `<div class="evidence">選択未記録 ${s.choiceUnknown}本(履歴から修正可)</div>` : ""}
+        <div class="evidence">※選択肢間の失敗率の直接比較には偏りがあります</div>
         ${timeChips}
         ${evidence ? `<div class="evidence ${evClass}">${evidence}</div>` : ""}
       </div>`;
@@ -1150,13 +1145,12 @@ function renderStats() {
     <div class="card">
       <h2>ステップ別の失敗 (分母 = そのステップに到達した通し数)</h2>
       ${stepRows}
-      <div class="note-caveat">数字の読み方: 「2/6 (9〜65%)」= 到達6本中2回失敗、真の失敗率の95%区間は9〜65%。本数が少ないうちは幅が広い=まだ断定できない、という意味です。0/3は「失敗率0%」ではありません。<br><br>各ステップの色付きチップは事前に自分で付けた<b>リスク度(自己評価)</b>。実際の失敗率と見比べて、認識と結果がズレている技には注意書きが出ます(到達${MIN_N_FOR_PATTERN}本以上のときのみ)。</div>
     </div>
     ${recCard}
     <div class="card"><h2>何本目で崩れるか</h2>${bdRows(st.byRunNo)}</div>
     <div class="card"><h2>体調別</h2>${bdRows(st.byFeeling)}</div>
-    ${tagRows ? `<div class="card"><h2>原因の仮説タグ(本人の推測の集計 — 客観データではありません)</h2>${tagRows}</div>` : ""}
-    <div class="note-caveat">このアプリが示すのは「どこに偏りがあるか」までです。「なぜか」の帰属(例: 直前の大技のせい)は、順序を変えた比較実験で確かめる必要があります(フェーズ2で実装予定)。${st.excluded ? `<br><br>集計から除外中の通し: ${st.excluded}本(履歴から戻せます)` : ""}</div>
+    ${tagRows ? `<div class="card"><h2>原因の仮説タグ(推測の集計)</h2>${tagRows}</div>` : ""}
+    ${st.excluded ? `<div class="note-caveat">集計から除外中の通し: ${st.excluded}本(履歴から戻せます)</div>` : ""}
     <div style="height:10px"></div>
     <button class="btn" onclick="go('history',{id:'${rt.id}'})">セッション履歴・メモを見る</button>
     <button class="btn" onclick="go('record',{id:'${rt.id}'})">この構成で通し練習する</button>`;
@@ -1267,7 +1261,7 @@ function renderPart() {
       </div>
     </div>
     <div class="card">
-      <h2>ループ区間 (曲を再生しながら「今の位置」で設定)</h2>
+      <h2>ループ区間</h2>
       ${pointRow("a", rt.partLoop && rt.partLoop.a != null ? rt.partLoop.a : 0, "A 始点")}
       ${pointRow("b", rt.partLoop ? rt.partLoop.b : null, "B 終点")}
       ${abInvalid ? `<div class="gap-note">⚠︎ 終点Bが始点Aより前です。ループしません。</div>` : ""}
@@ -1276,7 +1270,6 @@ function renderPart() {
         <button class="btn ${partLoopActive ? "ok" : ""}" style="margin:0" onclick="partToggleLoop()">ループ ${partLoopActive ? "ON" : "OFF"}</button>
       </div>
       ${rt.partLoop ? `<button class="btn ghost" style="margin-top:10px" onclick="partClear()">区間をリセット</button>` : ""}
-      <p class="hint">Bに達すると自動でAに戻ります(ループON時)。区間はこのルーティンに保存されます。パート練習の結果は分析データには入りません(通しと条件が違うため)。失敗を記録したいときは通し練習を使ってください。</p>
     </div>`;
 }
 
@@ -1331,11 +1324,11 @@ function renderStepDetail() {
     ${noteRows ? `<div class="card"><h2>この技の失敗の記録(新しい順)</h2>${noteRows}</div>` : `<div class="empty">この技の失敗記録はまだありません</div>`}
     ${typeCounts.length ? `<div class="card"><h2>失敗の種類(全${evs.length}件中)</h2>
       ${typeCounts.map((x) => `<div class="bd-row"><span class="k">${x.t.label}</span><span class="v">${x.n}件</span></div>`).join("")}</div>` : ""}
-    ${Object.keys(tagCounts).length ? `<div class="card"><h2>原因の仮説タグ(本人の推測・複数選択のため合計は失敗数と一致しません)</h2>
+    ${Object.keys(tagCounts).length ? `<div class="card"><h2>原因の仮説タグ(複数選択・推測)</h2>
       ${Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="bd-row"><span class="k">${esc(t)}</span><span class="v">${c}回</span></div>`).join("")}</div>` : ""}
     ${musicTimes.length ? `<div class="card"><h2>失敗した曲位置</h2>
       <div class="time-chips" style="margin:6px 0 10px">${musicTimes.map((t) => `<span class="time-chip">♪ ${fmtTime(t)}</span>`).join("")}</div></div>` : ""}
-    <p class="hint">これは「どこで・どう失敗したか」の観測記録です。原因の断定はできません(直前の技/位置/疲労の影響は未分離)。</p>`;
+    `;
 }
 
 // ========== セッション履歴(見返し・編集) ==========
@@ -1394,7 +1387,7 @@ function renderHistory() {
     <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})">戻る</button>
       <h1>${esc(rt.name)} 履歴</h1></div>
     ${blocks}
-    <p class="hint">編集の方針: タグ・メモは自由に直せます。通しの成否そのものは書き換えず、間違えた通しは「集計から除外」して記録し直してください(分析の信頼性を守るため)。除外・編集は分析に件数表示されます。</p>`;
+    `;
 }
 
 window.toggleExcludeRun = (sessId, runId) => {
@@ -1421,8 +1414,8 @@ window.sheetEditEvent = (sessId, runId, evi) => {
   const e = run.events[evi];
   showSheet(`
     <h3>記録の編集</h3>
-    <div class="sheet-sub">${sess.date} / ${typeLabel(e.type)}(種類は変更不可 — 間違いなら通しを除外して記録し直し)</div>
-    <div class="tag-label">原因の仮説(本人の推測として保存)</div>
+    <div class="sheet-sub">${sess.date} / ${typeLabel(e.type)}(種類は変更不可)</div>
+    <div class="tag-label">原因の仮説</div>
     <div class="tag-row" id="edit-tag-row">
       ${HYPOTHESIS_TAGS.map((t) => `<button class="tag ${(e.tags || []).includes(t) ? "selected" : ""}" data-t="${esc(t)}"
         onclick="this.classList.toggle('selected')">${t}</button>`).join("")}
@@ -1464,6 +1457,49 @@ window.commitEditSession = (sessId) => {
   saveState(); hideSheet(); render(); toast("保存しました");
 };
 
+// ========== 使い方(UIから追い出した説明の集約先) ==========
+function renderHelp() {
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>使い方</h1></div>
+    <div class="card">
+      <h2>このアプリ</h2>
+      <div class="help-body">通し練習を「クリーン1タップ / 失敗1タップ」で記録して、ルーティンの<b>どこで落ちるか</b>の偏りを見るためのアプリです。ホームの行を左にスワイプするとルーティンを削除できます。</div>
+    </div>
+    <div class="card">
+      <h2>通し練習の流れ</h2>
+      <div class="help-body">
+        1. セッション開始(体調と条件メモ)<br>
+        2. 通しがノーミスなら「クリーン」を1タップ<br>
+        3. 失敗したら、落ちた技をタップ → 種類を選ぶ(初期値: ドロップして中止)。中止なら前の技まで成功・後ろは未到達として自動処理。復帰して続けたら最後に「完走」<br>
+        4. 終わったら「セッション終了」で振り返りと「次回試すこと」をメモ → 次回の開始時に表示されます
+      </div>
+    </div>
+    <div class="card">
+      <h2>楽曲と録音</h2>
+      <div class="help-body">編集画面で音源(MP3等)を添付すると、通し練習中に再生できます。<b>失敗をタップした瞬間の曲位置(♪1:23)が自動で記録</b>され、曲は自動停止。クリーン/中止を記録すると曲は頭に戻るので、次の通しは▶を押すだけです。<br><br>「● 練習を録音する」でマイク録音もできます。録音中の失敗タップには録音内の位置が付き、分析画面から失敗の3秒前にジャンプして聴き返せます。<br><br>音源・録音はこの端末のブラウザ内にのみ保存され、JSONバックアップには含まれません。残したい録音は分析画面の「↓」で書き出せます。</div>
+    </div>
+    <div class="card">
+      <h2>パート練習</h2>
+      <div class="help-body">楽曲のA点→B点をループ再生する練習モード。曲を再生しながら「今の位置」でA/Bを決めて、ループON。Bに達すると自動でAに戻ります。区間はルーティンに保存されます。<br><br>パート練習の結果は分析に入りません(通しと条件が違うため)。失敗を記録したいときは通し練習で。</div>
+    </div>
+    <div class="card">
+      <h2>ステップの登録(編集画面)</h2>
+      <div class="help-body"><b>移行</b> = 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップに入れると分析対象になります。<br><br><b>リスク度(1〜5)</b> = 「この技はどれくらい失敗しそうか」という自分の事前予想。実際の失敗率とのズレ(思い込みと結果の乖離)が分析に表示されます。結果を見て数字を合わせに行くとズレが消えるので、基本は最初の感覚のまま。<br><br><b>A/B化</b> = 調子で技を入れ替える箇所は「選択スロット」にできます。通し練習画面のチップでいつでも切替でき、選択肢ごとに失敗率が分かれて集計されます。<br><br>記録済みの通しがある状態で構成(技名・順序・種別・選択肢)を変えると新しいバージョンが作られ、分析は分かれます。条件の違うデータを混ぜないためです。リスク度の変更では分かれません。「複製」は好調版/安牌版のように別ルーティンとして育てたいときに(記録は引き継ぎません)。</div>
+    </div>
+    <div class="card">
+      <h2>分析の数字の読み方</h2>
+      <div class="help-body">「2/6 (9〜65%)」= そのステップに到達した6本中2回失敗、真の失敗率の95%区間は9〜65%。<b>本数が少ないうちは幅が広い=まだ断定できない</b>という意味です。0/3は「失敗率0%」ではありません。<br><br>分母は全通し数ではなく「そのステップに到達した通し数」です(途中で中止した通しは、その先のステップの分母に入りません)。<br><br>色付きチップは自分で付けたリスク度。実際の失敗率とズレている技には注意書きが出ます(到達8本以上)。<br><br>このアプリが示すのは「どこに偏りがあるか」まで。「なぜか」(直前の大技のせい等)は、順序を変えた比較実験で確かめる必要があります。</div>
+    </div>
+    <div class="card">
+      <h2>記録の編集と削除</h2>
+      <div class="help-body">分析→「セッション履歴・メモを見る」から、タグ・メモはいつでも編集できます。通しの成否そのものは書き換えられません。間違えた通しは「集計から除外」して記録し直してください(除外は分析に件数表示され、いつでも戻せます)。スロットの選択の記録し損ねも履歴から直せます。</div>
+    </div>
+    <div class="card">
+      <h2>データの保存</h2>
+      <div class="help-body">データはこの端末のブラウザ内に保存されます。iPhoneは長期間使わないと保存データを消すことがあるため、<b>定期的に設定からJSONバックアップを書き出してください</b>。機種変更時もJSONで移行できます(音声は含まれないため楽曲は再添付)。</div>
+    </div>`;
+}
+
 // ========== 設定(バックアップ) ==========
 function renderSettings() {
   const runTotal = state.sessions.reduce((a, s) => a + s.runs.length, 0);
@@ -1481,8 +1517,9 @@ function renderSettings() {
       <button class="btn" onclick="document.getElementById('import-file').click()">JSONから復元する</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJson(this)">
       <button class="btn ghost" onclick="exportCsv()">CSVエクスポート(表計算用)</button>
-      <p class="hint">重要: iPhoneはしばらく使わないとブラウザ保存データを消すことがあります。データが溜まってきたら定期的にJSONを書き出して保存してください。なお音声(楽曲・練習録音)は容量が大きいためJSONには含まれません。残したい録音は分析画面の「↓」ボタンで個別に書き出せます。</p>
-    </div>`;
+      <p class="hint">iPhoneは長期間使わないと保存データを消すことがあります。定期的にJSONを書き出してください(音声は含まれません)。</p>
+    </div>
+    <button class="btn" onclick="go('help')">使い方を見る</button>`;
 }
 
 function download(filename, text, mime) {
