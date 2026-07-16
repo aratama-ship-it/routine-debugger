@@ -419,14 +419,35 @@ function go(name, params = {}) {
 }
 
 function render() {
-  const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats,
-    settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail, part: renderPart,
-    help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec }[view.name];
+  const r = { home: renderHome, routines: renderRoutines, edit: renderEdit, record: renderRecord,
+    stats: renderStats, settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail,
+    part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
-// ========== ホーム ==========
+// ========== ホーム(二択メニュー) ==========
 function renderHome() {
+  const trickCount = (state.tricks || []).length;
+  const routineCount = state.routines.length;
+  const runTotal = state.sessions.reduce((a, s) => a + s.runs.length, 0);
+  return `
+    <div class="topbar"><h1>ルーティン・デバッガ</h1>
+      <button class="nav-action" onclick="go('help')">使い方</button>
+      <button class="nav-action" onclick="go('settings')">設定</button></div>
+    <button class="menu-card" onclick="go('routines')">
+      <span class="mc-title">ルーティン練習</span>
+      <span class="mc-sub">${routineCount ? `${routineCount}ルーティン / 通し${runTotal}本` : "通し練習・パート練習・分析"}</span>
+      <span class="mc-arrow">›</span>
+    </button>
+    <button class="menu-card" onclick="go('tricks')">
+      <span class="mc-title">技ライブラリ</span>
+      <span class="mc-sub">${trickCount ? `${trickCount}本の技を登録済み` : "技を動画で撮影・登録(最大10秒)"}</span>
+      <span class="mc-arrow">›</span>
+    </button>`;
+}
+
+// ========== ルーティン一覧 ==========
+function renderRoutines() {
   const rows = state.routines.map((rt) => {
     const ver = latestVersion(rt);
     const runCount = state.sessions.filter((s) => s.routineId === rt.id).reduce((a, s) => a + s.runs.length, 0);
@@ -445,15 +466,13 @@ function renderHome() {
     </div>`;
   }).join("");
   return `
-    <div class="topbar"><h1>ルーティン・デバッガ</h1>
-      <button class="nav-action" onclick="go('help')">使い方</button>
-      <button class="nav-action" onclick="go('settings')">設定</button></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+      <h1>ルーティン練習</h1></div>
     <div class="card">
       <h2>ルーティン</h2>
       ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
-    <button class="btn ghost" onclick="go('tricks')">技ライブラリ${(state.tricks || []).length ? ` (${state.tricks.length})` : ""}</button>
 `;
 }
 
@@ -573,7 +592,7 @@ function renderEdit() {
       </div>`}
     </div>`).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="draft=null;go('home')">戻る</button>
+    <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1></div>
     <div class="card">
       <label class="fld">ルーティン名</label>
@@ -630,7 +649,7 @@ window.duplicateRoutine = async (id) => {
       steps: ver.steps.map((s) => ({ ...s, id: uid(),
         options: s.options ? s.options.map((o) => ({ ...o, id: uid() })) : undefined })) }],
   });
-  saveState(); draft = null; go("home");
+  saveState(); draft = null; go("routines");
   toast("複製しました(記録・分析データは引き継ぎません)");
 };
 window.addOpt = (i) => { draft.steps[i].options.push({ id: uid(), name: "", risk: 3 }); render(); };
@@ -703,7 +722,7 @@ window.saveRoutine = async () => {
     state.routines.push({ id: uid(), name: draft.name.trim(), music,
       versions: [{ id: uid(), createdAt: Date.now(), steps: draft.steps }] });
   }
-  saveState(); draft = null; go("home");
+  saveState(); draft = null; go("routines");
 };
 
 // ========== 記録 ==========
@@ -842,7 +861,7 @@ function sheetStartSession(rt) {
     <input type="text" id="sess-note" placeholder="例: 屋外、やや風あり">
     <div style="height:14px"></div>
     <button class="btn primary" onclick="startSession('${rt.id}')">開始</button>
-    <button class="btn ghost" onclick="hideSheet();go('home')">やめる</button>`);
+    <button class="btn ghost" onclick="hideSheet();go('routines')">やめる</button>`);
 }
 window.selectOne = (gridId, el) => {
   document.querySelectorAll(`#${gridId} .choice`).forEach((c) => c.classList.remove("selected"));
@@ -983,7 +1002,7 @@ window.undo = () => {
 
 window.endSessionAsk = (routineId) => {
   const sess = activeSession(routineId);
-  if (!sess) return go("home");
+  if (!sess) return go("routines");
   if (openRun && openRun.routineId === routineId) {
     return toast("続行中の通しがあります。「完走」か失敗記録で確定してください");
   }
@@ -1023,7 +1042,7 @@ function renderStats() {
 
   if (st.total === 0) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+      <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
         <h1>${esc(rt.name)} 分析</h1></div>
       ${verSelect}
       <div class="empty">v${verIndex} の通し記録はまだありません。<br>「通し練習」からクリーン/失敗を記録すると、ここに偏りが表示されます。</div>`;
@@ -1142,7 +1161,7 @@ function renderStats() {
     `<div class="bd-row"><span class="k">${esc(t)}</span><span class="v">${c}回</span></div>`).join("");
 
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+    <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
       <h1>${esc(rt.name)} 分析</h1><span class="sub">v${verIndex}</span></div>
     ${verSelect}
     ${overview}
@@ -1227,7 +1246,7 @@ function renderPart() {
   if (!rt) return renderHome();
   if (!rt.music) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+      <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
         <h1>${esc(rt.name)} パート練習</h1></div>
       <div class="empty">パート練習は登録した楽曲の一部をループ再生する機能です。<br>まず「編集」から音源(MP3等)を添付してください。</div>
       <button class="btn" onclick="go('edit',{id:'${rt.id}'})">編集画面へ</button>`;
@@ -1247,7 +1266,7 @@ function renderPart() {
       <button class="btn small" onclick="partSetPoint('${which}')">今の位置</button>
     </div>`;
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button>
+    <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
       <h1>${esc(rt.name)} パート練習</h1></div>
     <div class="card music-card">
       <div class="music-name">♪ ${esc(rt.music.name)}</div>
@@ -1670,7 +1689,7 @@ function renderHelp() {
     <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>使い方</h1></div>
     <div class="card">
       <h2>このアプリ</h2>
-      <div class="help-body">通し練習を「クリーン1タップ / 失敗1タップ」で記録して、ルーティンの<b>どこで落ちるか</b>の偏りを見るためのアプリです。ホームの行を左にスワイプするとルーティンを削除できます。</div>
+      <div class="help-body">通し練習を「クリーン1タップ / 失敗1タップ」で記録して、ルーティンの<b>どこで落ちるか</b>の偏りを見るためのアプリです。ルーティン一覧の行を左にスワイプすると削除できます。</div>
     </div>
     <div class="card">
       <h2>通し練習の流れ</h2>
@@ -1703,7 +1722,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホーム下部)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>データの保存</h2>

@@ -351,6 +351,17 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .help-body { font-size: 14px; color: var(--text); line-height: 1.8; padding: 2px 0 14px; }
 .help-body b { color: var(--accent); font-weight: 600; }
 
+/* ホームの二択メニュー */
+.menu-card { position: relative; display: block; width: 100%; text-align: left;
+  background: var(--card); border: none; border-radius: 16px; padding: 22px 48px 22px 20px;
+  margin-bottom: 14px; }
+.menu-card:active { background: var(--card2); opacity: 1; }
+.menu-card .mc-title { display: block; font-size: 22px; font-weight: 700; color: var(--text);
+  letter-spacing: .01em; }
+.menu-card .mc-sub { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.menu-card .mc-arrow { position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  font-size: 30px; color: var(--muted2); font-weight: 400; }
+
 /* 技ライブラリ */
 .trick-row { padding: 10px 0; border-bottom: var(--hairline) solid var(--sep); }
 .trick-row:last-child { border-bottom: none; }
