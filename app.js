@@ -265,6 +265,35 @@ function updateMusicUI() {
   if (vol && !vol.matches(":active")) vol.value = musicVolume;
   if (view.name === "builder") builderTickUI(); // タイムラインのプレイヘッドと現在技
   if (view.name === "record") recordTickUI();   // キュー指定に基づく「いまこの技」ハイライト
+  if (view.name === "edit") editorTickUI();     // 編集中も同様に「いまこのへん」を表示
+}
+// 編集画面: 再生位置がキューを過ぎた最後のステップを光らせる(draft基準なので編集内容に即追従)
+function editorTickUI() {
+  if (!draft) return;
+  const rows = document.querySelectorAll(".editor-step");
+  if (!rows.length) return;
+  const cur = musicPlayer.currentTime;
+  let ai = -1, best = -1;
+  if (!musicPlayer.paused || cur > 0.05) {
+    draft.steps.forEach((s, i) => { if (s.cue != null && cur >= s.cue && s.cue >= best) { best = s.cue; ai = i; } });
+  }
+  rows.forEach((el, i) => el.classList.toggle("now", i === ai));
+}
+// 編集画面用の楽曲ロード: 保存済み音源 or いま添付したばかりのファイル
+async function loadEditorMusic() {
+  let blob = null, key = null;
+  if (draft && draft._newMusicFile) { blob = draft._newMusicFile; key = "edit:new:" + draft._for; }
+  else {
+    const rt = state.routines.find((r) => r.id === view.params.id);
+    if (rt && rt.music) { key = "edit:" + rt.id; if (musicLoadedFor !== key) blob = await blobGet(rt.music.blobId); }
+  }
+  if (!key || musicLoadedFor === key) return;
+  if (!blob) return;
+  if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
+  musicObjectUrl = URL.createObjectURL(blob);
+  musicPlayer.src = musicObjectUrl;
+  musicLoadedFor = key;
+  if (view.name === "edit") updateMusicUI();
 }
 // 通し練習: 再生位置がキューを過ぎた最後のステップを「いまこの技」として光らせる
 function recordTickUI() {
@@ -429,6 +458,7 @@ function go(name, params = {}) {
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "builder" && name !== "builder") musicPlayer.pause();
+  if (view.name === "edit" && name !== "edit") musicPlayer.pause();
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   // 技撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
@@ -583,7 +613,7 @@ function renderEdit() {
         <span class="no">${i + 1}</span>
         <input type="text" value="${esc(s.name)}" placeholder="${isSlot(s) ? "分岐の名前(例: ラスト技)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "技名"}"
           onchange="draft.steps[${i}].name=this.value">
-        <input type="text" class="cue-input" inputmode="numeric" value="${s.cue != null ? fmtCue(s.cue) : ""}"
+        <input type="text" class="cue-input" inputmode="numeric" data-i="${i}" value="${s.cue != null ? fmtCue(s.cue) : ""}"
           placeholder="♪何秒" onchange="setCue(${i},this.value)">
       </div>
       <div class="es-row2">
@@ -614,6 +644,19 @@ function renderEdit() {
         ${riskSeg(s.risk || 3, `setRisk(${i},%N%)`)}
       </div>`}
     </div>`).join("");
+  // 編集中の試聴プレイヤー(音源があれば)。再生すると♪キューに沿って該当ステップが光る
+  const hasEditorMusic = !!(draft._newMusicFile || (rt && rt.music && draft.music));
+  if (hasEditorMusic) setTimeout(loadEditorMusic, 0);
+  const editorPlayer = hasEditorMusic ? `
+    <div class="card music-card">
+      <div class="music-row">
+        <button class="music-pill primary" style="flex:0 0 auto;min-height:40px;padding:0 16px" id="music-toggle-pill"
+          onclick="ensureAudioGraph();musicToggle()">▶ 再生</button>
+        <div class="music-time" style="font-size:19px"><span id="music-cur">${fmtTimeFine(musicPlayer.currentTime)}</span><span class="dur"> / <span id="music-dur">${fmtTime(musicPlayer.duration)}</span></span></div>
+        <button class="music-btn text" onclick="musicStop()">■ 停止</button>
+      </div>
+      <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
+    </div>` : "";
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1></div>
@@ -621,6 +664,7 @@ function renderEdit() {
       <label class="fld">ルーティン名</label>
       <input type="text" value="${esc(draft.name)}" placeholder="例: 2026ステージ用 4分" onchange="draft.name=this.value">
     </div>
+    ${editorPlayer}
     <div class="card">
       <h2>ステップ(技と移行) — 上から実施順</h2>
       ${stepRows || `<div class="empty">「＋ 技」で最初の技を追加</div>`}
@@ -651,6 +695,37 @@ window.setCue = (i, v) => {
   else draft.steps[i].cue = cue;
   render();
 };
+// ♪欄の横スワイプで秒数を微調整(20px=1秒、0.1秒刻み)。タップなら従来どおりキーボード入力
+let cueDrag = null;
+document.addEventListener("pointerdown", (e) => {
+  const inp = e.target.closest(".cue-input");
+  if (!inp || view.name !== "edit" || !draft) return;
+  const i = Number(inp.dataset.i);
+  cueDrag = { inp, i, startX: e.clientX, startY: e.clientY,
+    base: draft.steps[i] && draft.steps[i].cue != null ? draft.steps[i].cue : 0, moved: false, cur: null };
+}, true);
+document.addEventListener("pointermove", (e) => {
+  if (!cueDrag) return;
+  const dx = e.clientX - cueDrag.startX, dy = e.clientY - cueDrag.startY;
+  if (!cueDrag.moved) {
+    if (Math.abs(dx) < 8) return;
+    if (Math.abs(dy) > Math.abs(dx)) { cueDrag = null; return; } // 縦スクロール優先
+    cueDrag.moved = true;
+    cueDrag.inp.blur(); // ドラッグ中はキーボードを出さない
+  }
+  cueDrag.cur = Math.max(0, round1(cueDrag.base + dx * 0.05));
+  cueDrag.inp.value = fmtCue(cueDrag.cur);
+});
+document.addEventListener("pointerup", () => {
+  if (!cueDrag) return;
+  const d = cueDrag; cueDrag = null;
+  if (!d.moved || d.cur == null || !draft || !draft.steps[d.i]) return;
+  draft.steps[d.i].cue = d.cur;
+  swipeSuppressClick = true;
+  setTimeout(() => { swipeSuppressClick = false; }, 80);
+  render();
+});
+
 // A/B化: 既存の技名を選択肢Aに移し、スロット(分岐)にする。解除は選択肢Aを技に戻す
 window.toggleSlot = (i) => {
   const s = draft.steps[i];
@@ -763,6 +838,24 @@ window.saveRoutine = async () => {
   draft.steps = draft.steps.filter((s) => isSlot(s) || s.name.trim());
   if (!draft.name.trim()) return toast("ルーティン名を入れてください");
   if (draft.steps.length < 2) return toast("ステップを2つ以上登録してください");
+  // 時系列チェック: 後のステップの♪キューが前のステップより早い場合は保存不可(理由を明記)
+  const cued = draft.steps.map((s, i) => ({ s, i })).filter((x) => x.s.cue != null);
+  const violations = [];
+  for (let k = 1; k < cued.length; k++) {
+    if (cued[k].s.cue < cued[k - 1].s.cue) violations.push([cued[k - 1], cued[k]]);
+  }
+  if (violations.length) {
+    return showSheet(`
+      <h3>保存できません</h3>
+      <div class="sheet-sub">ステップの順番と♪秒指定が時系列的に矛盾しています</div>
+      ${violations.map(([a, b]) => `
+        <div class="gap-note" style="margin-bottom:8px">
+          ${b.i + 1}番「${esc(stepLabel(b.s))}」(♪${fmtCue(b.s.cue)}) が、
+          その前の ${a.i + 1}番「${esc(stepLabel(a.s))}」(♪${fmtCue(a.s.cue)}) より早い時間になっています
+        </div>`).join("")}
+      <p class="hint">順番を入れ替えるか、♪秒指定を直してから保存してください。</p>
+      <button class="btn primary" onclick="hideSheet()">直す</button>`);
+  }
   if (draft.id) {
     const rt = state.routines.find((r) => r.id === draft.id);
     rt.name = draft.name.trim();
@@ -2007,7 +2100,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>ステップの登録(編集画面)</h2>
-      <div class="help-body"><b>移行</b> = 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップに入れると分析対象になります。<br><br><b>リスク度(1〜5)</b> = 「この技はどれくらい失敗しそうか」という自分の事前予想。実際の失敗率とのズレ(思い込みと結果の乖離)が分析に表示されます。結果を見て数字を合わせに行くとズレが消えるので、基本は最初の感覚のまま。<br><br><b>♪何秒(キュー)</b> = 技名の右の欄に「1:23」や「83」と入れると、その技を曲のどこに入れるかの目標を指定できます。通し練習の技リストに♪表示され、曲を再生すると「いまこの技のはず」のステップが緑にハイライトされます。タイムラインから書き出したルーティンには自動で入ります。<br><br><b>A/B化</b> = 調子で技を入れ替える箇所は「選択スロット」にできます。通し練習画面のチップでいつでも切替でき、選択肢ごとに失敗率が分かれて集計されます。<br><br>記録済みの通しがある状態で構成(技名・順序・種別・選択肢)を変えると新しいバージョンが作られ、分析は分かれます。条件の違うデータを混ぜないためです。リスク度の変更では分かれません。「複製」は好調版/安牌版のように別ルーティンとして育てたいときに(記録は引き継ぎません)。</div>
+      <div class="help-body"><b>移行</b> = 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップに入れると分析対象になります。<br><br><b>リスク度(1〜5)</b> = 「この技はどれくらい失敗しそうか」という自分の事前予想。実際の失敗率とのズレ(思い込みと結果の乖離)が分析に表示されます。結果を見て数字を合わせに行くとズレが消えるので、基本は最初の感覚のまま。<br><br><b>♪何秒(キュー)</b> = 技名の右の欄に「1:23」や「83」と入れると、その技を曲のどこに入れるかの目標を指定できます。<b>♪欄を横にスライドすると0.1秒刻みで微調整</b>できます(タップすればキーボード入力)。音源があれば編集画面上部のプレイヤーで曲を流せて、再生位置に合わせて「いまこのへん」のステップが緑に光ります(通し練習でも同様)。順番と秒指定が時系列的に矛盾していると保存できません。タイムラインから書き出したルーティンには自動で入ります。<br><br><b>A/B化</b> = 調子で技を入れ替える箇所は「選択スロット」にできます。通し練習画面のチップでいつでも切替でき、選択肢ごとに失敗率が分かれて集計されます。<br><br>記録済みの通しがある状態で構成(技名・順序・種別・選択肢)を変えると新しいバージョンが作られ、分析は分かれます。条件の違うデータを混ぜないためです。リスク度の変更では分かれません。「複製」は好調版/安牌版のように別ルーティンとして育てたいときに(記録は引き継ぎません)。</div>
     </div>
     <div class="card">
       <h2>分析の数字の読み方</h2>
