@@ -88,6 +88,7 @@ function blobDel(id) {
 }
 // 旧データ(負荷 load: low/mid/high)を リスク度(risk: 1〜5)へ移行
 function migrateState() {
+  if (!Array.isArray(state.tricks)) state.tricks = []; // 技ライブラリ(動画クリップ)
   for (const rt of state.routines || []) {
     for (const ver of rt.versions || []) {
       for (const st of ver.steps || []) {
@@ -412,13 +413,15 @@ function go(name, params = {}) {
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
+  // 技撮影を離れるとき: カメラ解放
+  if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
   view = { name, params }; render(); window.scrollTo(0, 0);
 }
 
 function render() {
   const r = { home: renderHome, edit: renderEdit, record: renderRecord, stats: renderStats,
     settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail, part: renderPart,
-    help: renderHelp }[view.name];
+    help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec }[view.name];
   $app.innerHTML = r ? r() : renderHome();
 }
 
@@ -450,6 +453,7 @@ function renderHome() {
       ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
+    <button class="btn ghost" onclick="go('tricks')">技ライブラリ${(state.tricks || []).length ? ` (${state.tricks.length})` : ""}</button>
 `;
 }
 
@@ -1457,6 +1461,209 @@ window.commitEditSession = (sessId) => {
   saveState(); hideSheet(); render(); toast("保存しました");
 };
 
+// ========== 技ライブラリ(動画クリップの登録・撮影) ==========
+// RDB-05の第一歩。技を最大10秒の動画として蓄積する。将来: 音楽タイムラインへの配置
+const TRICK_MAX_SEC = 10;      // 技の最大長(とりあえず)。超過は登録を弾く
+const TRICK_MAX_BYTES = 100 * 1024 * 1024; // 登録動画の上限100MB
+const fmtBytes = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}GB` : n >= 1e6 ? `${(n / 1e6).toFixed(0)}MB` : `${Math.ceil(n / 1e3)}KB`;
+
+let trickPlayingId = null; // 一覧でインライン再生中の技
+let trickObjUrl = null;
+
+function renderTricks() {
+  const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+  const totalBytes = tricks.reduce((a, t) => a + (t.size || 0), 0);
+  const rows = tricks.map((t) => `
+    <div class="trick-row">
+      <div class="head">
+        <span class="nm" onclick="sheetRenameTrick('${t.id}')">${esc(t.name)}</span>
+        <span class="kn">${fmtTime(t.duration)} / ${fmtBytes(t.size || 0)}</span>
+        <button class="btn small" onclick="trickPlay('${t.id}')">${trickPlayingId === t.id ? "閉じる" : "▶"}</button>
+        <button class="mini-btn del" onclick="trickDelete('${t.id}')">✕</button>
+      </div>
+      ${trickPlayingId === t.id ? `<video id="trick-video" class="trick-video" controls autoplay playsinline></video>` : ""}
+    </div>`).join("");
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>技ライブラリ</h1></div>
+    <div class="row-2">
+      <button class="btn primary" style="margin-bottom:12px" onclick="go('trickrec')">● カメラで撮影</button>
+      <button class="btn" onclick="document.getElementById('trick-file').click()">＋ 動画を登録</button>
+    </div>
+    <input type="file" id="trick-file" accept="video/*" class="hidden" onchange="trickImport(this)">
+    <div class="card">
+      <h2>登録済みの技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
+      ${rows || `<div class="empty">まだ技がありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
+    </div>`;
+}
+
+window.trickPlay = async (id) => {
+  if (trickPlayingId === id) { trickPlayingId = null; render(); return; }
+  const blob = await blobGet(id);
+  if (!blob) return toast("動画データが見つかりません");
+  trickPlayingId = id;
+  render();
+  if (trickObjUrl) URL.revokeObjectURL(trickObjUrl);
+  trickObjUrl = URL.createObjectURL(blob);
+  const v = document.getElementById("trick-video");
+  if (v) v.src = trickObjUrl;
+};
+window.trickDelete = async (id) => {
+  const t = state.tricks.find((x) => x.id === id);
+  if (!t) return;
+  if (!confirm(`「${t.name}」を削除しますか?(元に戻せません)`)) return;
+  await blobDel(id);
+  state.tricks = state.tricks.filter((x) => x.id !== id);
+  if (trickPlayingId === id) trickPlayingId = null;
+  saveState(); render(); toast("削除しました");
+};
+window.sheetRenameTrick = (id) => {
+  const t = state.tricks.find((x) => x.id === id);
+  showSheet(`
+    <h3>技の名前</h3>
+    <input type="text" id="trick-name" value="${esc(t.name)}">
+    <div style="height:14px"></div>
+    <button class="btn primary" onclick="commitRenameTrick('${id}')">保存</button>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`);
+};
+window.commitRenameTrick = (id) => {
+  const t = state.tricks.find((x) => x.id === id);
+  const name = document.getElementById("trick-name").value.trim();
+  if (name) t.name = name;
+  saveState(); hideSheet(); render();
+};
+
+// 動画ファイルの長さをメタデータから取得
+function probeVideoDuration(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(url); resolve(isFinite(d) ? d : null); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    v.src = url;
+  });
+}
+async function saveTrick(blob, duration, defaultName) {
+  const id = uid();
+  if (!(await blobPut(id, blob))) return toast("動画を保存できませんでした");
+  state.tricks.push({ id, name: defaultName, blobId: id, duration, size: blob.size, createdAt: Date.now() });
+  saveState();
+  go("tricks");
+  setTimeout(() => sheetRenameTrick(id), 80); // 保存直後に名前を付けさせる
+}
+window.trickImport = async (input) => {
+  const file = input.files[0];
+  input.value = "";
+  if (!file) return;
+  if (file.size > TRICK_MAX_BYTES) return toast(`${fmtBytes(TRICK_MAX_BYTES)}以下の動画にしてください(現在${fmtBytes(file.size)})`);
+  const dur = await probeVideoDuration(file);
+  if (dur == null) return toast("動画を読み込めませんでした");
+  if (dur > TRICK_MAX_SEC + 0.5) return toast(`技は最大${TRICK_MAX_SEC}秒です(この動画は${fmtTime(dur)})。トリミングしてから登録してください`);
+  await saveTrick(file, dur, file.name.replace(/\.[^.]+$/, "") || "新しい技");
+};
+
+// --- アプリ内カメラ撮影(720p固定=容量対策、10秒で自動停止) ---
+let trickCam = null; // { stream, rec, chunks, recording, startedAt, timer, blob, objUrl }
+
+function releaseTrickCam() {
+  if (!trickCam) return;
+  clearInterval(trickCam.timer);
+  try { if (trickCam.rec && trickCam.rec.state !== "inactive") trickCam.rec.stop(); } catch (_) {}
+  if (trickCam.stream) trickCam.stream.getTracks().forEach((t) => t.stop());
+  if (trickCam.objUrl) URL.revokeObjectURL(trickCam.objUrl);
+  trickCam = null;
+}
+async function initTrickCam() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) { trickCam = { error: true }; render(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    trickCam = { stream, chunks: [], recording: false };
+    render();
+    const v = document.getElementById("cam-preview");
+    if (v) { v.srcObject = stream; v.play().catch(() => {}); }
+  } catch (_) {
+    trickCam = { error: true };
+    if (view.name === "trickrec") render();
+  }
+}
+window.trickRecToggle = () => {
+  if (!trickCam || !trickCam.stream) return;
+  if (trickCam.recording) return trickRecStop();
+  const mime = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4"
+    : MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "";
+  const rec = mime
+    ? new MediaRecorder(trickCam.stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 })
+    : new MediaRecorder(trickCam.stream, { videoBitsPerSecond: 2_500_000 });
+  trickCam.rec = rec; trickCam.chunks = []; trickCam.recording = true; trickCam.startedAt = Date.now();
+  rec.ondataavailable = (e) => { if (e.data.size) trickCam.chunks.push(e.data); };
+  rec.start(500);
+  trickCam.timer = setInterval(() => {
+    if (!trickCam || !trickCam.recording) return;
+    const t = (Date.now() - trickCam.startedAt) / 1000;
+    const el = document.getElementById("trickrec-time");
+    if (el) el.textContent = `${fmtTimeFine(t)} / 0:${TRICK_MAX_SEC}.0`;
+    if (t >= TRICK_MAX_SEC) trickRecStop(); // 上限で自動停止
+  }, 100);
+  render();
+  const v = document.getElementById("cam-preview");
+  if (v) { v.srcObject = trickCam.stream; v.play().catch(() => {}); }
+};
+async function trickRecStop() {
+  if (!trickCam || !trickCam.recording) return;
+  clearInterval(trickCam.timer);
+  trickCam.recording = false;
+  const rec = trickCam.rec;
+  await new Promise((resolve) => { rec.onstop = resolve; rec.stop(); });
+  const dur = Math.min(TRICK_MAX_SEC, (Date.now() - trickCam.startedAt) / 1000);
+  trickCam.blob = new Blob(trickCam.chunks, { type: rec.mimeType || "video/mp4" });
+  trickCam.duration = Math.round(dur * 10) / 10;
+  if (trickCam.objUrl) URL.revokeObjectURL(trickCam.objUrl);
+  trickCam.objUrl = URL.createObjectURL(trickCam.blob);
+  render();
+}
+window.trickRecRetake = () => {
+  if (trickCam) { if (trickCam.objUrl) URL.revokeObjectURL(trickCam.objUrl); trickCam.blob = null; trickCam.objUrl = null; }
+  render();
+  const v = document.getElementById("cam-preview");
+  if (v && trickCam) { v.srcObject = trickCam.stream; v.play().catch(() => {}); }
+};
+window.trickRecSave = async () => {
+  if (!trickCam || !trickCam.blob) return;
+  const blob = trickCam.blob, dur = trickCam.duration;
+  await saveTrick(blob, dur, `技 ${new Date().toLocaleDateString("ja-JP")}`);
+};
+
+function renderTrickRec() {
+  if (!trickCam) setTimeout(initTrickCam, 0);
+  if (trickCam && trickCam.error) {
+    return `
+      <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>技を撮影</h1></div>
+      <div class="empty">この環境ではアプリ内カメラを使えません。<br>カメラアプリで撮影して「動画を登録」から取り込んでください。</div>
+      <button class="btn" onclick="document.getElementById('trick-file2').click()">＋ 動画を登録</button>
+      <input type="file" id="trick-file2" accept="video/*" capture="environment" class="hidden" onchange="trickImport(this)">`;
+  }
+  const reviewing = trickCam && trickCam.blob;
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>技を撮影</h1></div>
+    ${reviewing ? `
+      <video class="trick-video main" src="${trickCam.objUrl}" controls autoplay playsinline loop></video>
+      <div class="row-2" style="margin-top:12px">
+        <button class="btn primary" style="margin:0" onclick="trickRecSave()">この技を保存</button>
+        <button class="btn" style="margin:0" onclick="trickRecRetake()">撮り直す</button>
+      </div>` : `
+      <video id="cam-preview" class="trick-video main" autoplay playsinline muted></video>
+      <div class="center" style="margin:10px 0 14px">
+        <span class="rec-timer" id="trickrec-time">${trickCam && trickCam.recording ? "" : `0:00.0 / 0:${TRICK_MAX_SEC}.0`}</span>
+      </div>
+      <button class="clean-btn ${trickCam && trickCam.recording ? "recording" : ""}" onclick="trickRecToggle()">
+        ${trickCam && trickCam.recording ? "■ 停止" : "● 録画開始"}
+        <span class="sub">${trickCam && trickCam.recording ? `${TRICK_MAX_SEC}秒で自動停止` : "720pで撮影されます"}</span>
+      </button>`}`;
+}
+
 // ========== 使い方(UIから追い出した説明の集約先) ==========
 function renderHelp() {
   return `
@@ -1493,6 +1700,10 @@ function renderHelp() {
     <div class="card">
       <h2>記録の編集と削除</h2>
       <div class="help-body">分析→「セッション履歴・メモを見る」から、タグ・メモはいつでも編集できます。通しの成否そのものは書き換えられません。間違えた通しは「集計から除外」して記録し直してください(除外は分析に件数表示され、いつでも戻せます)。スロットの選択の記録し損ねも履歴から直せます。</div>
+    </div>
+    <div class="card">
+      <h2>技ライブラリ</h2>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホーム下部)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>データの保存</h2>

@@ -350,6 +350,18 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .empty { text-align: center; color: var(--muted); padding: 34px 10px; font-size: 14px; line-height: 1.7; }
 .help-body { font-size: 14px; color: var(--text); line-height: 1.8; padding: 2px 0 14px; }
 .help-body b { color: var(--accent); font-weight: 600; }
+
+/* 技ライブラリ */
+.trick-row { padding: 10px 0; border-bottom: var(--hairline) solid var(--sep); }
+.trick-row:last-child { border-bottom: none; }
+.trick-row .head { display: flex; align-items: center; gap: 10px; }
+.trick-row .nm { flex: 1; font-size: 16px; font-weight: 500; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trick-row .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.trick-video { width: 100%; border-radius: 12px; background: #000; margin-top: 10px; max-height: 60vh; }
+.trick-video.main { margin-top: 0; aspect-ratio: 16/9; object-fit: cover; }
+.rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.clean-btn.recording { background: var(--danger); color: #fff; }
 .center { text-align: center; }
 .row-2 { display: flex; gap: 10px; }
 .row-2 > * { flex: 1; }
