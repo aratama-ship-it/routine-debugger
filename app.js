@@ -268,6 +268,8 @@ function updateMusicUI() {
   if (view.name === "edit") editorTickUI();     // 編集中も同様に「いまこのへん」を表示
 }
 // 編集画面: 再生位置がキューを過ぎた最後のステップを光らせる(draft基準なので編集内容に即追従)
+let miniAutoLoading = null;        // 自動追従の多重ロード防止
+const miniAutoFailed = new Set();  // 読み込みに失敗したstepId(毎tickのリトライ防止)
 function editorTickUI() {
   if (!draft) return;
   const rows = document.querySelectorAll(".editor-step");
@@ -278,6 +280,22 @@ function editorTickUI() {
     draft.steps.forEach((s, i) => { if (s.cue != null && cur >= s.cue && s.cue >= best) { best = s.cue; ai = i; } });
   }
   rows.forEach((el, i) => el.classList.toggle("now", i === ai));
+  // 再生に合わせて、いまの技の動画を上部ドックで自動再生(手動で開いた動画は上書きしない)
+  if (musicPlayer.paused) return;
+  const act = ai >= 0 ? draft.steps[ai] : null;
+  if (act && act.trickId && !miniAutoFailed.has(act.id) &&
+      (!miniVideo || (miniVideo.auto && miniVideo.stepId !== act.id))) {
+    if (miniAutoLoading !== act.id) {
+      miniAutoLoading = act.id;
+      miniDockOpen(act, true)
+        .then((ok) => { if (!ok) miniAutoFailed.add(act.id); })
+        .finally(() => { if (miniAutoLoading === act.id) miniAutoLoading = null; });
+    }
+  } else if ((!act || !act.trickId) && miniVideo && miniVideo.auto) {
+    // いまの位置に動画がない(移行など) → 自動で開いたものだけ閉じる
+    miniVideoCloseSilent();
+    syncMiniDock();
+  }
 }
 // 編集画面用の楽曲ロード: 保存済み音源 or いま添付したばかりのファイル
 async function loadEditorMusic() {
@@ -458,7 +476,7 @@ function go(name, params = {}) {
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "builder" && name !== "builder") musicPlayer.pause();
-  if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); miniVideoCloseSilent(); }
+  if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); miniVideoCloseSilent(); miniAutoFailed.clear(); miniAutoLoading = null; }
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   // 技撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
@@ -661,23 +679,10 @@ function renderEdit() {
       </div>
       <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
     </div>` : "";
-  // 上部ミニ動画ドック(スクロールしても最上部に残る)
-  const dockTrick = miniVideo ? (state.tricks || []).find((t) => t.id === miniVideo.trickId) : null;
-  const dockStepIdx = miniVideo ? draft.steps.findIndex((s) => s.id === miniVideo.stepId) : -1;
-  const miniDock = miniVideo && dockTrick ? `
-    <div class="mini-dock">
-      <video src="${miniVideo.objUrl}" autoplay loop muted playsinline></video>
-      <div class="md-info">
-        <span class="nm">${dockStepIdx >= 0 ? `${dockStepIdx + 1}. ` : ""}${esc(dockTrick.name)}</span>
-        <span class="kn">${fmtTime(dockTrick.duration)}</span>
-      </div>
-      ${dockStepIdx >= 0 ? `<button class="mini-btn link" onclick="sheetLinkTrick(${dockStepIdx})">🔗</button>` : ""}
-      <button class="mini-btn" onclick="miniVideoClose()">✕</button>
-    </div>` : "";
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1></div>
-    ${miniDock}
+    ${miniDockHtml()}
     <div class="card">
       <label class="fld">ルーティン名</label>
       <input type="text" value="${esc(draft.name)}" placeholder="例: 2026ステージ用 4分" onchange="draft.name=this.value">
@@ -1823,26 +1828,61 @@ window.playTrickVideo = async (trickId, ctx) => {
 };
 
 // ---------- 編集画面の上部ミニ動画ドック ----------
-// ▶で開き、編集を続けながら小さくループ再生。stepIdで追跡(並べ替えに強い)
-let miniVideo = null; // { trickId, stepId, objUrl }
+// ▶で開き、編集を続けながら小さくループ再生。stepIdで追跡(並べ替えに強い)。
+// auto=true は音楽再生への自動追従で開いたもの(手動で開いた動画は自動切替で上書きしない)
+let miniVideo = null; // { trickId, stepId, objUrl, auto }
 function miniVideoCloseSilent() {
   if (!miniVideo) return;
   if (miniVideo.objUrl) URL.revokeObjectURL(miniVideo.objUrl);
   miniVideo = null;
 }
-window.miniVideoClose = () => { miniVideoCloseSilent(); render(); };
+window.miniVideoClose = () => { miniVideoCloseSilent(); syncMiniDock(); };
+
+function miniDockHtml() {
+  if (!miniVideo || !draft) return "";
+  const t = (state.tricks || []).find((x) => x.id === miniVideo.trickId);
+  if (!t) return "";
+  const idx = draft.steps.findIndex((s) => s.id === miniVideo.stepId);
+  return `
+    <div class="mini-dock">
+      <video src="${miniVideo.objUrl}" autoplay loop muted playsinline></video>
+      <div class="md-info">
+        <span class="nm">${idx >= 0 ? `${idx + 1}. ` : ""}${esc(t.name)}</span>
+        <span class="kn">${fmtTime(t.duration)}</span>
+      </div>
+      ${idx >= 0 ? `<button class="mini-btn link" onclick="sheetLinkTrick(${idx})">🔗</button>` : ""}
+      <button class="mini-btn" onclick="miniVideoClose()">✕</button>
+    </div>`;
+}
+// ドックだけをDOM差し替え(render()しない=入力中のフォーカスやスクロールを壊さない)
+function syncMiniDock() {
+  if (view.name !== "edit") return;
+  const html = miniDockHtml();
+  const dock = document.querySelector(".mini-dock");
+  if (!html) { if (dock) dock.remove(); }
+  else if (dock) dock.outerHTML = html;
+  else document.querySelector(".topbar")?.insertAdjacentHTML("afterend", html);
+  document.querySelectorAll(".editor-step").forEach((row, i) => {
+    const btn = row.querySelector(".mini-btn.play");
+    if (btn) btn.classList.toggle("on", !!(miniVideo && draft && draft.steps[i] && draft.steps[i].id === miniVideo.stepId));
+  });
+}
+async function miniDockOpen(step, auto) {
+  const t = (state.tricks || []).find((x) => x.id === step.trickId);
+  if (!t) { if (!auto) toast("動画が見つかりません(技ライブラリから削除されています)"); return false; }
+  const blob = await blobGet(t.blobId);
+  if (!blob) { if (!auto) toast("動画データが見つかりません"); return false; }
+  miniVideoCloseSilent();
+  miniVideo = { trickId: step.trickId, stepId: step.id, objUrl: URL.createObjectURL(blob), auto: !!auto };
+  syncMiniDock();
+  return true;
+}
 window.editorPlayTrick = async (i) => {
   const s = draft && draft.steps[i];
   if (!s || !s.trickId) return;
   // 同じ技をもう一度タップ→閉じる(トグル)
   if (miniVideo && miniVideo.stepId === s.id) return miniVideoClose();
-  const t = (state.tricks || []).find((x) => x.id === s.trickId);
-  if (!t) return toast("動画が見つかりません(技ライブラリから削除されています)");
-  const blob = await blobGet(t.blobId);
-  if (!blob) return toast("動画データが見つかりません");
-  miniVideoCloseSilent();
-  miniVideo = { trickId: s.trickId, stepId: s.id, objUrl: URL.createObjectURL(blob) };
-  render();
+  await miniDockOpen(s, false);
 };
 
 // 手入力の技に技ライブラリの動画を紐づける(注釈扱い=版は分割しない)
