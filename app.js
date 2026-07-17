@@ -522,6 +522,8 @@ function renderRoutines() {
     </div>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
     <button class="btn" onclick="go('builder')">♪ タイムラインで組む</button>
+    ${state.routines.some((r) => r.sampleSet) ? "" :
+      `<button class="btn ghost" onclick="loadSampleSet()">サンプルルーティンを読み込む</button>`}
 `;
 }
 
@@ -1677,6 +1679,69 @@ window.loadSampleTricks = async () => {
   saveState(); render();
   toast(ok ? `サンプル${ok}個を追加しました` : "サンプルを読み込めませんでした");
 };
+// サンプル一式: 技9個(既にあれば再利用)+サンプル楽曲+全機能入りのサンプルルーティン
+async function ensureSampleTricks() {
+  const byName = {};
+  for (const s of SAMPLE_TRICKS) {
+    let t = (state.tricks || []).find((x) => x.sample && x.name.startsWith(s.n));
+    if (!t) {
+      try {
+        const resp = await fetch(s.f);
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        const dur = (await probeVideoDuration(blob)) || 4;
+        const id = uid();
+        if (await blobPut(id, blob)) {
+          t = { id, name: `${s.n} (サンプル)`, blobId: id, duration: Math.round(dur * 10) / 10,
+            size: blob.size, createdAt: Date.now(), sample: true };
+          state.tricks.push(t);
+        }
+      } catch (_) {}
+    }
+    if (t) byName[s.n] = t;
+  }
+  return byName;
+}
+window.loadSampleSet = async () => {
+  if (!location.protocol.startsWith("http")) return toast("サンプル読み込みは公開版(https)で使えます");
+  if (!confirm("サンプル一式(技9個+楽曲付きサンプルルーティン)を追加しますか?")) return;
+  const byName = await ensureSampleTricks();
+  if (state.routines.some((r) => r.sampleSet)) {
+    saveState(); render();
+    return toast("サンプルルーティンは既にあります(技のみ確認しました)");
+  }
+  // サンプル楽曲
+  let music = null;
+  try {
+    const resp = await fetch("samples/music.m4a");
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const mid = uid();
+      if (await blobPut(mid, blob)) music = { blobId: mid, name: "サンプル楽曲.m4a" };
+    }
+  } catch (_) {}
+  // 全機能入りの構成: 技リンク/移行/リスク度/♪キュー/A/Bスロット
+  const T = (n) => (byName[n] ? byName[n].id : undefined);
+  const steps = [
+    { id: uid(), name: "3ボールカスケード", kind: "trick", risk: 1, cue: 0, trickId: T("3ボールカスケード") },
+    { id: uid(), name: "リバースカスケード", kind: "trick", risk: 2, cue: 8, trickId: T("リバースカスケード") },
+    { id: uid(), name: "持ち替え(間)", kind: "transition", risk: 1, cue: 15 },
+    { id: uid(), name: "4ボールファウンテン", kind: "trick", risk: 3, cue: 18, trickId: T("4ボールファウンテン") },
+    { id: uid(), name: "ラスト前(調子で選ぶ)", kind: "trick", cue: 28, options: [
+      { id: uid(), name: "5ボールハイトス", risk: 5 },
+      { id: uid(), name: "シャワー(安牌)", risk: 2 },
+    ] },
+    { id: uid(), name: "5ボールカスケード", kind: "trick", risk: 4, cue: 40, trickId: T("5ボールカスケード") },
+    { id: uid(), name: "フィニッシュポーズ", kind: "transition", risk: 1, cue: 50 },
+  ];
+  state.routines.push({
+    id: uid(), name: "サンプル: はじめてのルーティン", music, sampleSet: true,
+    partLoop: { a: 18, b: 28 }, // パート練習のデモ区間(4ボールの部分)
+    versions: [{ id: uid(), createdAt: Date.now(), steps }],
+  });
+  saveState(); render();
+  toast("サンプル一式を追加しました");
+};
 window.removeSampleTricks = async () => {
   const samples = (state.tricks || []).filter((t) => t.sample);
   if (!samples.length) return;
@@ -1713,7 +1778,7 @@ function renderTricks() {
     </div>
     ${tricks.some((t) => t.sample)
       ? `<button class="btn ghost" onclick="removeSampleTricks()">サンプル技をまとめて削除</button>`
-      : `<button class="btn ghost" onclick="loadSampleTricks()">サンプル技を読み込む(9個)</button>`}`;
+      : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(技9個+ルーティン)</button>`}`;
 }
 
 // 技動画をシートで再生(どの画面からでもワンタップ)。fromPicker=trueなら「この技を追加」を出す
