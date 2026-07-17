@@ -376,6 +376,7 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .trick-row .nm { flex: 1; font-size: 16px; font-weight: 500; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trick-row .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.trick-row .head .btn.small { padding: 0 12px; min-height: 32px; }
 .trick-video { width: 100%; border-radius: 12px; background: #000; margin-top: 10px; max-height: 60vh; }
 .trick-video.main { margin-top: 0; aspect-ratio: 16/9; object-fit: cover; }
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }

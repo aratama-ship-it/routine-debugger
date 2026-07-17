@@ -89,6 +89,12 @@ function blobDel(id) {
 // 旧データ(負荷 load: low/mid/high)を リスク度(risk: 1〜5)へ移行
 function migrateState() {
   if (!Array.isArray(state.tricks)) state.tricks = []; // 技ライブラリ(動画クリップ)
+  // 技のトリム情報を補完(fullDuration=元動画の長さ, trimStart/trimEnd=有効区間, duration=有効区間の長さ)
+  for (const t of state.tricks) {
+    if (t.fullDuration == null) t.fullDuration = t.duration;
+    if (t.trimStart == null) t.trimStart = 0;
+    if (t.trimEnd == null) t.trimEnd = t.fullDuration;
+  }
   for (const rt of state.routines || []) {
     for (const ver of rt.versions || []) {
       for (const st of ver.steps || []) {
@@ -206,6 +212,7 @@ function showSheet(html) {
   $sheet.innerHTML = `<div class="grabber"></div>` + html;
   $sheet.classList.remove("hidden");
   $backdrop.classList.remove("hidden");
+  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // シート内の技動画にトリム適用
 }
 function hideSheet() { $sheet.classList.add("hidden"); $backdrop.classList.add("hidden"); $sheet.innerHTML = ""; }
 $backdrop.addEventListener("click", hideSheet);
@@ -489,6 +496,7 @@ function render() {
     part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec,
     builder: renderBuilder }[view.name];
   $app.innerHTML = r ? r() : renderHome();
+  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // 技動画にトリム区間を適用
 }
 
 // ========== ホーム(二択メニュー) ==========
@@ -1691,8 +1699,9 @@ window.loadSampleTricks = async () => {
       const dur = (await probeVideoDuration(blob)) || 4;
       const id = uid();
       if (await blobPut(id, blob)) {
-        state.tricks.push({ id, name: `${s.n} (サンプル)`, blobId: id, duration: Math.round(dur * 10) / 10,
-          size: blob.size, createdAt: Date.now(), sample: true });
+        const d = Math.round(dur * 10) / 10;
+        state.tricks.push({ id, name: `${s.n} (サンプル)`, blobId: id, duration: d,
+          fullDuration: d, trimStart: 0, trimEnd: d, size: blob.size, createdAt: Date.now(), sample: true });
         ok++;
       }
     } catch (_) { /* 個別失敗はスキップ */ }
@@ -1713,8 +1722,9 @@ async function ensureSampleTricks() {
         const dur = (await probeVideoDuration(blob)) || 4;
         const id = uid();
         if (await blobPut(id, blob)) {
-          t = { id, name: `${s.n} (サンプル)`, blobId: id, duration: Math.round(dur * 10) / 10,
-            size: blob.size, createdAt: Date.now(), sample: true };
+          const d = Math.round(dur * 10) / 10;
+          t = { id, name: `${s.n} (サンプル)`, blobId: id, duration: d, fullDuration: d,
+            trimStart: 0, trimEnd: d, size: blob.size, createdAt: Date.now(), sample: true };
           state.tricks.push(t);
         }
       } catch (_) {}
@@ -1780,11 +1790,12 @@ function renderTricks() {
     <div class="trick-row">
       <div class="head">
         <span class="nm" onclick="sheetRenameTrick('${t.id}')">${esc(t.name)}</span>
-        <span class="kn">${fmtTime(t.duration)} / ${fmtBytes(t.size || 0)}</span>
+        <span class="kn">${t.duration.toFixed(1)}s${(t.trimStart || 0) > 0.05 || (t.trimEnd != null && t.fullDuration != null && t.trimEnd < t.fullDuration - 0.05) ? "✂" : ""}</span>
+        <button class="btn small" onclick="sheetTrimTrick('${t.id}')">長さ</button>
         <button class="btn small" onclick="trickPlay('${t.id}')">${trickPlayingId === t.id ? "閉じる" : "▶"}</button>
         <button class="mini-btn del" onclick="trickDelete('${t.id}')">✕</button>
       </div>
-      ${trickPlayingId === t.id ? `<video id="trick-video" class="trick-video" controls autoplay playsinline></video>` : ""}
+      ${trickPlayingId === t.id ? `<video id="trick-video" class="trick-video" data-trim-trick="${t.id}" controls autoplay playsinline></video>` : ""}
     </div>`).join("");
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>技ライブラリ</h1></div>
@@ -1822,7 +1833,7 @@ window.playTrickVideo = async (trickId, ctx) => {
   showSheet(`
     <h3>${esc(t.name)}</h3>
     <div class="sheet-sub">${fmtTime(t.duration)}</div>
-    <video class="trick-video" style="margin-top:0" src="${sheetVideoUrl}" controls autoplay playsinline loop></video>
+    <video class="trick-video" style="margin-top:0" src="${sheetVideoUrl}" data-trim-trick="${t.id}" controls autoplay playsinline loop></video>
     <div style="height:14px"></div>
     ${actions}`);
 };
@@ -1845,7 +1856,7 @@ function miniDockHtml() {
   const idx = draft.steps.findIndex((s) => s.id === miniVideo.stepId);
   return `
     <div class="mini-dock">
-      <video src="${miniVideo.objUrl}" autoplay loop muted playsinline></video>
+      <video src="${miniVideo.objUrl}" data-trim-trick="${miniVideo.trickId}" autoplay loop muted playsinline></video>
       <div class="md-info">
         <span class="nm">${idx >= 0 ? `${idx + 1}. ` : ""}${esc(t.name)}</span>
         <span class="kn">${fmtTime(t.duration)}</span>
@@ -1862,6 +1873,7 @@ function syncMiniDock() {
   if (!html) { if (dock) dock.remove(); }
   else if (dock) dock.outerHTML = html;
   else document.querySelector(".topbar")?.insertAdjacentHTML("afterend", html);
+  bindAllTrimVideos(); // ドック動画にトリム区間を適用
   document.querySelectorAll(".editor-step").forEach((row, i) => {
     const btn = row.querySelector(".mini-btn.play");
     if (btn) btn.classList.toggle("on", !!(miniVideo && draft && draft.steps[i] && draft.steps[i].id === miniVideo.stepId));
@@ -1937,7 +1949,117 @@ window.trickPlay = async (id) => {
   if (trickObjUrl) URL.revokeObjectURL(trickObjUrl);
   trickObjUrl = URL.createObjectURL(blob);
   const v = document.getElementById("trick-video");
-  if (v) v.src = trickObjUrl;
+  if (v) { v.src = trickObjUrl; bindTrimVideo(v, state.tricks.find((x) => x.id === id)); }
+};
+
+// トリム区間[trimStart,trimEnd]でループ再生させる。トリム無しなら何もしない(native loopに任せる)。
+// 端でのplay()再開は音ありビデオだとブラウザにブロックされるため、native loop=onのまま
+// 「区間外に出たら始点へシーク」だけで実現する(再生は途切れない)
+function bindTrimVideo(v, t) {
+  if (!v || !t || v._trimBound) return;
+  const start = t.trimStart || 0;
+  const end = t.trimEnd != null ? t.trimEnd : (t.fullDuration || t.duration);
+  const full = t.fullDuration || t.duration;
+  if (start <= 0.02 && end >= full - 0.05) return; // トリム無し
+  v._trimBound = true;
+  v.loop = true;
+  const toStart = () => { try { v.currentTime = start; } catch (_) {} };
+  v.addEventListener("loadedmetadata", toStart);
+  if (v.readyState >= 1) toStart();
+  // 端に来たら始点へ折り返す。逆方向シークはwaiting→pauseを誘発するので、seeked後にplay()で再開する
+  v.addEventListener("timeupdate", () => {
+    if (v.currentTime >= end - 0.05 || v.currentTime < start - 0.1) { v._looping = true; toStart(); }
+  });
+  v.addEventListener("seeked", () => { if (v._looping) { v._looping = false; v.play().catch(() => {}); } });
+}
+function bindAllTrimVideos() {
+  document.querySelectorAll("video[data-trim-trick]").forEach((v) =>
+    bindTrimVideo(v, (state.tricks || []).find((x) => x.id === v.dataset.trimTrick)));
+}
+
+// ---------- 技動画の長さ調整(トリム)。始点/終点を設定=有効区間だけを技の長さに。後からいつでも変更可 ----------
+let trimUrl = null;
+let trimDraft = null; // { id, start, end, full }
+window.sheetTrimTrick = async (id) => {
+  const t = (state.tricks || []).find((x) => x.id === id);
+  if (!t) return;
+  const blob = await blobGet(t.blobId);
+  if (!blob) return toast("動画データが見つかりません");
+  if (trimUrl) URL.revokeObjectURL(trimUrl);
+  trimUrl = URL.createObjectURL(blob);
+  const full = t.fullDuration != null ? t.fullDuration : t.duration;
+  trimDraft = { id, start: t.trimStart || 0, end: t.trimEnd != null ? t.trimEnd : full, full };
+  showSheet(trimSheetHtml());
+  const v = document.getElementById("trim-video");
+  if (v) {
+    v.addEventListener("timeupdate", () => {
+      if (!trimDraft) return;
+      if (v.currentTime >= trimDraft.end - 0.03 || v.currentTime < trimDraft.start - 0.1) {
+        v.currentTime = trimDraft.start; if (v.paused) v.play().catch(() => {});
+      }
+    });
+    v.addEventListener("loadedmetadata", () => { try { v.currentTime = trimDraft.start; } catch (_) {} });
+  }
+};
+function trimSheetHtml() {
+  const d = trimDraft;
+  const left = d.full ? (d.start / d.full) * 100 : 0;
+  const w = d.full ? Math.max(1, ((d.end - d.start) / d.full) * 100) : 0;
+  return `
+    <h3>長さを調整</h3>
+    <div class="sheet-sub">動画を再生しながら「今の位置」で始点・終点を決めます</div>
+    <video id="trim-video" class="trick-video" style="margin-top:0" src="${trimUrl}" controls autoplay playsinline></video>
+    <div class="ci-bar part-band-bar"><div class="range" id="trim-bar" style="left:${left}%;width:${w}%"></div></div>
+    <div class="part-point">
+      <span class="pp-label">始点</span><span class="pp-time" id="trim-start">${fmtTimeFine(d.start)}</span>
+      <button class="mini-btn" onclick="trimNudge('start',-0.1)">−</button>
+      <button class="mini-btn" onclick="trimNudge('start',0.1)">＋</button>
+      <button class="btn small" onclick="trimSetPoint('start')">今の位置</button>
+    </div>
+    <div class="part-point">
+      <span class="pp-label">終点</span><span class="pp-time" id="trim-end">${fmtTimeFine(d.end)}</span>
+      <button class="mini-btn" onclick="trimNudge('end',-0.1)">−</button>
+      <button class="mini-btn" onclick="trimNudge('end',0.1)">＋</button>
+      <button class="btn small" onclick="trimSetPoint('end')">今の位置</button>
+    </div>
+    <div class="b-now-line" style="color:var(--text)">この技の長さ: <b id="trim-len">${fmtTime(d.end - d.start)}</b></div>
+    <button class="btn primary" onclick="trimSave()">保存</button>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`;
+}
+function updateTrimSheetUI() {
+  const d = trimDraft; if (!d) return;
+  const s = document.getElementById("trim-start"); if (s) s.textContent = fmtTimeFine(d.start);
+  const e = document.getElementById("trim-end"); if (e) e.textContent = fmtTimeFine(d.end);
+  const l = document.getElementById("trim-len"); if (l) l.textContent = fmtTime(d.end - d.start);
+  const bar = document.getElementById("trim-bar");
+  if (bar && d.full) { bar.style.left = (d.start / d.full) * 100 + "%"; bar.style.width = Math.max(1, ((d.end - d.start) / d.full) * 100) + "%"; }
+}
+window.trimSetPoint = (which) => {
+  const v = document.getElementById("trim-video"); if (!v || !trimDraft) return;
+  const t = round1(v.currentTime);
+  if (which === "start") trimDraft.start = Math.max(0, Math.min(t, trimDraft.end - 0.3));
+  else trimDraft.end = Math.min(trimDraft.full, Math.max(t, trimDraft.start + 0.3));
+  updateTrimSheetUI();
+};
+window.trimNudge = (which, delta) => {
+  if (!trimDraft) return;
+  if (which === "start") trimDraft.start = Math.max(0, Math.min(round1(trimDraft.start + delta), trimDraft.end - 0.3));
+  else trimDraft.end = Math.min(trimDraft.full, Math.max(round1(trimDraft.end + delta), trimDraft.start + 0.3));
+  updateTrimSheetUI();
+};
+window.trimSave = () => {
+  const d = trimDraft; if (!d) return;
+  if (d.end - d.start < 0.3) return toast("0.3秒以上にしてください");
+  const t = state.tricks.find((x) => x.id === d.id);
+  if (t) {
+    t.fullDuration = d.full;
+    t.trimStart = round1(d.start);
+    t.trimEnd = round1(d.end);
+    t.duration = round1(d.end - d.start);
+  }
+  trimDraft = null;
+  saveState(); hideSheet(); render();
+  toast(`長さを ${fmtTime(t.duration)} にしました`);
 };
 window.trickDelete = async (id) => {
   const t = state.tricks.find((x) => x.id === id);
@@ -1978,7 +2100,8 @@ function probeVideoDuration(blob) {
 async function saveTrick(blob, duration, defaultName) {
   const id = uid();
   if (!(await blobPut(id, blob))) return toast("動画を保存できませんでした");
-  state.tricks.push({ id, name: defaultName, blobId: id, duration, size: blob.size, createdAt: Date.now() });
+  state.tricks.push({ id, name: defaultName, blobId: id, duration, fullDuration: duration,
+    trimStart: 0, trimEnd: duration, size: blob.size, createdAt: Date.now() });
   saveState();
   go("tricks");
   setTimeout(() => sheetRenameTrick(id), 80); // 保存直後に名前を付けさせる
@@ -2347,7 +2470,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。各技の<b>「長さ」</b>ボタンから、始点・終点を決めて<b>動画の使う区間を後からいつでも調整</b>できます(前後の余分をカット)。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>タイムラインで組む(構成ビルダー)</h2>
