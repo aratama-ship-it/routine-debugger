@@ -1,10 +1,10 @@
 /* ルーティン・デバッガ Service Worker — アプリシェルをキャッシュして完全オフライン動作 */
-const CACHE = "routine-debugger-v26";
+const CACHE = "routine-debugger-v27";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=26",
-  "./app.js?v=26",
+  "./styles.css?v=27",
+  "./app.js?v=27",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-512.png",
