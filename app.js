@@ -458,7 +458,7 @@ function go(name, params = {}) {
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "builder" && name !== "builder") musicPlayer.pause();
-  if (view.name === "edit" && name !== "edit") musicPlayer.pause();
+  if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); miniVideoCloseSilent(); }
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   // 技撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
@@ -622,7 +622,9 @@ function renderEdit() {
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
         <button class="kind-toggle ${isSlot(s) ? "t" : ""}" onclick="toggleSlot(${i})">${isSlot(s) ? "A/B解除" : "A/B化"}</button>
         ${s.trickId && (state.tricks || []).some((t) => t.id === s.trickId)
-          ? `<button class="mini-btn play" onclick="playTrickVideo('${s.trickId}')">▶</button>` : ""}
+          ? `<button class="mini-btn play ${miniVideo && miniVideo.stepId === s.id ? "on" : ""}" onclick="editorPlayTrick(${i})">▶</button>`
+          : s.kind === "trick" && !isSlot(s)
+            ? `<button class="mini-btn link" onclick="sheetLinkTrick(${i})">🔗</button>` : ""}
         <span class="es-spacer"></span>
         <button class="mini-btn" onclick="moveStep(${i},-1)" ${i === 0 ? "disabled" : ""}>↑</button>
         <button class="mini-btn" onclick="moveStep(${i},1)" ${i === draft.steps.length - 1 ? "disabled" : ""}>↓</button>
@@ -659,9 +661,23 @@ function renderEdit() {
       </div>
       <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
     </div>` : "";
+  // 上部ミニ動画ドック(スクロールしても最上部に残る)
+  const dockTrick = miniVideo ? (state.tricks || []).find((t) => t.id === miniVideo.trickId) : null;
+  const dockStepIdx = miniVideo ? draft.steps.findIndex((s) => s.id === miniVideo.stepId) : -1;
+  const miniDock = miniVideo && dockTrick ? `
+    <div class="mini-dock">
+      <video src="${miniVideo.objUrl}" autoplay loop muted playsinline></video>
+      <div class="md-info">
+        <span class="nm">${dockStepIdx >= 0 ? `${dockStepIdx + 1}. ` : ""}${esc(dockTrick.name)}</span>
+        <span class="kn">${fmtTime(dockTrick.duration)}</span>
+      </div>
+      ${dockStepIdx >= 0 ? `<button class="mini-btn link" onclick="sheetLinkTrick(${dockStepIdx})">🔗</button>` : ""}
+      <button class="mini-btn" onclick="miniVideoClose()">✕</button>
+    </div>` : "";
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1></div>
+    ${miniDock}
     <div class="card">
       <label class="fld">ルーティン名</label>
       <input type="text" value="${esc(draft.name)}" placeholder="例: 2026ステージ用 4分" onchange="draft.name=this.value">
@@ -1781,23 +1797,95 @@ function renderTricks() {
       : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(技9個+ルーティン)</button>`}`;
 }
 
-// 技動画をシートで再生(どの画面からでもワンタップ)。fromPicker=trueなら「この技を追加」を出す
+// 技動画をシートで再生(どの画面からでもワンタップ)。
+// ctx: true=追加ピッカーから(「この技を追加」) / 数値=編集ステップctxへの紐づけモード / なし=閲覧のみ
 let sheetVideoUrl = null;
-window.playTrickVideo = async (trickId, fromPicker) => {
+window.playTrickVideo = async (trickId, ctx) => {
   const t = (state.tricks || []).find((x) => x.id === trickId);
   if (!t) return toast("動画が見つかりません(技ライブラリから削除されています)");
   const blob = await blobGet(t.blobId);
   if (!blob) return toast("動画データが見つかりません");
   if (sheetVideoUrl) URL.revokeObjectURL(sheetVideoUrl);
   sheetVideoUrl = URL.createObjectURL(blob);
+  const actions = typeof ctx === "number"
+    ? `<button class="btn primary" onclick="linkTrickToStep(${ctx},'${t.id}')">この動画を紐づける</button>
+       <button class="btn ghost" onclick="sheetLinkTrick(${ctx})">戻る</button>`
+    : ctx === true
+    ? `<button class="btn primary" onclick="addStepFromTrick('${t.id}')">この技をルーティンに追加</button>
+       <button class="btn ghost" onclick="sheetPickTrick()">技リストに戻る</button>`
+    : `<button class="btn ghost" onclick="hideSheet()">閉じる</button>`;
   showSheet(`
     <h3>${esc(t.name)}</h3>
     <div class="sheet-sub">${fmtTime(t.duration)}</div>
     <video class="trick-video" style="margin-top:0" src="${sheetVideoUrl}" controls autoplay playsinline loop></video>
     <div style="height:14px"></div>
-    ${fromPicker ? `<button class="btn primary" onclick="addStepFromTrick('${t.id}')">この技をルーティンに追加</button>
-      <button class="btn ghost" onclick="sheetPickTrick()">技リストに戻る</button>`
-    : `<button class="btn ghost" onclick="hideSheet()">閉じる</button>`}`);
+    ${actions}`);
+};
+
+// ---------- 編集画面の上部ミニ動画ドック ----------
+// ▶で開き、編集を続けながら小さくループ再生。stepIdで追跡(並べ替えに強い)
+let miniVideo = null; // { trickId, stepId, objUrl }
+function miniVideoCloseSilent() {
+  if (!miniVideo) return;
+  if (miniVideo.objUrl) URL.revokeObjectURL(miniVideo.objUrl);
+  miniVideo = null;
+}
+window.miniVideoClose = () => { miniVideoCloseSilent(); render(); };
+window.editorPlayTrick = async (i) => {
+  const s = draft && draft.steps[i];
+  if (!s || !s.trickId) return;
+  // 同じ技をもう一度タップ→閉じる(トグル)
+  if (miniVideo && miniVideo.stepId === s.id) return miniVideoClose();
+  const t = (state.tricks || []).find((x) => x.id === s.trickId);
+  if (!t) return toast("動画が見つかりません(技ライブラリから削除されています)");
+  const blob = await blobGet(t.blobId);
+  if (!blob) return toast("動画データが見つかりません");
+  miniVideoCloseSilent();
+  miniVideo = { trickId: s.trickId, stepId: s.id, objUrl: URL.createObjectURL(blob) };
+  render();
+};
+
+// 手入力の技に技ライブラリの動画を紐づける(注釈扱い=版は分割しない)
+window.sheetLinkTrick = (i) => {
+  const s = draft && draft.steps[i];
+  if (!s) return;
+  const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+  if (!tricks.length) {
+    return showSheet(`
+      <h3>動画を紐づけ</h3>
+      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+  }
+  showSheet(`
+    <h3>「${esc(s.name || "この技")}」に動画を紐づけ</h3>
+    <div class="sheet-sub">タップで紐づけ / ▶で動画を確認</div>
+    ${tricks.map((t) => `
+      <div class="pick-trick-row" onclick="linkTrickToStep(${i},'${t.id}')">
+        <span class="nm">${esc(t.name)}</span>
+        <span class="kn">${fmtTime(t.duration)}</span>
+        <button class="mini-btn play" onclick="event.stopPropagation();playTrickVideo('${t.id}',${i})">▶</button>
+      </div>`).join("")}
+    <div style="height:10px"></div>
+    ${s.trickId ? `<button class="btn danger-ghost" style="width:100%" onclick="unlinkTrickFromStep(${i})">紐づけを解除</button>` : ""}
+    <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
+};
+window.linkTrickToStep = (i, trickId) => {
+  const s = draft && draft.steps[i];
+  const t = (state.tricks || []).find((x) => x.id === trickId);
+  if (!s || !t) return hideSheet();
+  s.trickId = trickId;
+  if (!s.name.trim()) s.name = t.name;
+  hideSheet(); render();
+  toast(`「${t.name}」の動画を紐づけました`);
+};
+window.unlinkTrickFromStep = (i) => {
+  const s = draft && draft.steps[i];
+  if (!s) return hideSheet();
+  if (miniVideo && miniVideo.stepId === s.id) miniVideoCloseSilent();
+  delete s.trickId;
+  hideSheet(); render();
+  toast("紐づけを解除しました");
 };
 
 window.trickPlay = async (id) => {
@@ -2219,7 +2307,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。紐づいた技は、編集・通し練習・技の詳細の各画面にある<b>▶</b>からワンタップで動画を確認できます(通し練習では▶を押しても失敗記録にはなりません)。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>タイムラインで組む(構成ビルダー)</h2>

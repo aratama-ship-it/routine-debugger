@@ -381,6 +381,21 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .clean-btn.recording { background: var(--danger); color: #fff; }
 .mini-btn.play { color: var(--accent); background: var(--accent-tint); font-size: 12px; }
+.mini-btn.play.on { background: var(--accent); color: #000; }
+.mini-btn.link { font-size: 13px; }
+
+/* 編集画面の上部ミニ動画ドック */
+.mini-dock { position: sticky; top: calc(var(--safe-top) + 54px); z-index: 15;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(28, 28, 30, .96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px; padding: 8px 10px; margin: 0 0 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .5); }
+.mini-dock video { width: 132px; aspect-ratio: 4/3; object-fit: cover; border-radius: 9px;
+  background: #000; flex-shrink: 0; }
+.mini-dock .md-info { flex: 1; min-width: 0; }
+.mini-dock .md-info .nm { display: block; font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-dock .md-info .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pick-trick-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px;
   border-bottom: var(--hairline) solid var(--sep); cursor: pointer; }
 .pick-trick-row:last-of-type { border-bottom: none; }
