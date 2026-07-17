@@ -19,18 +19,36 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --hairline: 0.5px;
+  /* テーマ着せ替え用(ルーティンごとに body[data-theme] で上書き) */
+  --nav-bg: rgba(0, 0, 0, .78);       /* すりガラスのナビ/ツールバー */
+  --sheet-bg: rgba(28, 28, 30, .97);  /* モーダルシート */
+  --on-accent: #000;                  /* アクセント塗りボタンの文字 */
+  --on-ok: #000;                      /* 緑塗りボタンの文字 */
+  --seg-selected: #636366;            /* セグメント選択の背景 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-head: var(--font-ui);        /* 見出しフォント(和テーマ等で明朝に) */
+  --app-bg-layer: none;               /* 背景テクスチャ(和紙/グリッド等) */
+  /* 危険度スケール(緑→赤)。ブランド色とは独立=テーマでアクセントを変えても意味が濁らない */
+  --risk-1: #30d158; --risk-1-bg: rgba(48, 209, 88, .16);
+  --risk-2: #b6d94a; --risk-2-bg: rgba(168, 216, 74, .16);
+  --risk-3: #ffd60a; --risk-3-bg: rgba(255, 214, 10, .14);
+  --risk-4: #ff9f0a; --risk-4-bg: rgba(255, 159, 10, .16);
+  --risk-5: #ff453a; --risk-5-bg: rgba(255, 69, 58, .18);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-family: var(--font-ui);
   font-size: 17px; line-height: 1.45;
   -webkit-font-smoothing: antialiased; }
+/* テーマの背景テクスチャ(bodyの最背面に固定) */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--app-bg-layer); background-attachment: fixed; }
 #app { max-width: 560px; margin: 0 auto; padding: 0 16px calc(100px + var(--safe-bottom)); }
 
 /* ナビゲーションバー: すりガラス+ヘアライン。戻るがある画面はタイトル中央寄せ */
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
   margin: 0 -16px 18px; padding: calc(10px + var(--safe-top)) 12px 10px;
-  background: rgba(0, 0, 0, .78); backdrop-filter: saturate(180%) blur(20px);
+  background: var(--nav-bg); backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: var(--hairline) solid var(--sep); }
 .topbar h1 { font-size: 22px; margin: 0; font-weight: 700; letter-spacing: -.01em; flex: 1;
@@ -59,19 +77,19 @@ button:active { opacity: .75; }
 .btn { display: block; width: 100%; min-height: 50px; border-radius: 12px;
   font-size: 17px; font-weight: 600; background: var(--card); color: var(--accent);
   margin-bottom: 12px; }
-.btn.primary { background: var(--accent); color: #000; }
-.btn.ok { background: var(--ok); color: #000; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.ok { background: var(--ok); color: var(--on-ok); }
 .btn.ghost { background: none; color: var(--muted); font-weight: 400; }
 .btn.danger-ghost { background: none; color: var(--danger); width: auto; }
 .btn.small { min-height: 34px; font-size: 15px; width: auto; padding: 0 14px;
   display: inline-block; margin: 0; border-radius: 17px; background: var(--card2); color: var(--accent); }
-.btn.small.primary { background: var(--accent); color: #000; }
+.btn.small.primary { background: var(--accent); color: var(--on-accent); }
 .btn.small.ghost { background: none; }
 .btn:disabled { opacity: .35; }
 
 /* クリーンボタン(最頻操作を最大に) */
 .clean-btn { width: 100%; min-height: 88px; border-radius: 16px; font-size: 24px; font-weight: 700;
-  background: var(--ok); color: #000; margin-bottom: 22px; letter-spacing: .06em; }
+  background: var(--ok); color: var(--on-ok); margin-bottom: 22px; letter-spacing: .06em; }
 .clean-btn .sub { display: block; font-size: 13px; font-weight: 500; opacity: .7; margin-top: 2px; letter-spacing: 0; }
 .clean-btn:active { opacity: 1; filter: brightness(.8); }
 
@@ -115,11 +133,11 @@ button:active { opacity: .75; }
 .badge { font-size: 12px; padding: 3px 9px; border-radius: 12px; font-weight: 600; flex-shrink: 0; }
 .badge.hit { background: var(--danger); color: #fff; }
 /* リスク度の色(1=安全〜5=危険) 共通 */
-.badge.risk-1, .risk-chip.risk-1 { color: var(--ok); background: rgba(48, 209, 88, .16); }
-.badge.risk-2, .risk-chip.risk-2 { color: #b6d94a; background: rgba(168, 216, 74, .16); }
-.badge.risk-3, .risk-chip.risk-3 { color: var(--warn); background: rgba(255, 214, 10, .14); }
-.badge.risk-4, .risk-chip.risk-4 { color: var(--accent); background: rgba(255, 159, 10, .16); }
-.badge.risk-5, .risk-chip.risk-5 { color: var(--danger); background: rgba(255, 69, 58, .18); }
+.badge.risk-1, .risk-chip.risk-1 { color: var(--risk-1); background: var(--risk-1-bg); }
+.badge.risk-2, .risk-chip.risk-2 { color: var(--risk-2); background: var(--risk-2-bg); }
+.badge.risk-3, .risk-chip.risk-3 { color: var(--risk-3); background: var(--risk-3-bg); }
+.badge.risk-4, .risk-chip.risk-4 { color: var(--risk-4); background: var(--risk-4-bg); }
+.badge.risk-5, .risk-chip.risk-5 { color: var(--risk-5); background: var(--risk-5-bg); }
 
 /* 記録画面ステータス行 */
 .runbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -131,7 +149,7 @@ button:active { opacity: .75; }
 
 /* 下部固定バー(タブバー風すりガラス) */
 .bottombar { position: fixed; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, .78); backdrop-filter: saturate(180%) blur(20px);
+  background: var(--nav-bg); backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: var(--hairline) solid var(--sep);
   padding: 10px 16px calc(10px + var(--safe-bottom)); display: flex; gap: 10px; z-index: 30; }
@@ -141,7 +159,7 @@ button:active { opacity: .75; }
 
 /* シート(iOSモーダルシート: グラバー+すりガラス) */
 #sheet-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 40; }
-#sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(28, 28, 30, .97);
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sheet-bg);
   backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
   box-shadow: 0 -8px 40px rgba(0, 0, 0, .55);
   border-radius: 20px 20px 0 0;
@@ -171,7 +189,7 @@ button:active { opacity: .75; }
   margin-bottom: 6px; }
 .segmented .choice { flex: 1; min-height: 36px; border-radius: 7px; background: none;
   font-size: 15px; font-weight: 500; box-shadow: none; }
-.segmented .choice.selected { background: #636366; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.segmented .choice.selected { background: var(--seg-selected); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
 
 .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .tag { padding: 7px 14px; border-radius: 16px; background: var(--card2); color: var(--muted);
@@ -235,11 +253,11 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   background: var(--card2); border: 1.5px solid var(--sep); color: var(--text);
   font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .risk-select.unset { color: var(--muted2); border-style: dashed; }
-.risk-select.risk-1 { color: var(--ok); border-color: rgba(48, 209, 88, .4); }
-.risk-select.risk-2 { color: #b6d94a; border-color: rgba(168, 216, 74, .4); }
-.risk-select.risk-3 { color: var(--warn); border-color: rgba(255, 214, 10, .4); }
-.risk-select.risk-4 { color: var(--accent); border-color: rgba(255, 159, 10, .45); }
-.risk-select.risk-5 { color: var(--danger); border-color: rgba(255, 69, 58, .5); }
+.risk-select.risk-1 { color: var(--risk-1); border-color: rgba(48, 209, 88, .4); }
+.risk-select.risk-2 { color: var(--risk-2); border-color: rgba(168, 216, 74, .4); }
+.risk-select.risk-3 { color: var(--risk-3); border-color: rgba(255, 214, 10, .4); }
+.risk-select.risk-4 { color: var(--risk-4); border-color: rgba(255, 159, 10, .45); }
+.risk-select.risk-5 { color: var(--risk-5); border-color: rgba(255, 69, 58, .5); }
 .mini-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card2); color: var(--text);
   border: none; font-size: 15px; flex-shrink: 0; }
 .mini-btn.del { color: var(--danger); }
@@ -268,7 +286,7 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 .music-controls { display: flex; gap: 10px; margin-top: 12px; }
 .music-pill { flex: 1; min-height: 46px; border-radius: 23px; background: var(--card2);
   color: var(--text); font-size: 15px; font-weight: 600; }
-.music-pill.primary { background: var(--ok); color: #000; }
+.music-pill.primary { background: var(--ok); color: var(--on-ok); }
 .volume-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .volume-row .vol-ico { font-size: 13px; flex-shrink: 0; opacity: .7; }
 #music-vol { flex: 1; accent-color: var(--accent); height: 4px; }
@@ -407,7 +425,7 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .clean-btn.recording { background: var(--danger); color: #fff; }
 .mini-btn.play { color: var(--accent); background: var(--accent-tint); font-size: 12px; }
-.mini-btn.play.on { background: var(--accent); color: #000; }
+.mini-btn.play.on { background: var(--accent); color: var(--on-accent); }
 .mini-btn.link { font-size: 13px; }
 
 /* 編集画面の上部ミニ動画ドック */
@@ -454,3 +472,90 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .center { text-align: center; }
 .row-2 { display: flex; gap: 10px; }
 .row-2 > * { flex: 1; }
+
+/* ============================================================
+   ルーティンごとのテーマ(着せ替え)。body[data-theme] で変数を上書き
+   危険度スケール(--risk-1..5)は緑→赤の意味を保ちつつ各世界観に馴染ませる
+   ============================================================ */
+
+/* 和 — 墨のような温かい黒、生成りの文字、朱のアクセント、見出しは明朝 */
+body[data-theme="wa"] {
+  --bg: #14110d; --card: #211c15; --card2: #2b241b; --card3: #37301f;
+  --sep: rgba(214, 196, 156, .22);
+  --text: #f2ebdd; --muted: rgba(242, 235, 221, .58); --muted2: rgba(242, 235, 221, .3);
+  --accent: #d8492f; --accent-tint: rgba(216, 73, 47, .18); --on-accent: #fff5ef;
+  --ok: #7f9a52; --ok-tint: rgba(127, 154, 82, .2); --on-ok: #12100b;
+  --warn: #d9a63a; --danger: #c0392b;
+  --nav-bg: rgba(20, 17, 13, .84); --sheet-bg: rgba(33, 28, 21, .98);
+  --seg-selected: #4a4030;
+  --font-head: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --risk-1: #8bab5b; --risk-1-bg: rgba(139, 171, 91, .2);
+  --risk-2: #b9b558; --risk-2-bg: rgba(185, 181, 88, .2);
+  --risk-3: #d9a63a; --risk-3-bg: rgba(217, 166, 58, .2);
+  --risk-4: #cf7b32; --risk-4-bg: rgba(207, 123, 50, .2);
+  --risk-5: #c0392b; --risk-5-bg: rgba(192, 57, 43, .22);
+  --app-bg-layer:
+    radial-gradient(120% 80% at 50% 0%, rgba(216, 73, 47, .06), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255, 250, 240, .014) 0 2px, transparent 2px 4px);
+}
+body[data-theme="wa"] .topbar h1,
+body[data-theme="wa"] .card h2,
+body[data-theme="wa"] .clean-btn,
+body[data-theme="wa"] .mc-title { font-family: var(--font-head); letter-spacing: .04em; }
+
+/* サイバー — 純黒、ネオンのシアン、微かなグリッドとグロー */
+body[data-theme="cyber"] {
+  --bg: #05070a; --card: #0c1119; --card2: #131c28; --card3: #1c2838;
+  --sep: rgba(0, 229, 255, .2);
+  --text: #eafcff; --muted: rgba(180, 224, 235, .6); --muted2: rgba(180, 224, 235, .32);
+  --accent: #00e5ff; --accent-tint: rgba(0, 229, 255, .14); --on-accent: #00181d;
+  --ok: #24f39a; --ok-tint: rgba(36, 243, 154, .16); --on-ok: #00160d;
+  --warn: #ffe14d; --danger: #ff2e6e;
+  --nav-bg: rgba(5, 7, 10, .82); --sheet-bg: rgba(12, 17, 25, .98);
+  --seg-selected: #1f3346;
+  --risk-1: #24f39a; --risk-1-bg: rgba(36, 243, 154, .16);
+  --risk-2: #8df24d; --risk-2-bg: rgba(141, 242, 77, .16);
+  --risk-3: #ffe14d; --risk-3-bg: rgba(255, 225, 77, .16);
+  --risk-4: #ff9d3c; --risk-4-bg: rgba(255, 157, 60, .18);
+  --risk-5: #ff2e6e; --risk-5-bg: rgba(255, 46, 110, .2);
+  --app-bg-layer:
+    radial-gradient(100% 60% at 50% -10%, rgba(0, 229, 255, .1), transparent 55%),
+    radial-gradient(80% 50% at 100% 100%, rgba(255, 46, 110, .07), transparent 55%),
+    repeating-linear-gradient(90deg, rgba(0, 229, 255, .04) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(0deg, rgba(0, 229, 255, .04) 0 1px, transparent 1px 40px);
+}
+body[data-theme="cyber"] .btn.primary,
+body[data-theme="cyber"] .clean-btn { box-shadow: 0 0 18px rgba(0, 229, 255, .35); }
+body[data-theme="cyber"] .topbar h1 { letter-spacing: .04em; }
+
+/* マット白 — 生成りのオフホワイト、墨黒の文字、スレートのアクセント(ミニマル) */
+body[data-theme="matte"] {
+  --bg: #f2f1ec; --card: #ffffff; --card2: #eae8e1; --card3: #e1ded5;
+  --sep: rgba(60, 60, 67, .16);
+  --text: #1c1b19; --muted: rgba(40, 40, 45, .56); --muted2: rgba(40, 40, 45, .32);
+  --accent: #47607a; --accent-tint: rgba(71, 96, 122, .12); --on-accent: #ffffff;
+  --ok: #3f9d6b; --ok-tint: rgba(63, 157, 107, .14); --on-ok: #ffffff;
+  --warn: #b8860b; --danger: #c0392b;
+  --nav-bg: rgba(242, 241, 236, .82); --sheet-bg: rgba(255, 255, 255, .98);
+  --seg-selected: #ffffff;
+  --risk-1: #3f9d6b; --risk-1-bg: rgba(63, 157, 107, .14);
+  --risk-2: #7a9a2e; --risk-2-bg: rgba(122, 154, 46, .14);
+  --risk-3: #b8860b; --risk-3-bg: rgba(184, 134, 11, .14);
+  --risk-4: #cf7b32; --risk-4-bg: rgba(207, 123, 50, .14);
+  --risk-5: #c0392b; --risk-5-bg: rgba(192, 57, 43, .14);
+  --app-bg-layer: none;
+}
+/* ライトテーマでは選択セグメントに軽い影で浮きを出す */
+body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+
+/* テーマ選択(編集画面): 4分割のスウォッチ */
+.theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 0 4px; }
+.theme-swatch { background: none; border: none; padding: 0; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; }
+.theme-swatch .tsw { position: relative; width: 100%; height: 52px; border-radius: 10px;
+  border: 1.5px solid var(--sep); overflow: hidden; display: block; }
+.theme-swatch.selected .tsw { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
+.theme-swatch .tsw-card { position: absolute; left: 8px; right: 8px; top: 12px; height: 16px; border-radius: 5px; }
+.theme-swatch .tsw-dot { position: absolute; right: 9px; bottom: 9px; width: 12px; height: 12px; border-radius: 50%; }
+.theme-swatch .tsw-name { font-size: 12px; color: var(--muted); }
+.theme-swatch.selected .tsw-name { color: var(--text); font-weight: 600; }
