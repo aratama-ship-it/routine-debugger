@@ -648,7 +648,8 @@ function renderEdit() {
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
         <button class="kind-toggle ${isSlot(s) ? "t" : ""}" onclick="toggleSlot(${i})">${isSlot(s) ? "A/B解除" : "A/B化"}</button>
         ${s.trickId && (state.tricks || []).some((t) => t.id === s.trickId)
-          ? `<button class="mini-btn play ${miniVideo && miniVideo.stepId === s.id ? "on" : ""}" onclick="editorPlayTrick(${i})">▶</button>`
+          ? `<button class="mini-btn play ${miniVideo && miniVideo.stepId === s.id ? "on" : ""}" onclick="editorPlayTrick(${i})">▶</button>
+             <button class="mini-btn" onclick="sheetTrimTrick('${s.trickId}')">✂</button>`
           : s.kind === "trick" && !isSlot(s)
             ? `<button class="mini-btn link" onclick="sheetLinkTrick(${i})">🔗</button>` : ""}
         <span class="es-spacer"></span>
@@ -1861,6 +1862,7 @@ function miniDockHtml() {
         <span class="nm">${idx >= 0 ? `${idx + 1}. ` : ""}${esc(t.name)}</span>
         <span class="kn">${fmtTime(t.duration)}</span>
       </div>
+      <button class="mini-btn" onclick="sheetTrimTrick('${miniVideo.trickId}')">✂</button>
       ${idx >= 0 ? `<button class="mini-btn link" onclick="sheetLinkTrick(${idx})">🔗</button>` : ""}
       <button class="mini-btn" onclick="miniVideoClose()">✕</button>
     </div>`;
@@ -1985,6 +1987,7 @@ window.sheetTrimTrick = async (id) => {
   if (!t) return;
   const blob = await blobGet(t.blobId);
   if (!blob) return toast("動画データが見つかりません");
+  musicPlayer.pause(); // カット中は曲を止める(編集画面から開いた場合)
   if (trimUrl) URL.revokeObjectURL(trimUrl);
   trimUrl = URL.createObjectURL(blob);
   const full = t.fullDuration != null ? t.fullDuration : t.duration;
@@ -2470,7 +2473,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。各技の<b>「長さ」</b>ボタンから、始点・終点を決めて<b>動画の使う区間を後からいつでも調整</b>できます(前後の余分をカット)。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。各技の<b>「長さ」</b>ボタンから、始点・終点を決めて<b>動画の使う区間を後からいつでも調整</b>できます(前後の余分をカット)。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。編集画面の<b>✂</b>(行または上部ドック)から、その場で動画の長さ(始点・終点)も調整できます。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>タイムラインで組む(構成ビルダー)</h2>
