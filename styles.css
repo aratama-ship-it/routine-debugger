@@ -199,7 +199,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
   text-align: center; font-variant-numeric: tabular-nums; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
-.editor-step .es-row1 .cue-input { flex: 0 0 72px; text-align: center; padding: 11px 4px;
+.editor-step .es-row1 .cue-input { flex: 0 0 58px; text-align: center; padding: 11px 3px;
   font-size: 15px; font-variant-numeric: tabular-nums; color: var(--accent);
   touch-action: pan-y; /* 横スライドで秒数微調整(縦スクロールは通す) */ }
 .editor-step .es-row1 .cue-play { flex: 0 0 auto; width: 40px; height: 40px; font-size: 12px;
@@ -210,17 +210,16 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .step-btn.now { background: rgba(48, 209, 88, .14); box-shadow: inset 3px 0 0 var(--ok); }
 .editor-step .es-row2 { display: flex; align-items: center; gap: 8px; margin: 8px 0 0 32px; }
 .editor-step .es-spacer { flex: 1; }
-.editor-step .es-risk { display: flex; align-items: center; gap: 10px; margin: 10px 0 0 32px; }
-.editor-step .es-risk-label { font-size: 13px; color: var(--muted); flex-shrink: 0; }
-.risk-seg { display: flex; flex: 1; background: var(--card2); border-radius: 9px; padding: 2px; gap: 2px; }
-.risk-seg-btn { flex: 1; min-height: 34px; border-radius: 7px; background: none; color: var(--muted);
-  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.risk-seg-btn.selected { color: #000; }
-.risk-seg-btn.risk-1.selected { background: var(--ok); }
-.risk-seg-btn.risk-2.selected { background: #b6d94a; }
-.risk-seg-btn.risk-3.selected { background: var(--warn); }
-.risk-seg-btn.risk-4.selected { background: var(--accent); }
-.risk-seg-btn.risk-5.selected { background: var(--danger); color: #fff; }
+/* リスク度プルダウン(省スペース)。1行目に置き、選択値で文字色が変わり危険度が一目で分かる */
+.risk-select { flex: 0 0 auto; width: auto; min-height: 40px; padding: 6px 6px; border-radius: 9px;
+  background: var(--card2); border: 1.5px solid var(--sep); color: var(--text);
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.es-row1 .risk-select { min-height: 44px; }
+.risk-select.risk-1 { color: var(--ok); border-color: rgba(48, 209, 88, .4); }
+.risk-select.risk-2 { color: #b6d94a; border-color: rgba(168, 216, 74, .4); }
+.risk-select.risk-3 { color: var(--warn); border-color: rgba(255, 214, 10, .4); }
+.risk-select.risk-4 { color: var(--accent); border-color: rgba(255, 159, 10, .45); }
+.risk-select.risk-5 { color: var(--danger); border-color: rgba(255, 69, 58, .5); }
 .mini-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card2); color: var(--text);
   border: none; font-size: 15px; flex-shrink: 0; }
 .mini-btn.del { color: var(--danger); }
@@ -322,7 +321,7 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .es-opt { display: flex; align-items: center; gap: 8px; margin: 8px 0 0 32px; }
 .es-opt .es-opt-mark { color: var(--accent); font-size: 13px; font-weight: 700; width: 16px; flex-shrink: 0; }
 .es-opt input[type=text] { flex: 1; min-width: 0; padding: 9px 10px; font-size: 15px; border-radius: 8px; }
-.es-risk.opt { margin-left: 56px; }
+.es-opt .risk-select { min-height: 34px; }
 
 /* セッション開始時の前回リキャップ */
 .recap { background: var(--card2); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
