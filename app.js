@@ -635,6 +635,7 @@ function renderEdit() {
       ${RISK_LEVELS.map((n) => `<button class="risk-seg-btn risk-${n} ${selected === n ? "selected" : ""}"
         onclick="${onclickTpl.replace("%N%", n)}">${n}</button>`).join("")}
     </div>`;
+  const hasEditorMusic = !!(draft._newMusicFile || (rt && rt.music && draft.music));
   const stepRows = draft.steps.map((s, i) => `
     <div class="editor-step">
       <div class="es-row1">
@@ -643,6 +644,8 @@ function renderEdit() {
           onchange="draft.steps[${i}].name=this.value">
         <input type="text" class="cue-input" inputmode="numeric" data-i="${i}" value="${s.cue != null ? fmtCue(s.cue) : ""}"
           placeholder="♪何秒" onchange="setCue(${i},this.value)">
+        ${hasEditorMusic && s.cue != null
+          ? `<button class="mini-btn cue-play" onclick="editorPlayFromCue(${i})">♪▶</button>` : ""}
       </div>
       <div class="es-row2">
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
@@ -676,7 +679,6 @@ function renderEdit() {
       </div>`}
     </div>`).join("");
   // 編集中の試聴プレイヤー(音源があれば)。再生すると♪キューに沿って該当ステップが光る
-  const hasEditorMusic = !!(draft._newMusicFile || (rt && rt.music && draft.music));
   if (hasEditorMusic) setTimeout(loadEditorMusic, 0);
   const editorPlayer = hasEditorMusic ? `
     <div class="card music-card">
@@ -719,6 +721,14 @@ function renderEdit() {
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.setRisk = (i, n) => { draft.steps[i].risk = n; render(); };
+// このステップの♪キュー位置から曲を再生(編集画面で「この技のところから確認」)
+window.editorPlayFromCue = (i) => {
+  const s = draft && draft.steps[i];
+  if (!s || s.cue == null || !musicPlayer.src) return;
+  ensureAudioGraph();
+  try { musicPlayer.currentTime = s.cue; } catch (_) {}
+  musicPlayer.play();
+};
 // 曲位置キュー(この技を曲の何秒に入れるか)。注釈扱いなので版は分割しない
 window.setCue = (i, v) => {
   const cue = parseCue(v);
