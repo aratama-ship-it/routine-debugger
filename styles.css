@@ -199,22 +199,22 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
   text-align: center; font-variant-numeric: tabular-nums; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
-.editor-step .es-row1 .cue-input { flex: 0 0 58px; text-align: center; padding: 11px 3px;
-  font-size: 15px; font-variant-numeric: tabular-nums; color: var(--accent);
+.editor-step .cue-input { flex: 0 0 54px; text-align: center; padding: 9px 3px;
+  font-size: 14px; font-variant-numeric: tabular-nums; color: var(--accent);
   touch-action: pan-y; /* 横スライドで秒数微調整(縦スクロールは通す) */ }
-.editor-step .es-row1 .cue-play { flex: 0 0 auto; width: 40px; height: 40px; font-size: 12px;
+.editor-step .cue-play { flex: 0 0 auto; width: 34px; height: 34px; font-size: 11px;
   color: var(--ok); background: var(--ok-tint); }
 .editor-step.now { background: rgba(48, 209, 88, .1); box-shadow: inset 3px 0 0 var(--ok);
   border-radius: 8px; }
 .cue-chip { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 .step-btn.now { background: rgba(48, 209, 88, .14); box-shadow: inset 3px 0 0 var(--ok); }
-.editor-step .es-row2 { display: flex; align-items: center; gap: 8px; margin: 8px 0 0 32px; }
+/* 技名以外のコントロールは1行に。狭すぎる端末では折り返す */
+.editor-step .es-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 0 4px; }
 .editor-step .es-spacer { flex: 1; }
-/* リスク度プルダウン(省スペース)。1行目に置き、選択値で文字色が変わり危険度が一目で分かる */
-.risk-select { flex: 0 0 auto; width: auto; min-height: 40px; padding: 6px 6px; border-radius: 9px;
+/* リスク度プルダウン(省スペース)。選択値で文字色が変わり危険度が一目で分かる */
+.risk-select { flex: 0 0 auto; width: auto; min-height: 34px; padding: 5px 5px; border-radius: 9px;
   background: var(--card2); border: 1.5px solid var(--sep); color: var(--text);
   font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.es-row1 .risk-select { min-height: 44px; }
 .risk-select.risk-1 { color: var(--ok); border-color: rgba(48, 209, 88, .4); }
 .risk-select.risk-2 { color: #b6d94a; border-color: rgba(168, 216, 74, .4); }
 .risk-select.risk-3 { color: var(--warn); border-color: rgba(255, 214, 10, .4); }
@@ -223,9 +223,11 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .mini-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card2); color: var(--text);
   border: none; font-size: 15px; flex-shrink: 0; }
 .mini-btn.del { color: var(--danger); }
-.kind-toggle { flex-shrink: 0; height: 36px; border-radius: 18px; background: var(--card2);
-  color: var(--muted); border: none; font-size: 12px; font-weight: 600; padding: 0 14px; }
+.kind-toggle { flex-shrink: 0; height: 34px; border-radius: 17px; background: var(--card2);
+  color: var(--muted); border: none; font-size: 12px; font-weight: 600; padding: 0 11px; }
 .kind-toggle.t { color: var(--accent); background: var(--accent-tint); }
+/* コントロール行のミニボタンは少し小さめにして1行に収めやすく */
+.editor-step .es-row2 .mini-btn { width: 34px; height: 34px; }
 
 /* 楽曲プレイヤー・録音 */
 .music-card, .rec-card { padding: 12px 16px; }
