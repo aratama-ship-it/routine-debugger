@@ -42,7 +42,8 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
   -webkit-font-smoothing: antialiased; }
 /* テーマの背景テクスチャ(bodyの最背面に固定) */
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--app-bg-layer); background-attachment: fixed; }
+  background-image: var(--app-bg-layer); background-size: var(--app-bg-size, auto);
+  background-repeat: repeat; background-attachment: fixed; }
 #app { max-width: 560px; margin: 0 auto; padding: 0 16px calc(100px + var(--safe-bottom)); }
 
 /* ナビゲーションバー: すりガラス+ヘアライン。戻るがある画面はタイトル中央寄せ */
@@ -478,15 +479,15 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
    危険度スケール(--risk-1..5)は緑→赤の意味を保ちつつ各世界観に馴染ませる
    ============================================================ */
 
-/* 和 — 墨のような温かい黒、生成りの文字、朱のアクセント、見出しは明朝 */
+/* 和 — 焦げ茶の木肌に生成りの文字、朱のアクセント、見出しは明朝。木目+和紙の質感 */
 body[data-theme="wa"] {
-  --bg: #14110d; --card: #211c15; --card2: #2b241b; --card3: #37301f;
-  --sep: rgba(214, 196, 156, .22);
-  --text: #f2ebdd; --muted: rgba(242, 235, 221, .58); --muted2: rgba(242, 235, 221, .3);
+  --bg: #1b140d; --card: #271e14; --card2: #322619; --card3: #3f3122;
+  --sep: rgba(214, 196, 156, .2);
+  --text: #f3ecdd; --muted: rgba(243, 236, 221, .58); --muted2: rgba(243, 236, 221, .3);
   --accent: #d8492f; --accent-tint: rgba(216, 73, 47, .18); --on-accent: #fff5ef;
   --ok: #7f9a52; --ok-tint: rgba(127, 154, 82, .2); --on-ok: #12100b;
   --warn: #d9a63a; --danger: #c0392b;
-  --nav-bg: rgba(20, 17, 13, .84); --sheet-bg: rgba(33, 28, 21, .98);
+  --nav-bg: rgba(27, 20, 13, .84); --sheet-bg: rgba(39, 30, 20, .98);
   --seg-selected: #4a4030;
   --font-head: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
   --risk-1: #8bab5b; --risk-1-bg: rgba(139, 171, 91, .2);
@@ -494,9 +495,23 @@ body[data-theme="wa"] {
   --risk-3: #d9a63a; --risk-3-bg: rgba(217, 166, 58, .2);
   --risk-4: #cf7b32; --risk-4-bg: rgba(207, 123, 50, .2);
   --risk-5: #c0392b; --risk-5-bg: rgba(192, 57, 43, .22);
+  /* 木目(横に流れる縞) + 和紙の繊維(細かい斑) + 温かみの上グロー。SVGノイズで自己完結 */
   --app-bg-layer:
-    radial-gradient(120% 80% at 50% 0%, rgba(216, 73, 47, .06), transparent 60%),
-    repeating-linear-gradient(0deg, rgba(255, 250, 240, .014) 0 2px, transparent 2px 4px);
+    radial-gradient(120% 70% at 50% -10%, rgba(216, 73, 47, .06), transparent 60%),
+    linear-gradient(180deg, rgba(66, 45, 24, .4), rgba(20, 14, 8, .4)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='280'%3E%3Cfilter id='wg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009 0.15' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wg)'/%3E%3C/svg%3E");
+  --app-bg-size: auto, auto, 440px 280px;
+}
+/* 和紙の繊維をカード面に乗せる(見る面が紙らしくなる)。細かい斑+柔らかい雲状 */
+body[data-theme="wa"] .card,
+body[data-theme="wa"] .routine-row,
+body[data-theme="wa"] .es-row1 input[type=text],
+body[data-theme="wa"] #sheet {
+  background-color: var(--card);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wc'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wc)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='wd'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wd)'/%3E%3C/svg%3E");
+  background-size: 200px 200px, 300px 300px;
 }
 body[data-theme="wa"] .topbar h1,
 body[data-theme="wa"] .card h2,
