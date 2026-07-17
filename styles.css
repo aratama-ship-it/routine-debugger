@@ -195,11 +195,23 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .editor-step { padding: 10px 0 12px; border-bottom: var(--hairline) solid var(--sep); }
 .editor-step:last-of-type { border-bottom: none; }
 .editor-step .es-row1 { display: flex; align-items: center; gap: 10px; }
-.editor-step .es-row1 .no { color: var(--muted2); font-size: 15px; width: 22px; flex-shrink: 0;
+.editor-step .es-lead { display: flex; flex-direction: column; align-items: center; gap: 1px;
+  width: 24px; flex-shrink: 0; }
+.editor-step .es-row1 .no { color: var(--muted2); font-size: 15px; flex-shrink: 0;
   text-align: center; font-variant-numeric: tabular-nums; }
+/* ドラッグ用つまみ(番号の下)。タッチで並べ替え */
+.drag-handle { color: var(--muted2); font-size: 15px; line-height: 1; cursor: grab;
+  padding: 3px 4px; border-radius: 6px; touch-action: none;
+  user-select: none; -webkit-user-select: none; }
+.drag-handle:active { cursor: grabbing; color: var(--accent); background: var(--accent-tint); }
+.editor-step.dragging { position: relative; z-index: 30; background: var(--card2);
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); border-bottom-color: transparent; }
+.editor-step.drop-before { box-shadow: inset 0 3px 0 0 var(--accent); }
+.editor-step.drop-after { box-shadow: inset 0 -3px 0 0 var(--accent); }
+body.dragging-active { user-select: none; -webkit-user-select: none; touch-action: none; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
-.editor-step .cue-input { flex: 0 0 54px; text-align: center; padding: 9px 3px;
+.editor-step .cue-input { flex: 0 0 50px; text-align: center; padding: 9px 2px;
   font-size: 14px; font-variant-numeric: tabular-nums; color: var(--accent);
   touch-action: pan-y; /* 横スライドで秒数微調整(縦スクロールは通す) */ }
 .editor-step .cue-play { flex: 0 0 auto; width: 34px; height: 34px; font-size: 11px;
@@ -209,7 +221,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .cue-chip { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 .step-btn.now { background: rgba(48, 209, 88, .14); box-shadow: inset 3px 0 0 var(--ok); }
 /* 技名以外のコントロールは1行に。狭すぎる端末では折り返す */
-.editor-step .es-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 0 4px; }
+.editor-step .es-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0 0 2px; }
 .editor-step .es-spacer { flex: 1; }
 /* リスク度プルダウン(省スペース)。選択値で文字色が変わり危険度が一目で分かる */
 .risk-select { flex: 0 0 auto; width: auto; min-height: 34px; padding: 5px 5px; border-radius: 9px;
@@ -228,6 +240,8 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .kind-toggle.t { color: var(--accent); background: var(--accent-tint); }
 /* コントロール行のミニボタンは少し小さめにして1行に収めやすく */
 .editor-step .es-row2 .mini-btn { width: 34px; height: 34px; }
+/* 削除(✕)は他のコントロールから少し離して誤タップ防止(右寄せはせず1行維持) */
+.editor-step .es-row2 .mini-btn.del { margin-left: 3px; }
 
 /* 楽曲プレイヤー・録音 */
 .music-card, .rec-card { padding: 12px 16px; }
