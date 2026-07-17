@@ -205,9 +205,10 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
   user-select: none; -webkit-user-select: none; }
 .drag-handle:active { cursor: grabbing; color: var(--accent); background: var(--accent-tint); }
 .editor-step.dragging { position: relative; z-index: 30; background: var(--card2);
-  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); border-bottom-color: transparent; }
-.editor-step.drop-before { box-shadow: inset 0 3px 0 0 var(--accent); }
-.editor-step.drop-after { box-shadow: inset 0 -3px 0 0 var(--accent); }
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); border-bottom-color: transparent;
+  opacity: .95; }
+/* ドラッグ中、他の行はスライドして空きを作る(入れ替えプレビュー) */
+body.dragging-active .editor-step:not(.dragging) { transition: transform .18s ease; }
 body.dragging-active { user-select: none; -webkit-user-select: none; touch-action: none; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
