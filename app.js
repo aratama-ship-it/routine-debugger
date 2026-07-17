@@ -89,6 +89,7 @@ function blobDel(id) {
 // 旧データ(負荷 load: low/mid/high)を リスク度(risk: 1〜5)へ移行
 function migrateState() {
   if (!Array.isArray(state.tricks)) state.tricks = []; // 技ライブラリ(動画クリップ)
+  if (!state.settings) state.settings = {}; // アプリ設定(動画品質など)
   // 技のトリム情報を補完(fullDuration=元動画の長さ, trimStart/trimEnd=有効区間, duration=有効区間の長さ)
   for (const t of state.tricks) {
     if (t.fullDuration == null) t.fullDuration = t.duration;
@@ -1702,6 +1703,12 @@ window.commitEditSession = (sessId) => {
 // RDB-05の第一歩。技を最大10秒の動画として蓄積する。将来: 音楽タイムラインへの配置
 const TRICK_MAX_SEC = 10;      // 技の最大長(とりあえず)。超過は登録を弾く
 const TRICK_MAX_BYTES = 100 * 1024 * 1024; // 登録動画の上限100MB
+// C: 動画の圧縮プロファイル(撮影・アップロード両方に適用)。設定で切替可
+const VIDEO_PROFILES = {
+  standard: { label: "標準 (480p)", maxH: 480, bps: 900000 },
+  small:    { label: "軽量 (360p)", maxH: 360, bps: 450000 },
+};
+function videoProfile() { return VIDEO_PROFILES[(state.settings || {}).videoQuality] || VIDEO_PROFILES.standard; }
 const fmtBytes = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}GB` : n >= 1e6 ? `${(n / 1e6).toFixed(0)}MB` : `${Math.ceil(n / 1e3)}KB`;
 
 let trickPlayingId = null; // 一覧でインライン再生中の技
@@ -2136,18 +2143,72 @@ async function saveTrick(blob, duration, defaultName) {
   go("tricks");
   setTimeout(() => sheetRenameTrick(id), 80); // 保存直後に名前を付けさせる
 }
+// アップロード動画をプロファイルに合わせて再エンコード(canvas→captureStream→MediaRecorder)。
+// ffmpeg等の重い依存を足さずブラウザ標準で完結。音声は落とす(技は映像確認が目的)。非対応/失敗はnull
+async function reencodeVideo(file) {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+  const prof = videoProfile();
+  const src = document.createElement("video");
+  src.muted = true; src.playsInline = true; src.preload = "auto"; src.src = URL.createObjectURL(file);
+  try {
+    await new Promise((res, rej) => { src.onloadedmetadata = res; src.onerror = () => rej(new Error("load")); });
+    const sw = src.videoWidth, sh = src.videoHeight;
+    if (!sw || !sh) throw new Error("no dims");
+    const scale = Math.min(1, prof.maxH / sh);
+    const w = Math.max(2, Math.round(sw * scale / 2) * 2), h = Math.max(2, Math.round(sh * scale / 2) * 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    const cstream = canvas.captureStream(24);
+    const mime = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "";
+    const rec = mime ? new MediaRecorder(cstream, { mimeType: mime, videoBitsPerSecond: prof.bps })
+                     : new MediaRecorder(cstream, { videoBitsPerSecond: prof.bps });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    let raf = null, maxT = 0;
+    const draw = () => { try { ctx.drawImage(src, 0, 0, w, h); } catch (_) {} maxT = Math.max(maxT, src.currentTime); raf = requestAnimationFrame(draw); };
+    await new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (done) return; done = true; cancelAnimationFrame(raf); try { if (rec.state !== "inactive") rec.stop(); } catch (_) {} };
+      rec.onstop = resolve;
+      src.onended = finish;
+      const guard = setTimeout(finish, (TRICK_MAX_SEC + 3) * 1000); // 保険(実時間で回すため)
+      rec.start(200);
+      src.currentTime = 0;
+      src.play().finally(() => { draw(); });
+      src.addEventListener("ended", () => clearTimeout(guard), { once: true });
+    });
+    cstream.getTracks().forEach((t) => t.stop());
+    const blob = new Blob(chunks, { type: rec.mimeType || "video/mp4" });
+    // 再生が進まない環境(=静止フレームだけ)は壊れた圧縮になるので採用しない → 元動画を保持
+    if (!blob.size || maxT < Math.min(0.5, src.duration * 0.5)) return null;
+    const dur = await probeVideoDuration(blob);
+    return { blob, duration: dur || src.duration };
+  } catch (_) {
+    return null;
+  } finally {
+    URL.revokeObjectURL(src.src);
+  }
+}
+
 window.trickImport = async (input) => {
   const file = input.files[0];
   input.value = "";
   if (!file) return;
   if (file.size > TRICK_MAX_BYTES) return toast(`${fmtBytes(TRICK_MAX_BYTES)}以下の動画にしてください(現在${fmtBytes(file.size)})`);
-  const dur = await probeVideoDuration(file);
-  if (dur == null) return toast("動画を読み込めませんでした");
-  if (dur > TRICK_MAX_SEC + 0.5) return toast(`技は最大${TRICK_MAX_SEC}秒です(この動画は${fmtTime(dur)})。トリミングしてから登録してください`);
-  await saveTrick(file, dur, file.name.replace(/\.[^.]+$/, "") || "新しい技");
+  const dur0 = await probeVideoDuration(file);
+  if (dur0 == null) return toast("動画を読み込めませんでした");
+  if (dur0 > TRICK_MAX_SEC + 0.5) return toast(`技は最大${TRICK_MAX_SEC}秒です(この動画は${fmtTime(dur0)})。トリミングしてから登録してください`);
+  // アップロードも撮影と同じ品質に圧縮(実時間で再生しながら再エンコードするので少し待つ)
+  toast(`圧縮しています… (${videoProfile().label})`);
+  let blob = file, dur = dur0;
+  const enc = await reencodeVideo(file);
+  if (enc && enc.blob.size > 0 && enc.blob.size < file.size) { blob = enc.blob; dur = enc.duration || dur0; }
+  await saveTrick(blob, dur, file.name.replace(/\.[^.]+$/, "") || "新しい技");
 };
 
-// --- アプリ内カメラ撮影(720p固定=容量対策、10秒で自動停止) ---
+// --- アプリ内カメラ撮影(設定の画質プロファイル=容量対策、10秒で自動停止) ---
 let trickCam = null; // { stream, rec, chunks, recording, startedAt, timer, blob, objUrl }
 
 function releaseTrickCam() {
@@ -2162,7 +2223,7 @@ async function initTrickCam() {
   if (!navigator.mediaDevices || !window.MediaRecorder) { trickCam = { error: true }; render(); return; }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: { facingMode: "environment", height: { ideal: videoProfile().maxH }, frameRate: { ideal: 24, max: 30 } },
       audio: false,
     });
     trickCam = { stream, chunks: [], recording: false };
@@ -2179,9 +2240,10 @@ window.trickRecToggle = () => {
   if (trickCam.recording) return trickRecStop();
   const mime = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4"
     : MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "";
+  const bps = videoProfile().bps;
   const rec = mime
-    ? new MediaRecorder(trickCam.stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 })
-    : new MediaRecorder(trickCam.stream, { videoBitsPerSecond: 2_500_000 });
+    ? new MediaRecorder(trickCam.stream, { mimeType: mime, videoBitsPerSecond: bps })
+    : new MediaRecorder(trickCam.stream, { videoBitsPerSecond: bps });
   trickCam.rec = rec; trickCam.chunks = []; trickCam.recording = true; trickCam.startedAt = Date.now();
   rec.ondataavailable = (e) => { if (e.data.size) trickCam.chunks.push(e.data); };
   rec.start(500);
@@ -2245,7 +2307,7 @@ function renderTrickRec() {
       </div>
       <button class="clean-btn ${trickCam && trickCam.recording ? "recording" : ""}" onclick="trickRecToggle()">
         ${trickCam && trickCam.recording ? "■ 停止" : "● 録画開始"}
-        <span class="sub">${trickCam && trickCam.recording ? `${TRICK_MAX_SEC}秒で自動停止` : "720pで撮影されます"}</span>
+        <span class="sub">${trickCam && trickCam.recording ? `${TRICK_MAX_SEC}秒で自動停止` : `${videoProfile().label}で撮影(設定で変更可)`}</span>
       </button>`}`;
 }
 
@@ -2500,7 +2562,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>技ライブラリ</h2>
-      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(720p・10秒で自動停止)で撮るか、撮ってある動画を登録します。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。各技の<b>「長さ」</b>ボタンから、始点・終点を決めて<b>動画の使う区間を後からいつでも調整</b>できます(前後の余分をカット)。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。編集画面の<b>✂</b>(行または上部ドック)から、その場で動画の長さ(始点・終点)も調整できます。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
+      <div class="help-body">技を最大10秒の動画クリップとして貯めておく場所です(ホームの「技ライブラリ」)。アプリ内カメラ(10秒で自動停止)で撮るか、撮ってある動画を登録します。どちらも容量を抑えるため自動で圧縮されます(画質は設定で標準/軽量を選べます)。10秒を超える動画は登録できないので、先にトリミングしてください。名前はタップで変更できます。各技の<b>「長さ」</b>ボタンから、始点・終点を決めて<b>動画の使う区間を後からいつでも調整</b>できます(前後の余分をカット)。<br><br>ルーティン編集の「＋ 技リストから」でライブラリの技をステップとして追加できます。手で入力した技にも<b>🔗</b>でライブラリの動画を後から紐づけられます(🔗のシートから解除も可能)。<br><br>紐づいた技は各画面の<b>▶</b>からワンタップで動画を確認できます。編集画面では▶を押すと<b>画面上部に小さくループ再生</b>され、スクロールしても残るので、動画を見ながら順番やリスク度を調整できます(もう一度▶で閉じる)。編集画面の<b>✂</b>(行または上部ドック)から、その場で動画の長さ(始点・終点)も調整できます。通し練習では▶を押しても失敗記録にはなりません。<br><br>将来的には、この技リストを音楽のタイムラインに並べてルーティンを組み立てる機能につなげる予定です。</div>
     </div>
     <div class="card">
       <h2>タイムラインで組む(構成ビルダー)</h2>
@@ -2524,6 +2586,14 @@ function renderSettings() {
       <div class="bd-row"><span class="k">通し合計</span><span class="v">${runTotal}本</span></div>
     </div>
     <div class="card">
+      <h2>技の動画の画質(撮影・アップロード)</h2>
+      <div class="segmented" id="vq-seg">
+        ${Object.entries(VIDEO_PROFILES).map(([k, p]) => `<button class="choice ${(state.settings.videoQuality || "standard") === k ? "selected" : ""}"
+          onclick="setVideoQuality('${k}')">${p.label}</button>`).join("")}
+      </div>
+      <p class="hint">技の動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。</p>
+    </div>
+    <div class="card">
       <h2>バックアップ</h2>
       <button class="btn" onclick="exportJson()">JSONバックアップを書き出す</button>
       <button class="btn" onclick="document.getElementById('import-file').click()">JSONから復元する</button>
@@ -2534,6 +2604,11 @@ function renderSettings() {
     <button class="btn" onclick="go('help')">使い方を見る</button>`;
 }
 
+window.setVideoQuality = (k) => {
+  state.settings.videoQuality = k;
+  saveState(); render();
+  toast(`動画の画質: ${(VIDEO_PROFILES[k] || {}).label || k}`);
+};
 function download(filename, text, mime) {
   const blob = new Blob([text], { type: mime });
   const a = document.createElement("a");
