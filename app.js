@@ -1648,6 +1648,45 @@ const fmtBytes = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}GB` : n >= 1e6 ? `${(
 let trickPlayingId = null; // 一覧でインライン再生中の技
 let trickObjUrl = null;
 
+// サンプル技(ボール軌道のループアニメ)。samples/ に同梱、http(s)配信時のみ読み込み可
+const SAMPLE_TRICKS = [
+  { f: "samples/s1.mp4", n: "3ボールカスケード" }, { f: "samples/s2.mp4", n: "リバースカスケード" },
+  { f: "samples/s3.mp4", n: "シャワー" },           { f: "samples/s4.mp4", n: "4ボールファウンテン" },
+  { f: "samples/s5.mp4", n: "コラムス" },           { f: "samples/s6.mp4", n: "ミルズメス風" },
+  { f: "samples/s7.mp4", n: "5ボールハイトス" },    { f: "samples/s8.mp4", n: "サークルトス" },
+  { f: "samples/s9.mp4", n: "5ボールカスケード" },
+];
+window.loadSampleTricks = async () => {
+  if (!location.protocol.startsWith("http")) return toast("サンプル読み込みは公開版(https)で使えます");
+  if (!confirm("サンプルの技9個(アニメーション)を技ライブラリに追加しますか?")) return;
+  let ok = 0;
+  for (const s of SAMPLE_TRICKS) {
+    try {
+      const resp = await fetch(s.f);
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      const dur = (await probeVideoDuration(blob)) || 4;
+      const id = uid();
+      if (await blobPut(id, blob)) {
+        state.tricks.push({ id, name: `${s.n} (サンプル)`, blobId: id, duration: Math.round(dur * 10) / 10,
+          size: blob.size, createdAt: Date.now(), sample: true });
+        ok++;
+      }
+    } catch (_) { /* 個別失敗はスキップ */ }
+  }
+  saveState(); render();
+  toast(ok ? `サンプル${ok}個を追加しました` : "サンプルを読み込めませんでした");
+};
+window.removeSampleTricks = async () => {
+  const samples = (state.tricks || []).filter((t) => t.sample);
+  if (!samples.length) return;
+  if (!confirm(`サンプルの技${samples.length}個をまとめて削除しますか?`)) return;
+  for (const t of samples) await blobDel(t.blobId);
+  state.tricks = state.tricks.filter((t) => !t.sample);
+  if (trickPlayingId && samples.some((t) => t.id === trickPlayingId)) trickPlayingId = null;
+  saveState(); render(); toast("サンプルを削除しました");
+};
+
 function renderTricks() {
   const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
   const totalBytes = tricks.reduce((a, t) => a + (t.size || 0), 0);
@@ -1671,7 +1710,10 @@ function renderTricks() {
     <div class="card">
       <h2>登録済みの技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
       ${rows || `<div class="empty">まだ技がありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
-    </div>`;
+    </div>
+    ${tricks.some((t) => t.sample)
+      ? `<button class="btn ghost" onclick="removeSampleTricks()">サンプル技をまとめて削除</button>`
+      : `<button class="btn ghost" onclick="loadSampleTricks()">サンプル技を読み込む(9個)</button>`}`;
 }
 
 // 技動画をシートで再生(どの画面からでもワンタップ)。fromPicker=trueなら「この技を追加」を出す
