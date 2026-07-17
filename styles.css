@@ -227,6 +227,7 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 .risk-select { flex: 0 0 auto; width: auto; min-height: 34px; padding: 5px 5px; border-radius: 9px;
   background: var(--card2); border: 1.5px solid var(--sep); color: var(--text);
   font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.risk-select.unset { color: var(--muted2); border-style: dashed; }
 .risk-select.risk-1 { color: var(--ok); border-color: rgba(48, 209, 88, .4); }
 .risk-select.risk-2 { color: #b6d94a; border-color: rgba(168, 216, 74, .4); }
 .risk-select.risk-3 { color: var(--warn); border-color: rgba(255, 214, 10, .4); }
