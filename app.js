@@ -272,7 +272,7 @@ function updateMusicUI() {
   if (vol && !vol.matches(":active")) vol.value = musicVolume;
   if (view.name === "builder") builderTickUI(); // タイムラインのプレイヘッドと現在技
   if (view.name === "record") recordTickUI();   // キュー指定に基づく「いまこの技」ハイライト
-  if (view.name === "edit") editorTickUI();     // 編集中も同様に「いまこのへん」を表示
+  if (view.name === "edit") { editorTickUI(); updateCueButtons(); } // 「いまこのへん」+キュー再生ボタン状態
 }
 // 編集画面: 再生位置がキューを過ぎた最後のステップを光らせる(draft基準なので編集内容に即追従)
 let miniAutoLoading = null;        // 自動追従の多重ロード防止
@@ -483,7 +483,7 @@ function go(name, params = {}) {
   // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "builder" && name !== "builder") musicPlayer.pause();
-  if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); miniVideoCloseSilent(); miniAutoFailed.clear(); miniAutoLoading = null; }
+  if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); miniVideoCloseSilent(); miniAutoFailed.clear(); miniAutoLoading = null; cuePlayStepId = null; }
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
   // 技撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
@@ -645,7 +645,7 @@ function renderEdit() {
         <input type="text" class="cue-input" inputmode="numeric" data-i="${i}" value="${s.cue != null ? fmtCue(s.cue) : ""}"
           placeholder="♪何秒" onchange="setCue(${i},this.value)">
         ${hasEditorMusic && s.cue != null
-          ? `<button class="mini-btn cue-play" onclick="editorPlayFromCue(${i})">♪▶</button>` : ""}
+          ? `<button class="mini-btn cue-play ${cuePlayStepId === s.id && !musicPlayer.paused ? "on" : ""}" data-cue-step="${s.id}" onclick="editorPlayFromCue(${i})">${cuePlayStepId === s.id && !musicPlayer.paused ? "♪❚❚" : "♪▶"}</button>` : ""}
       </div>
       <div class="es-row2">
         <button class="kind-toggle ${s.kind === "trick" ? "t" : ""}" onclick="toggleKind(${i})">${s.kind === "trick" ? "技" : "移行"}</button>
@@ -721,14 +721,31 @@ function renderEdit() {
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.setRisk = (i, n) => { draft.steps[i].risk = n; render(); };
-// このステップの♪キュー位置から曲を再生(編集画面で「この技のところから確認」)
+// このステップの♪キュー位置から曲を再生/一時停止。押した技のボタンだけ再生↔停止でトグルする
+let cuePlayStepId = null;
 window.editorPlayFromCue = (i) => {
   const s = draft && draft.steps[i];
   if (!s || s.cue == null || !musicPlayer.src) return;
-  ensureAudioGraph();
-  try { musicPlayer.currentTime = s.cue; } catch (_) {}
-  musicPlayer.play();
+  if (cuePlayStepId === s.id) {
+    // 同じ技のボタン: 再生中なら一時停止、停止中なら再開(位置はそのまま)
+    if (musicPlayer.paused) { ensureAudioGraph(); musicPlayer.play(); } else musicPlayer.pause();
+  } else {
+    // 別の技のボタン: その技の位置へ頭出しして再生
+    cuePlayStepId = s.id;
+    ensureAudioGraph();
+    try { musicPlayer.currentTime = s.cue; } catch (_) {}
+    musicPlayer.play();
+  }
+  updateCueButtons();
 };
+// ♪キュー再生ボタンの表示更新(押した技=再生中は一時停止アイコン、他は常に再生アイコン)
+function updateCueButtons() {
+  document.querySelectorAll(".cue-play").forEach((b) => {
+    const active = cuePlayStepId && b.dataset.cueStep === cuePlayStepId && !musicPlayer.paused;
+    b.textContent = active ? "♪❚❚" : "♪▶";
+    b.classList.toggle("on", !!active);
+  });
+}
 // 曲位置キュー(この技を曲の何秒に入れるか)。注釈扱いなので版は分割しない
 window.setCue = (i, v) => {
   const cue = parseCue(v);
