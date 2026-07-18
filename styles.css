@@ -479,40 +479,66 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
    危険度スケール(--risk-1..5)は緑→赤の意味を保ちつつ各世界観に馴染ませる
    ============================================================ */
 
-/* 和 — 焦げ茶の木肌に生成りの文字、朱のアクセント、見出しは明朝。木目+和紙の質感 */
+/* 和 — 高級旅館ニュアンス: 生成りの和紙基調、墨の文字、朱と金、梁と主要ボタンの木目、円相の淡いウォーターマーク */
 body[data-theme="wa"] {
-  --bg: #1b140d; --card: #271e14; --card2: #322619; --card3: #3f3122;
-  --sep: rgba(214, 196, 156, .2);
-  --text: #f3ecdd; --muted: rgba(243, 236, 221, .58); --muted2: rgba(243, 236, 221, .3);
-  --accent: #d8492f; --accent-tint: rgba(216, 73, 47, .18); --on-accent: #fff5ef;
-  --ok: #7f9a52; --ok-tint: rgba(127, 154, 82, .2); --on-ok: #12100b;
-  --warn: #d9a63a; --danger: #c0392b;
-  --nav-bg: rgba(27, 20, 13, .84); --sheet-bg: rgba(39, 30, 20, .98);
-  --seg-selected: #4a4030;
+  --bg: #e7ddc7; --card: #f6f1e4; --card2: #ece2cd; --card3: #e0d4ba;
+  --sep: rgba(150, 120, 60, .3);   /* 金の細罫 */
+  --text: #2c2620; --muted: rgba(52, 44, 30, .62); --muted2: rgba(52, 44, 30, .34);
+  --accent: #a5432b; --accent-tint: rgba(165, 67, 43, .12); --on-accent: #f7f2e6;
+  --ok: #5c7a3f; --ok-tint: rgba(92, 122, 63, .16); --on-ok: #f7f2e6;
+  --warn: #a9791b; --danger: #a5342a;
+  --nav-bg: #5a3f26; --sheet-bg: #f6f1e4;
+  --seg-selected: #fbf7ee;
   --font-head: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-  --risk-1: #8bab5b; --risk-1-bg: rgba(139, 171, 91, .2);
-  --risk-2: #b9b558; --risk-2-bg: rgba(185, 181, 88, .2);
-  --risk-3: #d9a63a; --risk-3-bg: rgba(217, 166, 58, .2);
-  --risk-4: #cf7b32; --risk-4-bg: rgba(207, 123, 50, .2);
-  --risk-5: #c0392b; --risk-5-bg: rgba(192, 57, 43, .22);
-  /* 木目(横に流れる縞) + 和紙の繊維(細かい斑) + 温かみの上グロー。SVGノイズで自己完結 */
+  --risk-1: #5c7a3f; --risk-1-bg: rgba(92, 122, 63, .16);
+  --risk-2: #7c8a2c; --risk-2-bg: rgba(124, 138, 44, .16);
+  --risk-3: #a9791b; --risk-3-bg: rgba(169, 121, 27, .16);
+  --risk-4: #b3591f; --risk-4-bg: rgba(179, 89, 31, .16);
+  --risk-5: #a5342a; --risk-5-bg: rgba(165, 52, 42, .16);
+  /* 木目(梁・ボタン用)。木肌の縦グラデ + 横に流れる濃淡の縞 */
+  --wa-wood:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cfilter id='wgr'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.12' numOctaves='5' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.55'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wgr)'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #6d4c2d, #573a20 55%, #4a3018);
+  /* 和紙: 細かい繊維の斑 + ゆらぎのある雲状ムラ。明るい生成りに淡い陰影 */
   --app-bg-layer:
-    radial-gradient(120% 70% at 50% -10%, rgba(216, 73, 47, .06), transparent 60%),
-    linear-gradient(180deg, rgba(66, 45, 24, .4), rgba(20, 14, 8, .4)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='280'%3E%3Cfilter id='wg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009 0.15' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.28'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wg)'/%3E%3C/svg%3E");
-  --app-bg-size: auto, auto, 440px 280px;
+    radial-gradient(130% 60% at 50% -10%, rgba(255, 249, 235, .5), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wf)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='wl'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.4' numOctaves='2' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wl)'/%3E%3C/svg%3E");
+  --app-bg-size: auto, 200px 200px, 300px 300px;
 }
-/* 和紙の繊維をカード面に乗せる(見る面が紙らしくなる)。細かい斑+柔らかい雲状 */
+/* 円相(書道)を背景に淡く大きく。カードの隙間・余白に覗く意匠 */
+body[data-theme="wa"]::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  opacity: .2;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='430' viewBox='0 0 240 240'%3E%3Cdefs%3E%3Cfilter id='bs'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='16'/%3E%3C/filter%3E%3C/defs%3E%3Ccircle cx='120' cy='120' r='92' fill='none' stroke='%233a2f22' stroke-width='9' stroke-linecap='round' stroke-dasharray='520 68' stroke-dashoffset='24' filter='url(%23bs)' transform='rotate(-118 120 120)'/%3E%3C/svg%3E") no-repeat;
+  background-position: 50% 42%; background-size: 430px; background-attachment: fixed;
+}
+/* 和紙の繊維を「見る面」(カード・入力・シート)にも薄く乗せる */
 body[data-theme="wa"] .card,
 body[data-theme="wa"] .routine-row,
 body[data-theme="wa"] .es-row1 input[type=text],
 body[data-theme="wa"] #sheet {
   background-color: var(--card);
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wc'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wc)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='wd'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wd)'/%3E%3C/svg%3E");
-  background-size: 200px 200px, 300px 300px;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wc'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wc)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
 }
+/* 梁(ナビ)を木目に。文字は生成りに反転 */
+body[data-theme="wa"] .topbar,
+body[data-theme="wa"] .bottombar {
+  background-color: #573a20; background-image: var(--wa-wood);
+  background-size: 320px 120px, cover; background-blend-mode: multiply, normal;
+  border-color: rgba(190, 155, 85, .55); }
+body[data-theme="wa"] .topbar h1 { color: #f6efdd; }
+body[data-theme="wa"] .topbar .sub { color: rgba(246, 239, 221, .72); }
+body[data-theme="wa"] .back-btn,
+body[data-theme="wa"] .nav-action { color: #efd9ad; }
+/* 主要ボタンを木目に(手に触れる所に木の存在感) */
+body[data-theme="wa"] .btn.primary,
+body[data-theme="wa"] .btn.small.primary {
+  background-color: #573a20; background-image: var(--wa-wood);
+  background-size: 320px 120px, cover; color: #f6efdd;
+  box-shadow: inset 0 0 0 1px rgba(190, 155, 85, .4); }
 body[data-theme="wa"] .topbar h1,
 body[data-theme="wa"] .card h2,
 body[data-theme="wa"] .clean-btn,
