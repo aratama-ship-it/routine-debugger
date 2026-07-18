@@ -109,6 +109,15 @@ ${goldCluster(300, 1780, 300, 90, 303)}
 ${splatter(430, 220, 240, 60, 404)}
 ${splatter(340, 1470, 260, 70, 505)}
 ${splatter(1050, 980, 150, 24, 606)}
+
+<!-- 書道: 「技」の大きな筆文字を淡いウォーターマークに(明朝+かすれ) -->
+<text x="700" y="1040" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="560" fill="#241f18" opacity="0.07" text-anchor="middle" filter="url(#inkCore)">技</text>
+
+<!-- 落款(朱の印): 署名のような佇まい -->
+<g transform="rotate(-4 795 1200)" opacity="0.42">
+  <rect x="742" y="1140" width="106" height="106" rx="12" fill="#b0402c"/>
+  <text x="795" y="1222" font-family="'Hiragino Mincho ProN','Yu Mincho',serif" font-weight="600" font-size="74" fill="#f2ead9" text-anchor="middle">藝</text>
+</g>
 </svg>`;
 
 process.stdout.write(svg);
