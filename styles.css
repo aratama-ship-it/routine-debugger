@@ -656,3 +656,10 @@ body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgb
   border-radius: 2px; box-shadow: 0 0 0 1px var(--card); }
 .trim-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2);
   font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+
+/* 見出しの「?」説明ボタン(タップで説明シート) */
+.info-btn { display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--card2); color: var(--muted);
+  font-size: 12px; font-weight: 700; line-height: 1; margin-left: 7px; padding: 0;
+  vertical-align: -3px; border: 0.5px solid var(--sep); }
+.info-btn:active { background: var(--card3); }
