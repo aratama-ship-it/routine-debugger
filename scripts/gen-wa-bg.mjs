@@ -35,6 +35,21 @@ function goldCluster(cx, cy, spread, count, seed) {
   return s;
 }
 
+// 金の砂子を画面全体に薄く散らす(障子越しにカードから透ける用。小粒・疎)
+function goldDust(count, seed) {
+  const r = rng(seed);
+  const pal = ["#c9a24a", "#d9b45c", "#e7c977", "#b8892f"];
+  let s = "";
+  for (let i = 0; i < count; i++) {
+    const x = r() * W, y = r() * H;
+    const size = 0.8 + Math.pow(r(), 2.4) * 5;
+    const col = pal[(r() * pal.length) | 0];
+    const op = 0.3 + r() * 0.4;
+    s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${size.toFixed(1)}" fill="${col}" opacity="${op.toFixed(2)}"/>`;
+  }
+  return s;
+}
+
 // 墨の飛沫: 筆の近くに散る不定形の黒点(小さな円+涙形)
 function splatter(cx, cy, spread, count, seed) {
   const r = rng(seed);
@@ -86,7 +101,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
 <rect width="${W}" height="${H}" fill="url(#paperShade)"/>
 <rect width="${W}" height="${H}" filter="url(#washi)"/>
 
-<!-- 金砂子: 左上と右下(参考画像の配置) -->
+<!-- 金砂子: 全体に薄く撒く(障子越しに透ける) + 左上と右下に密なクラスタ -->
+${goldDust(200, 707)}
 ${goldCluster(70, 120, 460, 260, 101)}
 ${goldCluster(880, 1600, 520, 300, 202)}
 ${goldCluster(300, 1780, 300, 90, 303)}
@@ -111,7 +127,7 @@ ${splatter(340, 1470, 260, 70, 505)}
 ${splatter(1050, 980, 150, 24, 606)}
 
 <!-- 書道: 「技」の大きな筆文字を淡いウォーターマークに(明朝+かすれ) -->
-<text x="700" y="1040" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="560" fill="#241f18" opacity="0.07" text-anchor="middle" filter="url(#inkCore)">技</text>
+<text x="620" y="1060" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="620" fill="#1e1913" opacity="0.32" text-anchor="middle" filter="url(#inkCore)">技</text>
 
 <!-- 落款(朱の印): 署名のような佇まい -->
 <g transform="rotate(-4 795 1200)" opacity="0.42">

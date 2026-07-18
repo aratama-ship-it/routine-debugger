@@ -508,8 +508,8 @@ body[data-theme="wa"] .card,
 body[data-theme="wa"] .routine-row,
 body[data-theme="wa"] .es-row1 input[type=text],
 body[data-theme="wa"] #sheet {
-  background-color: rgba(247, 242, 230, 0.82);
-  backdrop-filter: blur(9px) saturate(105%); -webkit-backdrop-filter: blur(9px) saturate(105%);
+  background-color: rgba(247, 242, 230, 0.64);
+  backdrop-filter: blur(6px) saturate(108%); -webkit-backdrop-filter: blur(6px) saturate(108%);
 }
 /* 梁(ナビ)を木目に。文字は生成りに反転 */
 body[data-theme="wa"] .topbar,
