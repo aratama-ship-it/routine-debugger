@@ -4,6 +4,7 @@
 // パラメータを振って調整 → 再生成。決まったらCSSから url("assets/wa-bg.svg") で参照。
 
 const W = 1080, H = 1920;
+const D = Number(process.argv[2] || 1); // 粒の密度倍率(プレビュー用に減らせる)
 
 // 決定論的な擬似乱数(mulberry32)。seedを変えると散らしの配置が変わる
 function rng(seed) {
@@ -102,10 +103,10 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
 <rect width="${W}" height="${H}" filter="url(#washi)"/>
 
 <!-- 金砂子: 全体に薄く撒く(障子越しに透ける) + 左上と右下に密なクラスタ -->
-${goldDust(200, 707)}
-${goldCluster(70, 120, 460, 260, 101)}
-${goldCluster(880, 1600, 520, 300, 202)}
-${goldCluster(300, 1780, 300, 90, 303)}
+${goldDust(Math.round(200 * D), 707)}
+${goldCluster(70, 120, 460, Math.round(260 * D), 101)}
+${goldCluster(880, 1600, 520, Math.round(300 * D), 202)}
+${goldCluster(300, 1780, 300, Math.round(90 * D), 303)}
 
 <!-- 墨: 左上の掃くような弧。主線は芯(solid)+かすれの二枚、脇に細い運びを添える -->
 <g fill="none" stroke-linecap="round">
@@ -122,12 +123,12 @@ ${goldCluster(300, 1780, 300, 90, 303)}
 </g>
 
 <!-- 墨の飛沫(筆の起点/終点付近) -->
-${splatter(430, 220, 240, 60, 404)}
-${splatter(340, 1470, 260, 70, 505)}
-${splatter(1050, 980, 150, 24, 606)}
+${splatter(430, 220, 240, Math.round(60 * D), 404)}
+${splatter(340, 1470, 260, Math.round(70 * D), 505)}
+${splatter(1050, 980, 150, Math.round(24 * D), 606)}
 
 <!-- 書道: 「技」の大きな筆文字を淡いウォーターマークに(明朝+かすれ) -->
-<text x="620" y="1060" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="620" fill="#1e1913" opacity="0.32" text-anchor="middle" filter="url(#inkCore)">技</text>
+<text x="620" y="1060" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="620" fill="#221d16" opacity="0.13" text-anchor="middle" filter="url(#inkCore)">技</text>
 
 <!-- 落款(朱の印): 署名のような佇まい -->
 <g transform="rotate(-4 795 1200)" opacity="0.42">
