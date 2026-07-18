@@ -43,7 +43,7 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
 /* テーマの背景テクスチャ(bodyの最背面に固定) */
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image: var(--app-bg-layer); background-size: var(--app-bg-size, auto);
-  background-repeat: repeat; background-attachment: fixed; }
+  background-repeat: var(--app-bg-repeat, repeat); background-position: center; background-attachment: fixed; }
 #app { max-width: 560px; margin: 0 auto; padding: 0 16px calc(100px + var(--safe-bottom)); }
 
 /* ナビゲーションバー: すりガラス+ヘアライン。戻るがある画面はタイトル中央寄せ */
@@ -499,29 +499,17 @@ body[data-theme="wa"] {
   --wa-wood:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cfilter id='wgr'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.12' numOctaves='5' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.55'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wgr)'/%3E%3C/svg%3E"),
     linear-gradient(180deg, #6d4c2d, #573a20 55%, #4a3018);
-  /* 和紙: 細かい繊維の斑 + ゆらぎのある雲状ムラ。明るい生成りに淡い陰影 */
-  --app-bg-layer:
-    radial-gradient(130% 60% at 50% -10%, rgba(255, 249, 235, .5), transparent 55%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wf)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='wl'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.014 0.4' numOctaves='2' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wl)'/%3E%3C/svg%3E");
-  --app-bg-size: auto, 200px 200px, 300px 300px;
+  /* 背景アート: 生成りの和紙 + 墨の筆(かすれ/飛沫) + 金砂子。scripts/gen-wa-bg.mjs で生成 */
+  --app-bg-layer: url("assets/wa-bg.svg");
+  --app-bg-size: cover; --app-bg-repeat: no-repeat;
 }
-/* 円相(書道)を背景に淡く大きく。カードの隙間・余白に覗く意匠 */
-body[data-theme="wa"]::after {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  opacity: .2;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='430' viewBox='0 0 240 240'%3E%3Cdefs%3E%3Cfilter id='bs'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='2' seed='4' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='16'/%3E%3C/filter%3E%3C/defs%3E%3Ccircle cx='120' cy='120' r='92' fill='none' stroke='%233a2f22' stroke-width='9' stroke-linecap='round' stroke-dasharray='520 68' stroke-dashoffset='24' filter='url(%23bs)' transform='rotate(-118 120 120)'/%3E%3C/svg%3E") no-repeat;
-  background-position: 50% 42%; background-size: 430px; background-attachment: fixed;
-}
-/* 和紙の繊維を「見る面」(カード・入力・シート)にも薄く乗せる */
+/* カードを半透明の和紙に。背後の墨・金がすりガラス越しに柔らかく透ける(障子越しの滲み) */
 body[data-theme="wa"] .card,
 body[data-theme="wa"] .routine-row,
 body[data-theme="wa"] .es-row1 input[type=text],
 body[data-theme="wa"] #sheet {
-  background-color: var(--card);
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='wc'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wc)'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
+  background-color: rgba(247, 242, 230, 0.82);
+  backdrop-filter: blur(9px) saturate(105%); -webkit-backdrop-filter: blur(9px) saturate(105%);
 }
 /* 梁(ナビ)を木目に。文字は生成りに反転 */
 body[data-theme="wa"] .topbar,

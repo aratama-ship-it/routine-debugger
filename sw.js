@@ -1,13 +1,14 @@
 /* ルーティン・デバッガ Service Worker — アプリシェルをキャッシュして完全オフライン動作 */
-const CACHE = "routine-debugger-v40";
+const CACHE = "routine-debugger-v41";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=40",
-  "./app.js?v=40",
+  "./styles.css?v=41",
+  "./app.js?v=41",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-512.png",
+  "./assets/wa-bg.svg",
 ];
 
 self.addEventListener("install", (e) => {
