@@ -624,3 +624,35 @@ body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgb
 .theme-swatch .tsw-dot { position: absolute; right: 9px; bottom: 9px; width: 12px; height: 12px; border-radius: 50%; }
 .theme-swatch .tsw-name { font-size: 12px; color: var(--muted); }
 .theme-swatch.selected .tsw-name { color: var(--text); font-weight: 600; }
+
+/* ローディングのぐるぐる(サンプル読込等) */
+#loading { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; background: rgba(0, 0, 0, .42);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#loading .spin { width: 42px; height: 42px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .28); border-top-color: #fff; animation: ldspin .8s linear infinite; }
+#loading .msg { color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; }
+@keyframes ldspin { to { transform: rotate(360deg); } }
+
+/* 分析の失敗率メーター(改善): 0〜100%の軸+中央目盛り。オレンジ帯=95%区間、縦線=実測 */
+.ci-bar:not(.part-band-bar) { height: 10px; background:
+  linear-gradient(90deg, transparent 0 calc(50% - 0.5px), var(--sep) calc(50% - 0.5px) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+  var(--card2); }
+.ci-bar .pt { width: 2.5px; background: var(--text); box-shadow: 0 0 0 1px var(--card); z-index: 1; }
+.ci-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px;
+  color: var(--muted); margin: 2px 0 4px; }
+.ci-legend .swatch { display: inline-block; width: 14px; height: 8px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.ci-legend .sw-range { background: rgba(255, 159, 10, .5); }
+.ci-legend .sw-pt { width: 3px; height: 12px; background: var(--text); vertical-align: -2px; }
+.ci-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2);
+  margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* トリム(長さ調整)のシークバー: 現在位置のプレイヘッド+タップでシーク */
+.trim-track { position: relative; height: 16px; background: var(--card2); border-radius: 8px;
+  margin: 10px 0 4px; cursor: pointer; overflow: hidden; touch-action: none; }
+.trim-track .range { position: absolute; top: 0; bottom: 0; background: rgba(48, 209, 88, .4);
+  border-left: 2px solid var(--ok); border-right: 2px solid var(--ok); box-sizing: border-box; }
+.trim-track .head { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--accent);
+  border-radius: 2px; box-shadow: 0 0 0 1px var(--card); }
+.trim-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2);
+  font-variant-numeric: tabular-nums; margin-bottom: 8px; }
