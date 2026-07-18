@@ -313,6 +313,15 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   display: inline-block; margin-right: 8px; animation: recblink 1.2s infinite; align-self: center; }
 @keyframes recblink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 #music-seek { width: 100%; margin-top: 10px; accent-color: var(--accent); height: 4px; }
+/* 楽曲カードに統合した「選択/添付」と、添付中の曲名・削除の小さいフッター */
+.music-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px;
+  padding-top: 9px; border-top: var(--hairline) solid var(--sep); }
+.music-foot .mf-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-foot .mini-btn.del { width: auto; height: 30px; padding: 0 12px; border-radius: 15px;
+  font-size: 12.5px; background: var(--card2); }
+.music-empty .me-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.music-empty .row-2 { margin: 0; }
 
 /* 曲位置チップ・録音行 */
 .time-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
