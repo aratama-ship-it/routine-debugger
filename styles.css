@@ -205,6 +205,10 @@ input[type=text], textarea, select { width: 100%; background: var(--card2); bord
 input::placeholder, textarea::placeholder { color: var(--muted2); }
 textarea { resize: none; }
 label.fld { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 8px; }
+/* カード末尾の入力欄は下にも余白を(上のラベル余白と対称に。下端張り付き防止) */
+.card > input[type=text]:last-child,
+.card > textarea:last-child,
+.card > select:last-child { margin-bottom: 12px; }
 select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
   linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%;
