@@ -57,6 +57,12 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
 .topbar:has(.back-btn) { display: grid; grid-template-columns: minmax(52px, auto) 1fr minmax(52px, auto); }
 .topbar:has(.back-btn) h1 { font-size: 17px; font-weight: 600; text-align: center; padding: 0; }
 .topbar .sub { color: var(--muted); font-size: 13px; text-align: right; }
+.routine-head-actions { min-width: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.routine-menu-btn { width: 38px; height: 38px; border-radius: 10px; padding: 9px 8px;
+  display: inline-flex; flex-direction: column; justify-content: space-between; align-items: stretch;
+  background: var(--card2); border: var(--hairline) solid var(--sep); }
+.routine-menu-btn span { display: block; height: 2px; border-radius: 2px; background: var(--accent); }
+.routine-menu-btn:active { background: var(--card3); transform: scale(.97); }
 .back-btn { background: none; border: none; color: var(--accent); font-size: 17px;
   padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 2px; }
 .back-btn::before { content: "‹"; font-size: 28px; line-height: 1; font-weight: 500;
@@ -109,9 +115,25 @@ button:active { opacity: .75; }
 .routine-row .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .routine-row .actions .btn.small { flex: 1 1 44%; min-height: 38px; border-radius: 19px; }
 
-/* パート練習 */
-.part-band-bar { margin-top: 6px; height: 8px; }
-.part-band-bar .range { background: rgba(48, 209, 88, .5); }
+/* パート練習: A/Bを直接タップ・ドラッグできる区間バー */
+.part-loop-track { position: relative; height: 48px; margin: 12px 14px 2px;
+  background: var(--card2); border-radius: 13px; touch-action: none; cursor: pointer; }
+.part-loop-track.disabled { opacity: .4; pointer-events: none; }
+.part-loop-range { position: absolute; left: 0; top: 15px; height: 18px; border-radius: 9px;
+  background: var(--ok-tint); border: 1px solid var(--ok); }
+.part-loop-playhead { position: absolute; top: 10px; bottom: 10px; width: 2px; margin-left: -1px;
+  background: var(--accent); border-radius: 2px; pointer-events: none; z-index: 2; }
+.part-loop-handle { position: absolute; top: 4px; width: 40px; height: 40px; margin-left: -20px;
+  border-radius: 12px; background: var(--text); color: var(--bg); border: 3px solid var(--card);
+  box-shadow: 0 3px 12px rgba(0,0,0,.45); z-index: 3; touch-action: none; padding: 0; }
+.part-loop-handle span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+  font-size: 13px; font-weight: 800; }
+.part-loop-handle.a { color: var(--bg); }
+.part-loop-handle.b { background: var(--accent); color: var(--on-accent); }
+.part-loop-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.part-loop-scale { display: flex; justify-content: space-between; align-items: center; margin: 5px 0 8px;
+  color: var(--muted2); font-size: 10px; font-variant-numeric: tabular-nums; }
+.part-loop-scale span:nth-child(2) { color: var(--muted); }
 .part-point { display: flex; align-items: center; gap: 8px; padding: 8px 0;
   border-bottom: var(--hairline) solid var(--sep); }
 .part-point:last-of-type { border-bottom: none; }
@@ -142,6 +164,30 @@ button:active { opacity: .75; }
 
 /* 記録画面ステータス行 */
 .runbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+/* 編集/通し/パート: 技が変わっても寸法が動かない常設の現在技ドック */
+.practice-now { position: sticky; top: calc(var(--safe-top) + 52px); z-index: 16;
+  display: grid; grid-template-columns: minmax(0, .9fr) minmax(142px, 1.1fr); gap: 10px;
+  align-items: stretch; box-sizing: border-box; height: 138px; min-height: 138px;
+  padding: 10px; margin: -4px 0 14px; border-radius: 14px;
+  background: var(--card); border: 1px solid var(--sep); border-left: 4px solid var(--accent);
+  box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+.practice-now-copy { min-width: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 2px 4px; }
+.practice-now-label { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+.practice-now.paused .practice-now-label { color: var(--muted); }
+.practice-now-copy strong { margin-top: 3px; font-size: 17px; line-height: 1.35;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.practice-now-meta { display: block; margin-top: 5px; color: var(--muted); font-size: 10.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.practice-now-media { min-width: 0; width: 100%; height: 116px; min-height: 116px; max-height: 116px; border-radius: 10px;
+  overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+.practice-now-media video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+.practice-video-loading,
+.practice-video-empty { color: rgba(255,255,255,.65); font-size: 11px; text-align: center; }
+@media (max-width: 350px) {
+  .practice-now { grid-template-columns: minmax(0, .9fr) 126px; }
+  .practice-now-copy strong { font-size: 15px; }
+}
 .runbar .stat { background: var(--card); border-radius: 16px;
   padding: 6px 13px; font-size: 13px; color: var(--muted); }
 .runbar .stat b { color: var(--text); font-size: 15px; font-weight: 600; }
@@ -256,12 +302,6 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   color: var(--ok); background: var(--ok-tint); }
 .editor-step.now { background: rgba(48, 209, 88, .1); box-shadow: inset 3px 0 0 var(--ok);
   border-radius: 8px; }
-/* 再生追従: いまの技の行を広げて動画をインライン表示(前後の技は文字のまま見える) */
-.editor-step .now-video { margin: 10px 4px 4px 30px; animation: nowVideoIn .22s ease; }
-.editor-step .now-video video { width: 100%; max-height: 230px; border-radius: 12px;
-  background: #000; display: block; object-fit: contain; }
-.editor-step.now-expanded { padding-bottom: 14px; }
-@keyframes nowVideoIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .cue-chip { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 .step-btn.now { background: rgba(48, 209, 88, .14); box-shadow: inset 3px 0 0 var(--ok); }
 /* 技名以外のコントロールは1行に。狭すぎる端末では折り返す */
@@ -318,6 +358,8 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   padding-top: 9px; border-top: var(--hairline) solid var(--sep); }
 .music-foot .mf-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-foot-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.music-foot-actions .mini-btn { width: auto; height: 30px; padding: 0 12px; border-radius: 15px; font-size: 12.5px; }
 .music-foot .mini-btn.del { width: auto; height: 30px; padding: 0 12px; border-radius: 15px;
   font-size: 12.5px; background: var(--card2); }
 .music-empty .me-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
@@ -429,16 +471,62 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .help-body { font-size: 14px; color: var(--text); line-height: 1.8; padding: 2px 0 14px; }
 .help-body b { color: var(--accent); font-weight: 600; }
 
-/* ホームの二択メニュー */
-.menu-card { position: relative; display: block; width: 100%; text-align: left;
-  background: var(--card); border: none; border-radius: 16px; padding: 22px 48px 22px 20px;
-  margin-bottom: 14px; }
-.menu-card:active { background: var(--card2); opacity: 1; }
-.menu-card .mc-title { display: block; font-size: 22px; font-weight: 700; color: var(--text);
-  letter-spacing: .01em; }
-.menu-card .mc-sub { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
-.menu-card .mc-arrow { position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
-  font-size: 30px; color: var(--muted2); font-weight: 400; }
+/* ホーム — 主操作と前回のルーティンだけに絞ったシンプル構成 */
+#app:has(> .home-simple-shell) { padding-bottom: 0; }
+.home-simple-shell { display: flex; flex-direction: column; min-height: 100svh; }
+.home-simple-head { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: calc(12px + var(--safe-top)) 0 12px; border-bottom: var(--hairline) solid var(--sep); }
+.home-simple-head h1 { min-width: 0; margin: 0; color: var(--text); font-size: 18px; line-height: 1.2;
+  font-weight: 700; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-head-buttons { display: flex; gap: 7px; flex-shrink: 0; }
+.home-head-buttons button { min-height: 40px; padding: 0 12px; border: 1px solid var(--sep); border-radius: 10px;
+  background: var(--card); color: var(--text); font-size: 12px; font-weight: 600;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .2); }
+.home-simple-main { padding: 34px 0 28px; }
+.home-practice-button { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: 100%; min-height: 76px; padding: 0 20px; border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px; background: var(--accent); color: var(--on-accent); text-align: left;
+  font-size: 20px; font-weight: 750; box-shadow: 0 9px 24px rgba(0, 0, 0, .34); }
+.home-button-arrow { flex-shrink: 0; font-size: 27px; line-height: 1; font-weight: 400; }
+.home-practice-button:active, .home-recent-button:active, .home-library-grid button:active,
+.home-head-buttons button:active { opacity: 1; transform: translateY(1px); filter: brightness(.86); }
+.home-recent { margin-top: 38px; }
+.home-recent h2 { margin: 0 0 10px 2px; color: var(--muted); font-size: 13px; line-height: 1.2;
+  font-weight: 600; }
+.home-recent-button { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  width: 100%; min-height: 82px; padding: 14px 17px; border: 1px solid var(--sep); border-radius: 14px;
+  background: var(--card); color: var(--text); text-align: left; box-shadow: 0 7px 20px rgba(0, 0, 0, .25); }
+.home-recent-copy { min-width: 0; }
+.home-recent-copy b { display: block; overflow: hidden; color: var(--text); font-size: 17px; line-height: 1.35;
+  font-weight: 680; white-space: nowrap; text-overflow: ellipsis; }
+.home-recent-copy small { display: block; margin-top: 5px; color: var(--accent); font-size: 12px; font-weight: 550; }
+.home-recent-button .home-button-arrow { color: var(--muted); }
+.home-recent-empty { display: flex; align-items: center; min-height: 74px; padding: 14px 17px;
+  border: 1px dashed var(--sep); border-radius: 14px; color: var(--muted); font-size: 14px; }
+.home-libraries { margin-top: auto; padding: 18px 0 calc(18px + var(--safe-bottom));
+  border-top: var(--hairline) solid var(--sep); }
+.home-library-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.home-library-grid button { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-width: 0; min-height: 66px; padding: 11px 13px; border: 1px solid var(--sep); border-radius: 12px;
+  background: var(--card); color: var(--text); text-align: left; box-shadow: 0 4px 13px rgba(0, 0, 0, .22); }
+.home-library-copy { min-width: 0; }
+.home-library-copy b { display: block; overflow: hidden; color: var(--text); font-size: 13px; line-height: 1.3;
+  font-weight: 650; white-space: nowrap; text-overflow: ellipsis; }
+.home-library-copy small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; font-weight: 450; }
+.home-library-grid .home-button-arrow { color: var(--muted2); font-size: 22px; }
+.home-simple-shell button { transition: transform .12s ease, filter .12s ease; }
+.home-simple-shell button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 350px) {
+  .home-simple-head h1 { font-size: 16px; }
+  .home-head-buttons button { padding: 0 9px; }
+  .home-practice-button { min-height: 70px; padding: 0 17px; font-size: 18px; }
+  .home-library-grid { gap: 8px; }
+  .home-library-grid button { padding: 10px; }
+  .home-library-copy b { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-simple-shell button { transition: none; }
+}
 
 /* 技ライブラリ */
 .trick-row { padding: 10px 0; border-bottom: var(--hairline) solid var(--sep); }
@@ -452,22 +540,22 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .trick-video.main { margin-top: 0; aspect-ratio: 16/9; object-fit: cover; }
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .clean-btn.recording { background: var(--danger); color: #fff; }
-.mini-btn.play { color: var(--accent); background: var(--accent-tint); font-size: 12px; }
-.mini-btn.play.on { background: var(--accent); color: var(--on-accent); }
+/* 技動画の再生: 三角単体ではなく、動画を表す角丸スクリーン内の再生マークに統一 */
+.mini-btn.play,
+.video-play-btn { position: relative; width: 40px !important; min-width: 40px; height: 32px;
+  min-height: 32px !important; padding: 0 !important; border-radius: 9px !important;
+  background: var(--accent) !important; color: transparent !important; font-size: 0 !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); flex-shrink: 0; }
+.mini-btn.play::after,
+.video-play-btn::after { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 0; height: 0; margin: -6px 0 0 -3px;
+  border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+  border-left: 9px solid var(--on-accent); }
+.mini-btn.play.on { box-shadow: inset 0 0 0 2px var(--on-accent), 0 0 0 2px var(--accent-tint); }
+.mini-btn.play:focus-visible,
+.video-play-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 .mini-btn.link { font-size: 13px; }
 
-/* 編集画面の上部ミニ動画ドック */
-.mini-dock { position: sticky; top: calc(var(--safe-top) + 54px); z-index: 15;
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(28, 28, 30, .96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border-radius: 14px; padding: 8px 10px; margin: 0 0 14px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, .5); }
-.mini-dock video { width: 132px; aspect-ratio: 4/3; object-fit: cover; border-radius: 9px;
-  background: #000; flex-shrink: 0; }
-.mini-dock .md-info { flex: 1; min-width: 0; }
-.mini-dock .md-info .nm { display: block; font-size: 14px; font-weight: 600;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mini-dock .md-info .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pick-trick-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px;
   border-bottom: var(--hairline) solid var(--sep); cursor: pointer; }
 .pick-trick-row:last-of-type { border-bottom: none; }
@@ -638,8 +726,9 @@ body[data-theme="matte"] {
 /* ライトテーマでは選択セグメントに軽い影で浮きを出す */
 body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
 
-/* テーマ選択(編集画面): 4分割のスウォッチ */
+/* テーマ選択(右上メニュー): 4分割のスウォッチ */
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 0 4px; }
+.theme-grid-sheet { margin: 8px 0 18px; }
 .theme-swatch { background: none; border: none; padding: 0; display: flex; flex-direction: column;
   align-items: center; gap: 6px; }
 .theme-swatch .tsw { position: relative; width: 100%; height: 52px; border-radius: 10px;
@@ -681,6 +770,7 @@ body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgb
   border-radius: 2px; box-shadow: 0 0 0 1px var(--card); }
 .trim-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2);
   font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+.music-trim-audio { display: block; width: 100%; margin: 12px 0 6px; }
 
 /* 見出しの「?」説明ボタン(タップで説明シート) */
 .info-btn { display: inline-flex; align-items: center; justify-content: center;
