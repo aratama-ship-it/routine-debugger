@@ -1,7 +1,7 @@
 {
-  "name": "ルーティン・デバッガ",
-  "short_name": "ルーティンDbg",
-  "description": "パフォーマー向け失敗分析ランログ",
+  "name": "ルーティンノート",
+  "short_name": "ルーティンノート",
+  "description": "パフォーマー向けルーティン練習ノート",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

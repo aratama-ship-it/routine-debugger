@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>ルーズリーフ案｜ルーティンノート</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="board-head">
+    <div>
+      <p class="eyebrow">DIRECTION STUDY / LOOSE-LEAF</p>
+      <h1>組み替えられる、稽古帳。</h1>
+      <p class="lead">技を一枚ずつ蓄え、音楽の罫線へ並べ、試した跡を書き込む。ルーズリーフを見た目ではなく、アプリの構造として使う案です。</p>
+    </div>
+    <div class="size-switch" aria-label="端末サイズを変更">
+      <button class="is-active" type="button" data-size="standard">標準画面</button>
+      <button type="button" data-size="compact">短い画面</button>
+    </div>
+  </header>
+
+  <main class="board" id="board">
+    <section class="phone-column" aria-label="ルーズリーフ案のホーム画面">
+      <div class="phone">
+        <div class="screen">
+          <div class="binder-edge" aria-hidden="true"></div>
+          <div class="paper-sheet">
+            <header class="app-head">
+              <div class="app-title">
+                <span>SHEET 00 / HOME</span>
+                <h2>ルーティンノート</h2>
+              </div>
+              <div class="head-actions">
+                <button type="button">使い方</button>
+                <button type="button">設定</button>
+              </div>
+            </header>
+
+            <div class="home-main" role="main">
+              <button class="practice-button" type="button">
+                <span><small>START</small>ルーティン練習をする</span>
+                <i aria-hidden="true">→</i>
+              </button>
+
+              <section class="recent" aria-labelledby="recent-title-looseleaf">
+                <h3 id="recent-title-looseleaf">前回のルーティン</h3>
+                <button class="recent-button" type="button">
+                  <span class="paper-grip" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="recent-copy"><b>ショーケース 3分</b><small>もう一度練習する</small></span>
+                  <span class="arrow" aria-hidden="true">›</span>
+                </button>
+              </section>
+            </div>
+
+            <div class="quiet-lines" aria-hidden="true">
+              <span>01</span><span>02</span><span>03</span>
+            </div>
+
+            <footer class="libraries" aria-label="ライブラリ">
+              <button class="library trick" type="button">
+                <span><b>技ライブラリ</b><small>12枚</small></span><i aria-hidden="true">›</i>
+              </button>
+              <button class="library audio" type="button">
+                <span><b>音源ライブラリ</b><small>4本</small></span><i aria-hidden="true">›</i>
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <p class="phone-caption">ホームは「束の表紙」。操作は現在と同じ4つだけに保ちます。</p>
+    </section>
+
+    <section class="concept-column">
+      <article class="concept-card core-card">
+        <p class="card-kicker">CONCEPT</p>
+        <h2>ルーズリーフを、情報設計にする</h2>
+        <dl class="mapping-list">
+          <div><dt>技</dt><dd>一枚ずつ蓄える紙片</dd></div>
+          <div><dt>ルーティン</dt><dd>紙片を順番に束ねたもの</dd></div>
+          <div><dt>音源</dt><dd>紙片を置く時間の罫線</dd></div>
+          <div><dt>分析</dt><dd>試したあとに残る鉛筆跡</dd></div>
+        </dl>
+      </article>
+
+      <article class="concept-card editor-card">
+        <div class="card-title-row">
+          <div><p class="card-kicker">EDITOR EXPANSION</p><h2>並び替えが、紙を組み替える感覚になる</h2></div>
+          <span class="pencil-note">編集画面への展開</span>
+        </div>
+        <div class="step-stack" aria-label="ルーティン編集ステップのデザイン例">
+          <div class="step-paper step-one">
+            <span class="step-handle" aria-label="並び替えハンドル"><i></i><i></i><i></i></span>
+            <span class="step-no">01</span>
+            <span class="step-name">サン</span>
+            <span class="step-time">0:00</span>
+          </div>
+          <div class="step-paper step-two">
+            <span class="step-handle" aria-label="並び替えハンドル"><i></i><i></i><i></i></span>
+            <span class="step-no">02</span>
+            <span class="step-name">インフィニティ</span>
+            <span class="step-time">0:14</span>
+          </div>
+          <div class="step-paper step-three">
+            <span class="step-handle" aria-label="並び替えハンドル"><i></i><i></i><i></i></span>
+            <span class="step-no">03</span>
+            <span class="step-name">ジェノサイド</span>
+            <span class="step-time">0:28</span>
+          </div>
+        </div>
+        <p class="editor-note">縦長ハンドルは綴じ穴のように見せ、ドラッグ中だけ紙が少し持ち上がる。時間は右端の同じ罫線上へ揃えます。</p>
+      </article>
+
+      <article class="concept-card judgment-card">
+        <p class="card-kicker">JUDGMENT</p>
+        <div class="judgment-grid">
+          <div><span>強み</span><p>「順番を変える」操作と見た目の意味が一致し、ノート性が装飾で終わらない。</p></div>
+          <div><span>注意点</span><p>罫線・穴・紙影を増やしすぎず、情報量は現在のシンプルなホームを維持する。</p></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const board = document.querySelector('#board');
+    document.querySelectorAll('[data-size]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('[data-size]').forEach((item) => item.classList.remove('is-active'));
+        button.classList.add('is-active');
+        board.classList.toggle('is-compact', button.dataset.size === 'compact');
+      });
+    });
+  </script>
+</body>
+</html>
