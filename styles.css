@@ -77,12 +77,15 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
 .topbar:has(.back-btn) { display: grid; grid-template-columns: minmax(52px, auto) 1fr minmax(52px, auto); }
 .topbar:has(.back-btn) h1 { font-size: 17px; font-weight: 600; text-align: center; padding: 0; }
 .topbar .sub { color: var(--muted); font-size: 13px; text-align: right; }
-.routine-head-actions { min-width: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.routine-menu-btn { width: 38px; height: 38px; border-radius: 10px; padding: 9px 8px;
-  display: inline-flex; flex-direction: column; justify-content: space-between; align-items: stretch;
-  background: var(--card2); border: var(--hairline) solid var(--sep); }
-.routine-menu-btn span { display: block; height: 2px; border-radius: 2px; background: var(--accent); }
-.routine-menu-btn:active { background: var(--card3); transform: scale(.97); }
+.routine-head-actions { min-width: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.head-settings-btn { width: 45px; height: 44px; padding: 4px 3px 3px; border-radius: 6px;
+  display: inline-flex; flex: 0 0 auto; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: var(--card2); border: var(--hairline) solid var(--sep); color: var(--accent); }
+.head-settings-icon { width: 18px; height: 18px; fill: var(--card); stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; }
+.head-settings-label { display: block; font-size: 9px; line-height: 1; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.head-settings-btn.current { background: var(--accent); color: var(--on-accent); }
+.head-settings-btn:active { background: var(--card3); transform: scale(.97); }
 .back-btn { background: none; border: none; color: var(--accent); font-size: 17px;
   padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 2px; }
 .back-btn::before { content: "‹"; font-size: 28px; line-height: 1; font-weight: 500;
@@ -120,20 +123,35 @@ button:active { opacity: .75; }
 .clean-btn .sub { display: block; font-size: 13px; font-weight: 500; opacity: .7; margin-top: 2px; letter-spacing: 0; }
 .clean-btn:active { opacity: 1; filter: brightness(.8); }
 
-/* ルーティン一覧(リストセル) */
-/* 左スワイプ削除(メーラー式) */
-.swipe-wrap { position: relative; overflow: hidden; margin: 0 -16px; touch-action: pan-y; }
-.swipe-wrap:last-child .routine-row { border-bottom: none; }
-.swipe-del { position: absolute; right: 0; top: 0; bottom: 0; width: 88px; border: none;
-  background: var(--danger); color: #fff; font-size: 15px; font-weight: 700; }
+/* ルーティン一覧(リストセル)。削除は右上の✕から安全確認シートへ進む。 */
+.routine-card { position: relative; margin: 0 -16px; }
+.routine-card:last-child .routine-row { border-bottom: none; }
 .routine-row { position: relative; z-index: 1; background: var(--card);
-  padding: 12px 16px 14px; border-bottom: var(--hairline) solid var(--sep);
-  transition: transform .22s cubic-bezier(.32, .72, .35, 1); }
-.routine-row .name { font-weight: 600; font-size: 17px; min-width: 0;
+  padding: 12px 56px 14px 16px; border-bottom: var(--hairline) solid var(--sep); }
+.routine-row .name { padding-right: 2px; font-weight: 600; font-size: 17px; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .routine-row .meta { color: var(--muted); font-size: 13px; display: block; font-weight: 400; margin-top: 1px; }
-.routine-row .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.routine-row .actions { display: flex; flex-wrap: wrap; gap: 8px; width: calc(100% + 42px); margin-top: 10px; }
 .routine-row .actions .btn.small { flex: 1 1 44%; min-height: 38px; border-radius: 19px; }
+.routine-quick-note { margin: 12px 2px 0 5px; padding: 9px 2px 1px; border-top: 1px dashed var(--sep);
+  width: calc(100% + 42px); box-sizing: border-box; color: var(--text); cursor: pointer; }
+.routine-quick-note-label { display: block; margin-bottom: 3px; color: var(--muted); font-size: 10px;
+  font-weight: 760; letter-spacing: .06em; }
+.routine-quick-note p { overflow: hidden; display: -webkit-box; margin: 0; color: inherit; font-size: 13px;
+  line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.routine-quick-note.empty p { color: var(--muted2); }
+.routine-quick-note:active { opacity: .62; }
+.routine-quick-note:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.routine-memo-full { margin: 14px 0; padding: 13px 14px; border-left: 4px solid var(--blue);
+  background: var(--card2); color: var(--text); font-size: 15px; line-height: 1.75;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.routine-delete-open { position: absolute; z-index: 2; top: 10px; right: 11px; width: 38px; height: 38px;
+  padding: 0; border: 1px solid color-mix(in srgb, var(--danger) 58%, var(--sep)); border-radius: 8px;
+  background: var(--card); color: var(--danger); font-size: 18px; font-weight: 750; line-height: 1;
+  box-shadow: 0 2px 0 var(--paper-shadow); }
+.routine-delete-open:active { opacity: 1; transform: translateY(2px); box-shadow: none; }
+.routine-delete-open:focus-visible { outline: 3px solid var(--danger); outline-offset: 2px; }
 
 /* パート練習: A/Bを直接タップ・ドラッグできる区間バー */
 .part-loop-track { position: relative; height: 48px; margin: 12px 14px 2px;
@@ -161,6 +179,20 @@ button:active { opacity: .75; }
 .part-point .pp-time { flex: 1; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .part-point .mini-btn { width: 44px; font-size: 12px; }
 .part-point .btn.small { white-space: nowrap; font-size: 13px; padding: 0 10px; flex-shrink: 0; }
+.part-loop-delay-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 0;
+  border-top: 1px dashed var(--sep); border-bottom: 1px dashed var(--sep); }
+.part-loop-delay-copy { flex: 1; min-width: 0; }
+.part-loop-delay-copy strong { display: block; font-size: 13px; }
+.part-loop-delay-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: 10.5px; line-height: 1.35; }
+.part-loop-delay-stepper { display: grid; grid-template-columns: 38px 58px 38px; align-items: center; gap: 5px; flex-shrink: 0; }
+.part-loop-delay-stepper button { width: 38px; height: 38px; padding: 0; border: 1px solid var(--sep);
+  border-radius: 4px; background: var(--card); color: var(--text); font-size: 20px; font-weight: 800;
+  box-shadow: 0 3px 0 var(--paper-shadow); }
+.part-loop-delay-stepper button:active { opacity: 1; transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-shadow); }
+.part-loop-delay-stepper button:disabled { opacity: .32; transform: none; box-shadow: none; }
+.part-loop-delay-stepper output { display: flex; min-height: 38px; align-items: center; justify-content: center;
+  border: 1px solid var(--sep); border-radius: 4px; background: var(--card2); color: var(--text);
+  font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* 記録画面のステップリスト(結合セル) */
 .step-list { display: flex; flex-direction: column; margin: 0 -16px 6px; }
@@ -201,6 +233,25 @@ button:active { opacity: .75; }
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .practice-now-meta { display: block; margin-top: 5px; color: var(--muted); font-size: 10.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.practice-now.has-editor-player .practice-now-copy { justify-content: flex-start; padding: 4px 5px 2px; }
+.practice-now-player { display: grid; gap: 6px; min-width: 0; margin-top: auto; padding-top: 8px;
+  border-top: 1px dashed var(--sep); }
+.practice-now-player-label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.practice-now-player-main { display: grid; grid-template-columns: minmax(78px, 1fr) auto; align-items: center; gap: 8px; }
+.practice-now-player-main .music-pill { width: 100%; min-height: 42px; padding: 0 8px; border-radius: 5px;
+  box-shadow: 0 3px 0 var(--paper-shadow); }
+.practice-now-player-main .music-time { min-width: 0; justify-content: flex-end; font-size: 19px; white-space: nowrap; }
+.practice-now-player-main .music-time .dur { font-size: 11px; }
+.practice-now-player-actions { display: grid; grid-template-columns: minmax(78px, 1fr) 62px; align-items: stretch; gap: 8px; }
+.practice-now-player-actions > .music-btn.text { display: inline-flex; width: 100%; height: 38px; min-height: 38px;
+  align-items: center; justify-content: center; padding: 0 7px; border: 1px solid var(--sep); border-radius: 4px;
+  background: var(--card); box-shadow: 0 3px 0 var(--paper-shadow); color: var(--accent); font-size: 12px; }
+.practice-now-player-actions > .music-volume-control { width: 62px; }
+.practice-now-player-actions > .music-volume-control > summary { width: 100%; height: 38px; }
+.practice-now-player .music-volume-popover { right: auto; left: 0; }
+.practice-now-player.is-disabled .music-pill,
+.practice-now-player.is-disabled .music-btn { opacity: .42; box-shadow: none; }
+.practice-now-player button:disabled { cursor: default; }
 .practice-now-media { width: var(--practice-preview-size); min-width: var(--practice-preview-size); max-width: var(--practice-preview-size);
   height: var(--practice-preview-size); min-height: var(--practice-preview-size); max-height: var(--practice-preview-size);
   aspect-ratio: 1 / 1; justify-self: end; border-radius: 10px;
@@ -211,6 +262,13 @@ button:active { opacity: .75; }
 @media (max-width: 350px) {
   .practice-now { --practice-preview-size: 164px; }
   .practice-now-copy strong { font-size: 15px; }
+}
+@media (max-width: 430px) {
+  .practice-now.has-editor-player { --practice-preview-size: clamp(164px, 44vw, 190px); }
+  .practice-now.has-editor-player .practice-now-player-main { grid-template-columns: 1fr; gap: 5px; }
+  .practice-now.has-editor-player .practice-now-player-main .music-time { justify-content: flex-start; font-size: 17px; }
+  .practice-now.has-editor-player .practice-now-player-actions { grid-template-columns: 1fr 52px; gap: 5px; }
+  .practice-now.has-editor-player .practice-now-player-actions > .music-volume-control { width: 52px; }
 }
 .runbar .stat { background: var(--card); border-radius: 16px;
   padding: 6px 13px; font-size: 13px; color: var(--muted); }
@@ -243,6 +301,33 @@ button:active { opacity: .75; }
 #sheet h3 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
 #sheet .sheet-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 .hidden { display: none !important; }
+
+/* ルーティン削除: ✕を押した後、右端まで意図的にスライドした場合だけ確定する */
+.delete-routine-name { margin: 10px 0 12px; padding: 11px 12px; border-left: 6px solid var(--blue);
+  background: var(--card); color: var(--text); font-size: 17px; font-weight: 780; overflow-wrap: anywhere; }
+.delete-routine-warning { margin-bottom: 18px; padding: 12px 13px; border: 1px solid color-mix(in srgb, var(--danger) 52%, var(--sep));
+  border-radius: 5px; background: color-mix(in srgb, var(--danger) 7%, var(--card)); }
+.delete-routine-warning strong { display: block; color: var(--danger); font-size: 15px; }
+.delete-routine-warning span { display: block; margin-top: 5px; color: var(--text); font-size: 13px; font-weight: 740; }
+.delete-routine-warning p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.delete-slide-wrap { margin: 0 0 16px; }
+.delete-slide-track { position: relative; height: 62px; overflow: hidden; touch-action: none;
+  border: 2px solid var(--sep); border-radius: 7px; background: var(--card2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+.delete-slide-fill { position: absolute; inset: 0 auto 0 0; width: 57px; pointer-events: none;
+  background: color-mix(in srgb, var(--danger) 16%, var(--card)); }
+.delete-slide-copy { position: absolute; inset: 0 12px 0 66px; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; color: var(--muted); font-size: 13px; font-weight: 780; text-align: center; }
+.delete-slide-handle { position: absolute; z-index: 2; top: 5px; left: 5px; width: 48px; height: 48px; padding: 0;
+  touch-action: none; cursor: grab; border: 2px solid var(--danger); border-radius: 5px; background: var(--card);
+  color: var(--danger); font-size: 21px; font-weight: 850; line-height: 1; box-shadow: 0 3px 0 color-mix(in srgb, var(--danger) 32%, var(--paper-shadow)); }
+.delete-slide-handle.dragging { cursor: grabbing; box-shadow: 0 1px 0 color-mix(in srgb, var(--danger) 32%, var(--paper-shadow)); }
+.delete-slide-track.armed { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--card)); }
+.delete-slide-track.armed .delete-slide-fill, .delete-slide-track.armed .delete-slide-handle { background: var(--danger); color: #fff; }
+.delete-slide-track.armed .delete-slide-copy { color: var(--danger); }
+.delete-slide-track.resetting .delete-slide-handle { transition: transform .2s ease; }
+.delete-slide-track.resetting .delete-slide-fill { transition: width .2s ease; }
+.delete-slide-track:focus-visible { outline: 3px solid var(--danger); outline-offset: 3px; }
+.delete-slide-help { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
 
 .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .choice { min-height: 58px; border-radius: 12px; background: var(--card2); color: var(--text);
@@ -302,7 +387,7 @@ select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 
 .editor-step { position: relative; padding: 10px 0 12px 44px;
   border-bottom: var(--hairline) solid var(--sep); }
 .editor-step:last-of-type { border-bottom: none; }
-.editor-step .es-row1 { display: flex; align-items: center; }
+.editor-step .es-row1 { display: flex; align-items: stretch; gap: 7px; }
 .editor-step .es-lead { display: flex; flex-direction: column; align-items: center; gap: 1px;
   position: absolute; left: 0; top: 10px; bottom: 12px; width: 34px; max-height: 124px; }
 .editor-step .es-row1 .no { color: var(--muted2); font-size: 15px; flex-shrink: 0;
@@ -321,17 +406,33 @@ body.dragging-active .editor-step:not(.dragging) { transition: transform .18s ea
 body.dragging-active { user-select: none; -webkit-user-select: none; touch-action: none; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
-.editor-step .cue-input { flex: 0 0 50px; text-align: center; padding: 9px 2px;
+.editor-step .es-kind-toggle { min-width: 48px; height: auto; min-height: 44px; align-self: stretch; }
+.editor-step .cue-input { flex: 0 0 62px; text-align: center; padding: 9px 2px;
   font-size: 14px; font-variant-numeric: tabular-nums; color: var(--accent);
   touch-action: pan-y; /* 横スライドで秒数微調整(縦スクロールは通す) */ }
+.editor-step .cue-input.locked {
+  color: var(--text); background: color-mix(in srgb, var(--sheet-tab-rust) 9%, var(--card2));
+  box-shadow: inset 3px 0 0 var(--sheet-tab-rust); cursor: default;
+}
+.editor-step .cue-pin { display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted2); background: var(--card2); border: 1px solid var(--sep); }
+.editor-step .cue-pin svg { width: 17px; height: 17px; fill: currentColor; transform: rotate(18deg); }
+.editor-step .cue-pin.locked { color: #fff; background: var(--sheet-tab-rust); border-color: var(--sheet-tab-rust);
+  box-shadow: 0 3px 0 var(--paper-shadow); }
+.editor-step .cue-pin.locked svg { transform: rotate(0deg); }
+.editor-pin-hint { margin: 9px 2px 0; text-align: left; }
 .editor-step .cue-play { flex: 0 0 auto; width: 34px; height: 34px; font-size: 11px;
   color: var(--ok); background: var(--ok-tint); }
 .editor-step.now { background: rgba(48, 209, 88, .1); box-shadow: inset 3px 0 0 var(--ok);
   border-radius: 8px; }
 .cue-chip { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 .step-btn.now { background: rgba(48, 209, 88, .14); box-shadow: inset 3px 0 0 var(--ok); }
-/* 技名以外のコントロールは1行に。狭すぎる端末では折り返す */
-.editor-step .es-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0 0; }
+/* 下段は確認操作を左、A/B化・リスクを右、削除を最右端に役割分けする */
+.editor-step .es-row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center; gap: 6px; margin: 8px 0 0; }
+.editor-step .es-playback-controls, .editor-step .es-step-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-width: 0; }
+.editor-step .es-step-meta { justify-content: flex-end; }
 .editor-step .es-spacer { flex: 1; }
 /* リスク度プルダウン(省スペース)。選択値で文字色が変わり危険度が一目で分かる */
 .risk-select { flex: 0 0 auto; width: auto; min-height: 34px; padding: 5px 5px; border-radius: 9px;
@@ -351,8 +452,15 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 .kind-toggle.t { color: var(--accent); background: var(--accent-tint); }
 /* コントロール行のミニボタンは少し小さめにして1行に収めやすく */
 .editor-step .es-row2 .mini-btn { width: 34px; height: 34px; }
-/* 削除(✕)は常に操作列の最右端へ寄せ、他の操作との誤タップを避ける */
-.editor-step .es-row2 .mini-btn.del { margin-left: auto; }
+/* 削除(✕)は独立した最終列に置き、他の操作との誤タップを避ける */
+.editor-step .es-row2 > .mini-btn.del { margin-left: 0; justify-self: end; }
+
+@media (max-width: 520px) {
+  .editor-step .es-row2 { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .editor-step .es-row2:has(.es-step-meta) .es-playback-controls { grid-column: 1 / -1; }
+  .editor-step .es-row2:has(.es-step-meta) .es-step-meta { grid-column: 1; justify-self: end; }
+  .editor-step .es-row2:has(.es-step-meta) > .mini-btn.del { grid-column: 2; }
+}
 
 /* 楽曲プレイヤー・録音 */
 .music-card, .rec-card { padding: 12px 16px; }
@@ -386,9 +494,38 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .music-foot-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .music-foot-actions .mini-btn { display: inline-flex; align-items: center; justify-content: center;
-  width: auto; height: 34px; padding: 0 12px; border-radius: 4px; font-size: 12.5px; line-height: 1; }
-.music-foot .mini-btn.del { width: auto; height: 34px; padding: 0 12px; border-radius: 4px;
-  font-size: 12.5px; line-height: 1; background: var(--card2); }
+  width: auto; min-width: 38px; height: 30px; padding: 0 7px; border: 0; border-radius: 3px;
+  background: transparent; box-shadow: none; font-size: 11px; line-height: 1; }
+.music-foot .mini-btn.del { width: auto; min-width: 38px; height: 30px; padding: 0 7px; border: 0;
+  border-left: 1px dashed var(--sep); border-radius: 0; background: transparent; box-shadow: none;
+  font-size: 11px; line-height: 1; }
+
+/* 編集プレイヤー: 楽曲と構成の時間軸を同じ起点・同じ幅で上下に揃える */
+.music-track-stack { margin-top: 11px; padding: 9px 10px 8px; border: 1px solid var(--sep);
+  border-radius: 4px; background: color-mix(in srgb, var(--card2) 68%, transparent); }
+.music-track-line { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 24px; }
+.music-track-line + .music-track-line { margin-top: 5px; }
+.music-track-label { color: var(--muted); font-size: 10px; font-weight: 760; letter-spacing: .04em; }
+.music-track-line #music-seek { width: 100%; height: 18px; margin: 0; }
+.music-track-line .tl-bar { width: 100%; height: 18px; margin: 0; }
+.music-track-stack .tl-caption { margin: 5px 0 0 44px; font-size: 10.5px; }
+
+/* 音量は通常時は一つのボタン。必要なときだけスライダーをポップアップ表示する */
+.music-volume-control { position: relative; flex: 0 0 auto; }
+.music-volume-control > summary { display: inline-flex; width: 46px; height: 40px; padding: 2px 3px;
+  align-items: center; justify-content: center; flex-direction: column; gap: 0; list-style: none;
+  border: 1px solid var(--sep); border-radius: 4px; background: var(--card); color: var(--text);
+  box-shadow: 0 3px 0 var(--paper-shadow); cursor: pointer; user-select: none; box-sizing: border-box; }
+.music-volume-control > summary::-webkit-details-marker { display: none; }
+.music-volume-control > summary span { font-size: 13px; line-height: 1; }
+.music-volume-control > summary small { margin-top: 2px; color: var(--muted); font-size: 8px; line-height: 1; font-weight: 750; }
+.music-volume-control[open] > summary { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-shadow); }
+.music-volume-popover { position: absolute; z-index: 12; top: calc(100% + 8px); right: 0;
+  display: grid; grid-template-columns: 18px minmax(140px, 210px) 18px; align-items: center; gap: 7px;
+  padding: 13px 12px; border: 1px solid var(--sep); border-top: 5px solid var(--sheet-tab-rust);
+  border-radius: 5px; background: var(--card); box-shadow: 0 6px 0 var(--paper-shadow), 0 14px 28px rgba(52,45,31,.2); }
+.music-volume-popover .vol-ico { font-size: 12px; opacity: .72; }
+.music-volume-popover #music-vol { width: 100%; }
 .music-empty .me-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .music-empty .row-2 { margin: 0; }
 
@@ -468,6 +605,16 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .es-opt .es-opt-mark { color: var(--accent); font-size: 13px; font-weight: 700; width: 16px; flex-shrink: 0; }
 .es-opt input[type=text] { flex: 1; min-width: 0; padding: 9px 10px; font-size: 15px; border-radius: 8px; }
 .es-opt .risk-select { min-height: 34px; }
+.es-opt .mini-btn { flex: 0 0 auto; }
+@media (max-width: 430px) {
+  .es-opt { display: grid; grid-template-columns: 16px minmax(0, 1fr) 40px; align-items: center; }
+  .es-opt .es-opt-mark { grid-column: 1; grid-row: 1; }
+  .es-opt input[type=text] { grid-column: 2; grid-row: 1; }
+  .es-opt .video-trim-btn, .es-opt .mini-btn.link { grid-column: 3; grid-row: 1; }
+  .es-opt .risk-select { grid-column: 2 / 4; grid-row: 2; justify-self: end; }
+  .es-opt:has(.mini-btn.del) .risk-select { grid-column: 2; width: 100%; }
+  .es-opt > .mini-btn.del { grid-column: 3; grid-row: 2; }
+}
 
 /* セッション開始時の前回リキャップ */
 .recap { background: var(--card2); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
@@ -532,6 +679,7 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .home-head-buttons button { min-height: 44px; padding: 0 10px; border: 1px solid #77766e; border-radius: 5px;
   background: var(--sheet-paper-raised); color: var(--sheet-ink); font-size: 11px; font-weight: 750;
   box-shadow: 0 3px 0 var(--sheet-shadow); }
+.home-head-buttons .head-settings-btn { width: 45px; padding: 4px 4px 3px; color: var(--sheet-ink); }
 .home-simple-main { position: relative; z-index: 1; flex: 0 0 auto; padding: 30px 0 0; }
 .home-practice-button { display: flex; align-items: center; justify-content: space-between; gap: 14px;
   width: 100%; min-height: 78px; padding: 0 17px 0 19px; border: 2px solid var(--sheet-accent-edge);
@@ -543,7 +691,7 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .home-practice-copy > span { display: block; overflow: hidden; font-size: 18px; font-weight: 850;
   letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
 .home-button-arrow { flex-shrink: 0; font-size: 27px; line-height: 1; font-weight: 400; }
-.home-recent { margin-top: 35px; }
+.home-recent { margin-top: 27px; }
 .home-recent h2 { margin: 0 0 9px 2px; color: var(--sheet-muted); font-size: 11px; line-height: 1.2; font-weight: 750; }
 .home-recent-button { display: grid; grid-template-columns: 23px minmax(0,1fr) 18px; align-items: stretch;
   gap: 10px; width: 100%; min-height: 84px; padding: 0 13px 0 0; border: 1px solid #8d8a80;
@@ -560,6 +708,10 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .home-recent-empty { display: flex; align-items: center; min-height: 74px; padding: 14px 17px;
   border: 1px dashed #8d8a80; border-radius: 5px; background: rgba(248,244,233,.62);
   color: var(--sheet-muted); font-size: 14px; }
+.home-recent .home-routine-card { margin: 7px 0 13px; isolation: auto; }
+.home-routine-card .routine-row { background: var(--sheet-paper-raised); }
+.home-routine-card .routine-row .name { color: var(--sheet-ink); overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.25; font-size: 16px; }
+.home-routine-card .routine-row .meta { color: var(--sheet-muted); }
 .home-paper-space { position: relative; display: flex; flex: 1 1 auto; align-items: end;
   justify-content: space-around; min-height: 0; padding: 0 8px 34px; color: rgba(63,74,82,.26);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; }
@@ -601,8 +753,8 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
   .home-practice-copy > small { display: none; }
   .home-practice-copy > span { font-size: 15px; }
   .home-recent { margin-top: 18px; }
-  .home-recent-button { min-height: 70px; }
-  .home-recent-copy b { font-size: 14px; }
+  .home-recent .home-routine-card { margin-bottom: 10px; }
+  .home-routine-card .routine-row .name { font-size: 14px; }
   .home-paper-space { padding-bottom: 8px; }
   .home-paper-space::before { bottom: 24px; height: 18px; }
   .home-libraries { padding-block: 9px calc(12px + var(--safe-bottom)); }
@@ -611,6 +763,8 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 }
 @media (prefers-reduced-motion: reduce) {
   .home-simple-shell button { transition: none; }
+  .delete-slide-track.resetting .delete-slide-handle,
+  .delete-slide-track.resetting .delete-slide-fill { transition: none; }
 }
 
 /* 技ライブラリ */
@@ -625,20 +779,28 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .trick-video.main { margin-top: 0; aspect-ratio: 16/9; object-fit: cover; }
 .rec-timer { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .clean-btn.recording { background: var(--danger); color: #fff; }
-/* 技動画の再生: 三角単体ではなく、動画を表す角丸スクリーン内の再生マークに統一 */
+/* 技動画の再生: 外側の操作ボタン内に動画スクリーン枠＋再生マークを描き、音楽再生と区別する */
 .mini-btn.play,
-.video-play-btn { position: relative; width: 40px !important; min-width: 40px; height: 32px;
-  min-height: 32px !important; padding: 0 !important; border-radius: 9px !important;
-  background: var(--accent) !important; color: transparent !important; font-size: 0 !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); flex-shrink: 0; }
+.video-play-btn,
+.video-trim-btn { position: relative; width: 40px !important; min-width: 40px; height: 34px;
+  min-height: 34px !important; padding: 0 !important; border-radius: 5px !important;
+  background: var(--accent) !important; color: var(--on-accent) !important; font-size: 0 !important;
+  flex-shrink: 0; }
+.mini-btn.play::before,
+.video-play-btn::before,
+.video-trim-btn::before { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 24px; height: 16px; transform: translate(-50%,-50%); box-sizing: border-box;
+  border: 2px solid var(--on-accent); border-radius: 3px; }
 .mini-btn.play::after,
-.video-play-btn::after { content: ""; position: absolute; left: 50%; top: 50%;
-  width: 0; height: 0; margin: -6px 0 0 -3px;
-  border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-  border-left: 9px solid var(--on-accent); }
-.mini-btn.play.on { box-shadow: inset 0 0 0 2px var(--on-accent), 0 0 0 2px var(--accent-tint); }
+.video-play-btn::after,
+.video-trim-btn::after { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 0; height: 0; margin: -4px 0 0 -2px;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 7px solid var(--on-accent); }
+.mini-btn.play.on { background: var(--accent) !important; box-shadow: 0 3px 0 var(--paper-shadow), inset 0 0 0 2px var(--on-accent); }
 .mini-btn.play:focus-visible,
-.video-play-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.video-play-btn:focus-visible,
+.video-trim-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 .mini-btn.link { font-size: 13px; }
 
 .pick-trick-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px;
@@ -895,11 +1057,11 @@ body { background: var(--paper-rail); }
   font-size: 14px; font-weight: 700; white-space: nowrap;
 }
 .back-btn::before { font-size: 24px; }
-.routine-menu-btn {
+.head-settings-btn {
   border-radius: 4px; background: var(--card); border: 1px solid var(--sep);
   box-shadow: 0 2px 0 var(--paper-shadow);
 }
-.routine-menu-btn span { border-radius: 0; }
+.head-settings-btn.current { border-color: color-mix(in srgb, var(--accent) 72%, #000); background: var(--accent); color: var(--on-accent); }
 
 /* 紙片。短い影は「持ち上げられる / 押せる」範囲だけに使う */
 .card, .stat-box, .note-caveat, .recap {
@@ -932,11 +1094,11 @@ body { background: var(--paper-rail); }
 .clean-btn { min-height: 86px; border-radius: 7px; box-shadow: 0 6px 0 color-mix(in srgb, var(--ok) 72%, #000); }
 .btn:active, .clean-btn:active, .choice:active, .kind-toggle:active, .mini-btn:active,
 .music-btn:active, .music-pill:active, .opt-chip:active, .tag:active,
-.back-btn:active, .nav-action:active, .routine-menu-btn:active {
+.back-btn:active, .nav-action:active, .head-settings-btn:active {
   opacity: 1; filter: none; transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-shadow);
 }
 .btn:focus-visible, .clean-btn:focus-visible, .choice:focus-visible, .mini-btn:focus-visible,
-.back-btn:focus-visible, .nav-action:focus-visible, .routine-menu-btn:focus-visible {
+.back-btn:focus-visible, .nav-action:focus-visible, .head-settings-btn:focus-visible {
   outline: 3px solid var(--blue); outline-offset: 3px;
 }
 
@@ -948,16 +1110,31 @@ input[type=text], textarea, select {
 input[type=range] { accent-color: var(--accent); }
 label.fld { color: var(--muted); font-weight: 700; }
 
-/* ルーティン一覧 = 綴じる前の束。カード内でも一件ずつ独立した紙片にする */
-.card:has(.swipe-wrap) { padding: 5px 10px 10px; background: transparent; box-shadow: none; border: 0; }
-.swipe-wrap {
-  margin: 10px 0 14px; border: 1px solid var(--sep); border-radius: 5px;
-  background: var(--danger); box-shadow: 0 4px 0 var(--paper-shadow);
+/* 紙が重なる単語帳表現はルーティン一覧だけに使う。ホームの前回カードは一枚の紙。 */
+.routine-stack-list { margin: 0 0 22px; padding: 0 4px; }
+.routine-stack-list > h2 { margin: 0 0 7px; padding: 10px 1px 7px; border-bottom: 1px dashed var(--sep);
+  color: var(--muted); font-size: 11px; font-weight: 760; letter-spacing: .055em; }
+.routine-card {
+  position: relative; margin: 12px 1px 16px; border: 0; border-radius: 5px;
+  background: transparent; box-shadow: none; overflow: visible;
 }
-.routine-row { padding: 14px; border: 0; background: var(--card); }
+.routine-stack-list .routine-card { isolation: isolate; margin: 12px 6px 24px 1px; }
+.routine-stack-list .routine-card::before, .routine-stack-list .routine-card::after { content: ""; position: absolute; pointer-events: none;
+  border: 1px solid var(--sep); border-radius: 5px; background: var(--card); transform-origin: 16% 50%; }
+.routine-stack-list .routine-card::before { z-index: -2; inset: 6px -6px -9px 7px; transform: rotate(.65deg);
+  background: color-mix(in srgb, var(--card) 88%, var(--paper-shadow)); }
+.routine-stack-list .routine-card::after { z-index: -1; inset: 3px -3px -5px 4px; transform: rotate(-.28deg);
+  background: color-mix(in srgb, var(--card) 96%, var(--paper-shadow)); }
+.routine-stack-list .routine-card:nth-of-type(even)::before { transform: rotate(-.55deg); }
+.routine-stack-list .routine-card:nth-of-type(even)::after { transform: rotate(.22deg); }
+.routine-row { padding: 14px 56px 14px 14px; border: 1px solid var(--sep); border-radius: 5px;
+  background: var(--card); box-shadow: 0 4px 0 var(--paper-shadow); }
 .routine-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: var(--blue); }
 .routine-row .name { padding-left: 5px; font-weight: 760; }
 .routine-row .meta { margin-top: 4px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.routine-quick-note { border-top-color: color-mix(in srgb, var(--blue) 45%, var(--sep)); }
+.routine-quick-note-label { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.routine-memo-full { border-radius: 3px; background: color-mix(in srgb, var(--card) 88%, #fff); }
 
 /* 練習画面。現在技はレイアウトを動かさない正方形プレビュー付きの見開きメモ */
 .practice-now {
@@ -1108,9 +1285,9 @@ label.fld { color: var(--muted); font-weight: 700; }
 .drag-handle:active { background: transparent; color: var(--muted); box-shadow: none; transform: none; }
 .editor-step.dragging { background: var(--card); box-shadow: 0 12px 26px rgba(0,0,0,.28); transform: rotate(-.4deg); }
 .editor-step.now { border-color: var(--ok) !important; box-shadow: inset 6px 0 0 var(--ok), 0 3px 0 var(--paper-shadow); }
-.editor-step .cue-input { box-shadow: inset 3px 0 0 var(--sheet-tab-rust); }
+.editor-step .cue-input:not(.locked) { box-shadow: inset 3px 0 0 var(--sheet-tab-rust); }
 .kind-toggle, .risk-select, .mini-btn { border-radius: 4px; }
-.mini-btn.play, .video-play-btn { border-radius: 5px !important; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 68%, #000) !important; }
+.mini-btn.play, .video-play-btn, .video-trim-btn { border-radius: 5px !important; box-shadow: 0 3px 0 var(--paper-shadow) !important; }
 .es-opt { padding-left: 7px; border-left: 3px solid var(--blue); }
 
 /* 編集プレイヤーは再生・停止を同じ44pxの操作列として揃える */
@@ -1118,6 +1295,9 @@ label.fld { color: var(--muted); font-weight: 700; }
   align-self: center; display: inline-flex; align-items: center; justify-content: center;
   height: 44px; min-height: 44px; margin: 0; box-sizing: border-box;
 }
+.music-row > .music-btn.text { width: 70px; padding-inline: 8px; }
+.music-row > .music-volume-control { flex: 0 0 70px; width: 70px; }
+.music-row > .music-volume-control > summary { width: 100%; height: 44px; margin: 0; }
 
 /* 分析 / 履歴 = 実施後に残った書き込み。数字はスタンプ、事象は追記メモ */
 .stat-overview { gap: 8px; }
@@ -1217,16 +1397,28 @@ body[data-theme="matte"] .bottombar { background: #f7f7f4; }
   #app:not(:has(> .home-simple-shell)) { padding-inline: 10px; }
   #app:not(:has(> .home-simple-shell)) > .topbar { margin-inline: -10px; }
   .bottombar { padding-inline: 10px; gap: 7px; }
-  .topbar:has(.back-btn) { grid-template-columns: 52px minmax(0, 1fr) 44px; }
+  .topbar:has(.back-btn) { grid-template-columns: 48px minmax(0, 1fr) minmax(93px, auto); gap: 5px; }
+  .topbar:has(.back-btn):has(.routine-head-actions.global-only) { grid-template-columns: 48px minmax(0, 1fr) 44px; }
   .topbar:has(.back-btn) h1 { font-size: 15px; }
   .back-btn { padding-inline: 4px; font-size: 11px; }
   .back-btn::before { font-size: 21px; }
-  .routine-head-actions { min-width: 48px; }
+  .routine-head-actions { min-width: 93px; gap: 3px; }
+  .routine-head-actions.global-only { min-width: 44px; }
+  .head-settings-btn { width: 44px; }
   .card { padding-inline: 10px; }
+  .routine-row .actions .btn.small { padding-inline: 7px; font-size: 14px; }
   .editor-step { padding-left: 46px; padding-right: 7px; }
-  .editor-step .es-row2 { gap: 4px; }
-  .editor-step .cue-input { flex-basis: 46px; }
-  .music-btn.text { padding-inline: 7px; font-size: 11px; }
+  .editor-step .es-row2 { gap: 4px; row-gap: 8px; }
+  .editor-step .cue-input { flex-basis: 58px; }
+  .es-opt { margin-left: 20px; gap: 5px; }
+  .es-opt input[type=text] { padding-inline: 7px; font-size: 13px; }
+  .music-btn.text { padding-inline: 5px; font-size: 11px; }
+  .music-row { gap: 6px; }
+  .music-row .music-pill.primary { padding-inline: 10px !important; }
+  .music-row > .music-btn.text { width: 52px; }
+  .music-row > .music-volume-control { flex-basis: 52px; width: 52px; }
+  .music-volume-control > summary { width: 100%; }
+  .music-volume-popover { grid-template-columns: 16px minmax(120px, 180px) 16px; }
   .stat-overview { grid-template-columns: 1fr; }
   .run-start-btn { min-height: 144px; padding-inline: 12px; }
   .run-start-number { font-size: 30px; }
@@ -1236,5 +1428,5 @@ body[data-theme="matte"] .bottombar { background: #f7f7f4; }
 
 @media (prefers-reduced-motion: reduce) {
   .btn, .clean-btn, .choice, .kind-toggle, .mini-btn, .music-btn, .music-pill,
-  .opt-chip, .tag, .back-btn, .nav-action, .routine-menu-btn, .run-start-btn { transition: none; }
+  .opt-chip, .tag, .back-btn, .nav-action, .head-settings-btn, .run-start-btn { transition: none; }
 }
