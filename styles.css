@@ -233,22 +233,26 @@ button:active { opacity: .75; }
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .practice-now-meta { display: block; margin-top: 5px; color: var(--muted); font-size: 10.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.practice-now.has-editor-player .practice-now-copy { justify-content: flex-start; padding: 4px 5px 2px; }
-.practice-now-player { display: grid; gap: 6px; min-width: 0; margin-top: auto; padding-top: 8px;
+.practice-now.has-editor-player .practice-now-copy { overflow: visible; justify-content: flex-start; padding: 4px 5px 2px; }
+.practice-now-player { position: relative; display: grid; gap: 6px; min-width: 0; margin-top: auto; padding-top: 8px;
   border-top: 1px dashed var(--sep); }
 .practice-now-player-label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
-.practice-now-player-main { display: grid; grid-template-columns: minmax(78px, 1fr) auto; align-items: center; gap: 8px; }
-.practice-now-player-main .music-pill { width: 100%; min-height: 42px; padding: 0 8px; border-radius: 5px;
-  box-shadow: 0 3px 0 var(--paper-shadow); }
-.practice-now-player-main .music-time { min-width: 0; justify-content: flex-end; font-size: 19px; white-space: nowrap; }
-.practice-now-player-main .music-time .dur { font-size: 11px; }
-.practice-now-player-actions { display: grid; grid-template-columns: minmax(78px, 1fr) 62px; align-items: stretch; gap: 8px; }
-.practice-now-player-actions > .music-btn.text { display: inline-flex; width: 100%; height: 38px; min-height: 38px;
-  align-items: center; justify-content: center; padding: 0 7px; border: 1px solid var(--sep); border-radius: 4px;
-  background: var(--card); box-shadow: 0 3px 0 var(--paper-shadow); color: var(--accent); font-size: 12px; }
-.practice-now-player-actions > .music-volume-control { width: 62px; }
-.practice-now-player-actions > .music-volume-control > summary { width: 100%; height: 38px; }
-.practice-now-player .music-volume-popover { right: auto; left: 0; }
+.practice-now-player-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch; gap: 5px; }
+.practice-now-player-controls > .music-pill,
+.practice-now-player-controls > .music-btn.text { display: inline-flex; width: 100%; height: 36px; min-height: 36px;
+  align-items: center; justify-content: center; margin: 0; padding: 0 5px; border: 1px solid var(--sep);
+  border-radius: 4px; box-sizing: border-box; box-shadow: 0 3px 0 var(--paper-shadow); font-size: 11px;
+  line-height: 1; white-space: nowrap; }
+.practice-now-player-controls > .music-pill { border-color: transparent; }
+.practice-now-player-controls > .music-btn.text { background: var(--card); color: var(--accent); }
+.practice-now-player-meta { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: center; gap: 5px; }
+.practice-now-player-meta > .music-volume-control { position: static; width: 46px; }
+.practice-now-player-meta > .music-volume-control > summary { width: 100%; height: 36px; }
+.practice-now-player-meta > .music-time { min-width: 0; justify-content: flex-start; font-size: 17px; white-space: nowrap; }
+.practice-now-player-meta > .music-time .dur { font-size: 11px; }
+.practice-now-player .music-volume-popover { z-index: 30; top: calc(100% + 8px); right: 0; left: 0;
+  grid-template-columns: 16px minmax(0, 1fr) 16px; width: auto; box-sizing: border-box; }
 .practice-now-player.is-disabled .music-pill,
 .practice-now-player.is-disabled .music-btn { opacity: .42; box-shadow: none; }
 .practice-now-player button:disabled { cursor: default; }
@@ -265,10 +269,7 @@ button:active { opacity: .75; }
 }
 @media (max-width: 430px) {
   .practice-now.has-editor-player { --practice-preview-size: clamp(164px, 44vw, 190px); }
-  .practice-now.has-editor-player .practice-now-player-main { grid-template-columns: 1fr; gap: 5px; }
-  .practice-now.has-editor-player .practice-now-player-main .music-time { justify-content: flex-start; font-size: 17px; }
-  .practice-now.has-editor-player .practice-now-player-actions { grid-template-columns: 1fr 52px; gap: 5px; }
-  .practice-now.has-editor-player .practice-now-player-actions > .music-volume-control { width: 52px; }
+  .practice-now.has-editor-player .practice-now-player-controls { gap: 4px; }
 }
 .runbar .stat { background: var(--card); border-radius: 16px;
   padding: 6px 13px; font-size: 13px; color: var(--muted); }
@@ -406,7 +407,7 @@ body.dragging-active .editor-step:not(.dragging) { transition: transform .18s ea
 body.dragging-active { user-select: none; -webkit-user-select: none; touch-action: none; }
 .editor-step .es-row1 input[type=text] { flex: 1; min-width: 0; padding: 11px 12px;
   font-size: 17px; border-radius: 10px; }
-.editor-step .es-kind-toggle { min-width: 48px; height: auto; min-height: 44px; align-self: stretch; }
+.editor-step .es-kind-toggle { min-width: 42px; height: 34px; min-height: 34px; align-self: center; padding: 0 8px; }
 .editor-step .cue-input { flex: 0 0 62px; text-align: center; padding: 9px 2px;
   font-size: 14px; font-variant-numeric: tabular-nums; color: var(--accent);
   touch-action: pan-y; /* 横スライドで秒数微調整(縦スクロールは通す) */ }
@@ -420,7 +421,6 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 .editor-step .cue-pin.locked { color: #fff; background: var(--sheet-tab-rust); border-color: var(--sheet-tab-rust);
   box-shadow: 0 3px 0 var(--paper-shadow); }
 .editor-step .cue-pin.locked svg { transform: rotate(0deg); }
-.editor-pin-hint { margin: 9px 2px 0; text-align: left; }
 .editor-step .cue-play { flex: 0 0 auto; width: 34px; height: 34px; font-size: 11px;
   color: var(--ok); background: var(--ok-tint); }
 .editor-step.now { background: rgba(48, 209, 88, .1); box-shadow: inset 3px 0 0 var(--ok);
@@ -496,27 +496,26 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 @keyframes recblink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 #music-seek { width: 100%; margin-top: 10px; accent-color: var(--accent); height: 4px; }
 /* 楽曲カードに統合した「選択/添付」と、添付中の曲名・削除の小さいフッター */
-.music-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px;
-  padding-top: 9px; border-top: var(--hairline) solid var(--sep); }
+.music-card { padding-top: 3px; padding-bottom: 6px; }
+.music-foot { display: flex; align-items: center; gap: 8px; margin-top: 5px;
+  padding-top: 5px; border-top: var(--hairline) solid var(--sep); }
 .music-foot .mf-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .music-foot-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .music-foot-actions .mini-btn { display: inline-flex; align-items: center; justify-content: center;
-  width: auto; min-width: 38px; height: 30px; padding: 0 7px; border: 0; border-radius: 3px;
+  width: auto; min-width: 38px; height: 28px; padding: 0 7px; border: 0; border-radius: 3px;
   background: transparent; box-shadow: none; font-size: 11px; line-height: 1; }
-.music-foot .mini-btn.del { width: auto; min-width: 38px; height: 30px; padding: 0 7px; border: 0;
+.music-foot .mini-btn.del { width: auto; min-width: 38px; height: 28px; padding: 0 7px; border: 0;
   border-left: 1px dashed var(--sep); border-radius: 0; background: transparent; box-shadow: none;
   font-size: 11px; line-height: 1; }
 
 /* 編集プレイヤー: 楽曲と構成の時間軸を同じ起点・同じ幅で上下に揃える */
-.music-track-stack { margin-top: 11px; padding: 9px 10px 8px; border: 1px solid var(--sep);
+.music-track-stack { margin-top: 3px; padding: 6px 8px; border: 1px solid var(--sep);
   border-radius: 4px; background: color-mix(in srgb, var(--card2) 68%, transparent); }
-.music-track-line { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 24px; }
-.music-track-line + .music-track-line { margin-top: 5px; }
+.music-track-line { display: grid; grid-template-columns: 36px minmax(72px, 1fr) auto; align-items: center; gap: 7px; min-height: 24px; }
 .music-track-label { color: var(--muted); font-size: 10px; font-weight: 760; letter-spacing: .04em; }
 .music-track-line #music-seek { width: 100%; height: 18px; margin: 0; }
-.music-track-line .tl-bar { width: 100%; height: 18px; margin: 0; }
-.music-track-stack .tl-caption { margin: 5px 0 0 44px; font-size: 10.5px; }
+.music-track-stack .tl-caption { margin: 0; font-size: 10px; white-space: nowrap; }
 
 /* 音量は通常時は一つのボタン。必要なときだけスライダーをポップアップ表示する */
 .music-volume-control { position: relative; flex: 0 0 auto; }
@@ -533,7 +532,23 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
   padding: 13px 12px; border: 1px solid var(--sep); border-top: 5px solid var(--sheet-tab-rust);
   border-radius: 5px; background: var(--card); box-shadow: 0 6px 0 var(--paper-shadow), 0 14px 28px rgba(52,45,31,.2); }
 .music-volume-popover .vol-ico { font-size: 12px; opacity: .72; }
-.music-volume-popover #music-vol { width: 100%; }
+.music-volume-popover input[type="range"] { width: 100%; }
+.audio-library-volume-bar { position: relative; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 0 0 18px; padding: 9px 10px 10px 12px; border: 1px solid var(--sep);
+  border-left: 6px solid var(--sheet-tab-rust); border-radius: 4px; background: var(--card);
+  box-shadow: 0 2px 0 var(--paper-shadow); }
+.audio-library-volume-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.audio-library-volume-copy b { font-size: 13px; line-height: 1.25; }
+.audio-library-volume-copy small { color: var(--muted); font-size: 10px; line-height: 1.3; }
+.audio-library-volume-control > summary { width: 58px; }
+.audio-library-volume-control .music-volume-popover { right: 0; }
+
+/* ルーティン名は単独の大きなカードにせず、一段の記入行として扱う */
+.routine-name-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+  gap: 11px; padding: 9px 11px; margin-bottom: 14px; border-left: 6px solid var(--blue); }
+.routine-name-card label.fld { margin: 0; font-size: 11px; white-space: nowrap; }
+.routine-name-card > input[type="text"]:last-child { min-height: 42px; margin: 0; padding: 8px 10px;
+  font-size: 15px; line-height: 1.3; }
 .music-empty .me-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .music-empty .row-2 { margin: 0; }
 
@@ -819,6 +834,9 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .mini-btn.play:focus-visible,
 .video-play-btn:focus-visible,
 .video-trim-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.btn.video-link-change { border-color: color-mix(in srgb, var(--accent) 72%, #000);
+  background: var(--accent); color: var(--on-accent); }
+.trim-linked-video { margin-bottom: 8px; color: var(--text); }
 .mini-btn.link { font-size: 13px; }
 
 .pick-trick-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px;
@@ -829,14 +847,6 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-trick-row .kn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* 構成ビルダー(タイムライン) */
-.tl-bar { position: relative; height: 22px; background: var(--card2); border-radius: 6px;
-  margin: 8px 0 2px; overflow: hidden; }
-.tl-seg { position: absolute; top: 3px; bottom: 3px; background: rgba(255, 159, 10, .55);
-  border-radius: 4px; box-shadow: inset -1px 0 0 rgba(0,0,0,.5); }
-.tl-seg.gap { background: rgba(235, 235, 245, .18); }
-#tl-playhead, #edit-tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ok);
-  box-shadow: 0 0 6px rgba(48, 209, 88, .8); left: 0; }
 .tl-caption { display: flex; align-items: center; font-size: 12px; color: var(--muted);
   margin-top: 10px; font-variant-numeric: tabular-nums; }
 .b-now-line { min-height: 20px; text-align: center; font-size: 14px; font-weight: 700;
@@ -1241,8 +1251,6 @@ label.fld { color: var(--muted); font-weight: 700; }
   background-image: repeating-linear-gradient(90deg, transparent 0 19px, var(--sep) 19px 20px);
 }
 .part-loop-range, .trim-track .range { border-radius: 2px; }
-.tl-bar { border: 0; border-radius: 6px; background: var(--card2); background-image: none; }
-.tl-seg { border-radius: 4px; }
 .part-loop-handle { border-radius: 4px; border-color: var(--card); box-shadow: 0 3px 0 var(--paper-shadow); }
 .part-point { border-bottom-style: dashed; }
 
@@ -1379,6 +1387,13 @@ label.fld { color: var(--muted); font-weight: 700; }
   padding-left: 30px; box-shadow: 0 -9px 0 color-mix(in srgb, var(--paper-shadow) 75%, transparent), 0 -20px 50px rgba(0,0,0,.28);
   backdrop-filter: none; -webkit-backdrop-filter: none;
 }
+/* 動画確認は赤い帳面罫線を外し、左右を同じ余白にして映像・操作系を中央軸へ揃える。 */
+#sheet.trim-sheet {
+  padding-left: 24px; padding-right: 24px;
+  scrollbar-width: none;
+  background-image: repeating-linear-gradient(180deg, transparent 0 29px, var(--paper-line) 29px 30px);
+}
+#sheet.trim-sheet::-webkit-scrollbar { width: 0; height: 0; }
 .grabber { height: 4px; border-radius: 0; background: var(--blue); }
 #toast {
   background: var(--paper-rail); color: #fff; border: 1px solid var(--paper-hole); border-radius: 4px;
