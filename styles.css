@@ -982,14 +982,37 @@ body[data-theme="matte"] .segmented .choice.selected { box-shadow: 0 1px 4px rgb
 .routine-menu-close { margin-top: 4px; }
 .routine-menu-close .btn { margin-bottom: 0; }
 
-/* ローディングのぐるぐる(サンプル読込等) */
-#loading { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 14px; background: rgba(0, 0, 0, .42);
-  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-#loading .spin { width: 42px; height: 42px; border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, .28); border-top-color: #fff; animation: ldspin .8s linear infinite; }
-#loading .msg { color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; }
-@keyframes ldspin { to { transform: rotate(360deg); } }
+/* ローディング = ルーズリーフの紙片を準備している共通表示。推測の%は出さない */
+#loading { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  background: rgba(32,35,32,.76); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.loading-sheet { position: relative; display: flex; flex-direction: column; align-items: center;
+  width: min(340px, calc(100vw - 44px)); min-height: 218px; padding: 27px 28px 24px;
+  border: 1px solid var(--sep); border-top: 7px solid var(--sheet-tab-rust); border-radius: 5px;
+  background: var(--card); color: var(--text); box-shadow: 0 9px 0 rgba(61,57,45,.32), 0 24px 54px rgba(0,0,0,.32); }
+.loading-sheet::before, .loading-sheet::after { content: ""; position: absolute; z-index: -1;
+  left: 10px; right: -7px; top: 8px; bottom: -8px; border: 1px solid var(--sep); border-radius: 4px;
+  background: var(--card2); box-shadow: 0 3px 0 rgba(0,0,0,.12); }
+.loading-sheet::after { left: 19px; right: -13px; top: 16px; bottom: -15px; z-index: -2; opacity: .78; }
+.loading-kicker { color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px; font-weight: 850; letter-spacing: .14em; }
+.loading-motion { display: flex; align-items: flex-end; justify-content: center; gap: 7px; height: 39px; margin: 13px 0 8px; }
+.loading-motion i { display: block; width: 9px; height: 9px; border-radius: 50%; background: var(--sheet-tab-rust);
+  box-shadow: 0 2px 0 var(--paper-shadow); animation: loadingDot 1.05s ease-in-out infinite; }
+.loading-motion i:nth-child(2) { animation-delay: .14s; }
+.loading-motion i:nth-child(3) { animation-delay: .28s; }
+#loading .msg { max-width: 100%; color: var(--text); font-size: 16px; font-weight: 850; line-height: 1.5; text-align: center; }
+.loading-sub { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
+.loading-track { position: relative; width: 100%; height: 4px; margin-top: 18px; overflow: hidden;
+  border-radius: 1px; background: color-mix(in srgb, var(--blue) 15%, var(--sep)); }
+.loading-track span { position: absolute; top: 0; bottom: 0; width: 38%; background: var(--blue);
+  animation: loadingTrack 1.25s ease-in-out infinite; }
+@keyframes loadingDot { 0%, 60%, 100% { transform: translateY(0); opacity: .38; } 30% { transform: translateY(-10px); opacity: 1; } }
+@keyframes loadingTrack { from { left: -42%; } to { left: 104%; } }
+
+.practice-video-loading { display: inline-flex; flex-direction: column; align-items: center; gap: 9px; padding: 10px; }
+.practice-video-loading::before { content: ""; width: 22px; height: 22px; border: 2px solid rgba(255,255,255,.24);
+  border-top-color: rgba(255,255,255,.86); border-radius: 50%; animation: loadingSpin .8s linear infinite; }
+@keyframes loadingSpin { to { transform: rotate(360deg); } }
 
 /* 分析の失敗率メーター(改善): 0〜100%の軸+中央目盛り。オレンジ帯=95%区間、縦線=実測 */
 .ci-bar:not(.part-band-bar) { height: 10px; background:
@@ -1429,4 +1452,7 @@ body[data-theme="matte"] .bottombar { background: #f7f7f4; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .clean-btn, .choice, .kind-toggle, .mini-btn, .music-btn, .music-pill,
   .opt-chip, .tag, .back-btn, .nav-action, .head-settings-btn, .run-start-btn { transition: none; }
+  .loading-motion i, .loading-track span, .practice-video-loading::before { animation: none; }
+  .loading-motion i { opacity: 1; }
+  .loading-track span { left: 31%; }
 }
