@@ -1,11 +1,11 @@
 /* ルーティンノート Service Worker — アプリシェルをキャッシュして完全オフライン動作 */
-const CACHE = "routine-debugger-v126";
+const CACHE = "routine-debugger-v138";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=126",
-  "./i18n.js?v=126",
-  "./app.js?v=126",
+  "./styles.css?v=138",
+  "./i18n.js?v=138",
+  "./app.js?v=138",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-512.png",

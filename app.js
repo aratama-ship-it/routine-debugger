@@ -27,7 +27,13 @@ const RISK_LABEL = { 1: "リスク1", 2: "リスク2", 3: "リスク3", 4: "リ�
 const LEGACY_LOAD_TO_RISK = { low: 2, mid: 3, high: 4 };
 const MIN_N_FOR_PATTERN = 8; // これ未満の到達数は「観測不足」として件数のみ強調
 
-const APP_VERSION = "v126"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v138"; // 要望フォーム等で自動送信するアプリ版
+const ITEM_LINE_COLORS = ["blue", "rust", "olive", "mustard", "plum", "gray", "teal", "rose", "violet"];
+const ITEM_LINE_COLOR_LABELS = {
+  blue: ["紺", "Navy"], rust: ["朱", "Rust"], olive: ["オリーブ", "Olive"],
+  mustard: ["黄土", "Mustard"], plum: ["葡萄", "Plum"], gray: ["墨", "Gray"],
+  teal: ["青緑", "Teal"], rose: ["茜", "Rose"], violet: ["紫", "Violet"],
+};
 // 機能の要望・バグ報告の送信先(GASウェブアプリURL)。空のままだとメール送信にフォールバックする。
 // 設定手順は FEEDBACK_GAS_SETUP.md 参照。デプロイ後、末尾が /exec のURLをここに貼る。
 const FEEDBACK_ENDPOINT = "";
@@ -124,11 +130,25 @@ function blobDel(id) {
 function migrateState() {
   let sampleDataChanged = false;
   let routineSettingsChanged = false;
+  let itemColorsChanged = false;
   if (!Array.isArray(state.sessions)) state.sessions = [];
   if (!Array.isArray(state.tricks)) state.tricks = []; // 技ライブラリ(動画クリップ)
   if (!Array.isArray(state.audios)) state.audios = []; // 音源ライブラリ(楽曲・録音)。ルーティンへはコピーして添付
   if (!state.settings) state.settings = {}; // アプリ設定(動画品質など)
   if (!Array.isArray(state.feedback)) state.feedback = []; // 送信した要望・バグ報告の控え(この端末のみ)
+  // v133: 名前付きタグは廃止し、カード左端の一本線だけを識別色として保持する。
+  // v132で試したタグがあれば、最初に付けたタグの色だけを線色へ引き継ぐ。
+  const legacyTags = new Map((Array.isArray(state.entityTags) ? state.entityTags : [])
+    .filter((tag) => tag && validBackupId(tag.id)).map((tag) => [tag.id, tag]));
+  for (const item of [...(state.routines || []), ...state.tricks]) {
+    const legacyColor = (Array.isArray(item.tagIds) ? item.tagIds : [])
+      .map((id) => legacyTags.get(id)?.color).find((color) => ITEM_LINE_COLORS.includes(color));
+    const nextColor = ITEM_LINE_COLORS.includes(item.lineColor) ? item.lineColor : (legacyColor || "blue");
+    if (item.lineColor !== nextColor || Object.prototype.hasOwnProperty.call(item, "tagIds")) itemColorsChanged = true;
+    item.lineColor = nextColor;
+    delete item.tagIds;
+  }
+  if (Object.prototype.hasOwnProperty.call(state, "entityTags")) { delete state.entityTags; itemColorsChanged = true; }
   // 技のトリム情報を補完(fullDuration=元動画の長さ, trimStart/trimEnd=有効区間, duration=有効区間の長さ)
   for (const t of state.tricks) {
     if (t.fullDuration == null) t.fullDuration = t.duration;
@@ -147,6 +167,7 @@ function migrateState() {
     if (rt.music) normalizeMusicMeta(rt.music);
     for (const ver of rt.versions || []) {
       for (const st of ver.steps || []) {
+        if (!ITEM_LINE_COLORS.includes(st.lineColor)) { st.lineColor = "blue"; itemColorsChanged = true; }
         // リスク度は任意(2026-07-17〜)。旧「負荷」だけは引き継ぎ、未設定はそのまま未設定にする
         if (st.risk == null && st.load) st.risk = LEGACY_LOAD_TO_RISK[st.load] || 3;
         delete st.load;
@@ -182,7 +203,7 @@ function migrateState() {
     }
     if (seedSampleHistory(rt, upgraded)) sampleDataChanged = true;
   }
-  return sampleDataChanged || routineSettingsChanged;
+  return sampleDataChanged || routineSettingsChanged || itemColorsChanged;
 }
 
 function normalizeMusicMeta(meta, knownFull) {
@@ -271,6 +292,12 @@ function getVersion(routine, versionId) {
   return routine.versions.find((v) => v.id === versionId) || routine.versions[routine.versions.length - 1];
 }
 function latestVersion(routine) { return routine.versions[routine.versions.length - 1]; }
+function cloneRoutineSteps(steps) {
+  return (steps || []).map((step) => ({
+    ...step,
+    options: Array.isArray(step.options) ? step.options.map((option) => ({ ...option })) : undefined,
+  }));
+}
 
 function runsOfVersion(routineId, versionId) {
   const runs = [];
@@ -623,7 +650,6 @@ function editorPreviewPlayerHtml(hasMusic) {
 function practiceNowDockHtml(editorPlayer = "") {
   return `<section class="practice-now paused ${editorPlayer ? "has-editor-player" : ""}" id="practice-now" aria-live="polite" aria-atomic="true">
     <div class="practice-now-copy">
-      <span class="practice-now-label" id="practice-now-label">再生位置の技</span>
       <strong id="practice-now-name">技を準備中…</strong>
       <span class="practice-now-meta" id="practice-now-meta">プレビュー位置は固定されます</span>
       ${editorPlayer}
@@ -682,14 +708,8 @@ async function updatePracticeNowUI() {
   const paused = isEdit ? (musicPlayer.paused && !editPreviewManual) : (musicPlayer.paused || musicMissing);
   practiceDockStepId = current.step.id;
   dock.classList.toggle("paused", paused);
-  const label = document.getElementById("practice-now-label");
   const name = document.getElementById("practice-now-name");
   const meta = document.getElementById("practice-now-meta");
-  if (label) label.textContent = uiText(isEdit && editPreviewManual
-    ? (current.step.kind === "transition" ? "選択した移行" : "選択した技")
-    : current.step.kind === "transition"
-      ? (paused ? "再生位置の移行" : "いまの移行")
-      : (paused ? "再生位置の技" : "いま実施する技"));
   if (name) name.textContent = `${current.index + 1}. ${practiceStepName(rt, current.step)}`;
   if (meta) meta.textContent = uiText(current.next
     ? `♪ ${fmtTime(current.start)}　次: ${practiceStepName(rt, current.next.step)}`
@@ -1053,10 +1073,70 @@ window.showRoutineMenu = (routineId) => {
       </div>
       <div class="routine-menu-note">OFFにしても登録済みの値は消えません</div>
     </section>
+    ${view.name === "edit" && rt ? routineVersionHistoryHtml(rt) : ""}
     <div class="routine-menu-close">
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>
     </div>
   `);
+};
+
+function routineVersionHistoryHtml(rt) {
+  const latestIndex = rt.versions.length - 1;
+  const rows = rt.versions.map((ver, index) => {
+    const runCount = state.sessions
+      .filter((session) => session.routineId === rt.id && session.versionId === ver.id)
+      .reduce((total, session) => total + (session.runs || []).length, 0);
+    const date = new Date(ver.createdAt || Date.now()).toLocaleDateString(isEnglish() ? "en-US" : "ja-JP");
+    const detail = isEnglish()
+      ? `${(ver.steps || []).length} steps · ${runCount} runs · ${date}`
+      : `${(ver.steps || []).length}ステップ・通し${runCount}本・${date}`;
+    return `<div class="routine-version-row ${index === latestIndex ? "current" : ""}">
+      <div class="routine-version-copy">
+        <div class="routine-version-title"><b>v${index + 1}</b>
+          ${ver.label ? `<span>${esc(ver.label)}</span>` : ""}
+          ${index === latestIndex ? `<em>現在の版</em>` : ""}
+        </div>
+        <small>${detail}</small>
+      </div>
+      ${index === latestIndex ? "" : `<button type="button" onclick="showVersionRestoreConfirm('${rt.id}',${index})">この版を開く</button>`}
+    </div>`;
+  }).reverse().join("");
+  return `<section class="routine-menu-section routine-version-section" aria-labelledby="routine-version-title">
+    <h4 id="routine-version-title">構成の履歴</h4>
+    <div class="routine-version-list">${rows}</div>
+    <div class="routine-menu-note">過去版を開いても、現在の構成と練習記録は削除されません</div>
+  </section>`;
+}
+
+window.showVersionRestoreConfirm = (routineId, versionIndex) => {
+  const rt = state.routines.find((routine) => routine.id === routineId);
+  const version = rt && rt.versions[versionIndex];
+  if (!rt || !version || view.name !== "edit") return hideSheet();
+  const nextVersion = rt.versions.length + 1;
+  const title = isEnglish() ? `Open v${versionIndex + 1}?` : `v${versionIndex + 1}を開きますか？`;
+  const description = isEnglish()
+    ? `The v${versionIndex + 1} sequence will replace the unsaved steps in the editor. The current sequence and practice records will remain. Saving creates v${nextVersion}.`
+    : `v${versionIndex + 1}の構成を編集画面へ読み込みます。編集中の未保存ステップは置き換わりますが、現在の構成と練習記録は残ります。次に保存するとv${nextVersion}として追加されます。`;
+  showSheet(`
+    <h3>${title}</h3>
+    <div class="sheet-sub" data-user-text>${esc(rt.name)}</div>
+    <div class="version-restore-summary">
+      <b>v${versionIndex + 1}${version.label ? ` ${esc(version.label)}` : ""}</b>
+      <span>${isEnglish() ? `${version.steps.length} steps` : `${version.steps.length}ステップ`}</span>
+    </div>
+    <p class="version-restore-copy">${description}</p>
+    <button class="btn primary" onclick="loadRoutineVersionIntoDraft('${routineId}',${versionIndex})">${isEnglish() ? `Load v${versionIndex + 1} in editor` : `v${versionIndex + 1}を編集画面に読み込む`}</button>
+    <button class="btn ghost" onclick="showRoutineMenu('${routineId}')">戻る</button>`);
+};
+
+window.loadRoutineVersionIntoDraft = (routineId, versionIndex) => {
+  const rt = state.routines.find((routine) => routine.id === routineId);
+  const version = rt && rt.versions[versionIndex];
+  if (!rt || !version || view.name !== "edit" || !draft || draft.id !== routineId) return hideSheet();
+  draft.steps = cloneRoutineSteps(version.steps);
+  draft._restoredFromVersion = versionIndex + 1;
+  hideSheet(); render();
+  toast(`v${versionIndex + 1}の構成を読み込みました。保存すると新しい版になります`);
 };
 
 function render() {
@@ -1074,6 +1154,33 @@ function render() {
 }
 
 // ルーティンカードはホームの「前回」と一覧で共通化し、どちらからも目的の操作へ1タップで入れる。
+function itemLineColorTarget(kind, id) {
+  if (kind === "step") return (draft?.steps || []).find((step) => step.id === id) || null;
+  const collection = kind === "routine" ? state.routines : state.tricks;
+  return (collection || []).find((item) => item.id === id) || null;
+}
+
+function itemLineColor(item) {
+  return ITEM_LINE_COLORS.includes(item?.lineColor) ? item.lineColor : "blue";
+}
+
+function itemLineColorButtonHtml(item, kind) {
+  const label = isEnglish()
+    ? `Change marker color for ${item.name}`
+    : `${item.name}の識別色を変更`;
+  return `<button class="item-line-color-open" type="button" data-line-color="${itemLineColor(item)}"
+    aria-label="${esc(label)}" title="${esc(label)}"
+    onclick="openItemLineColorSheet('${kind}','${item.id}')"></button>`;
+}
+
+function stepLineColorButtonHtml(step, index) {
+  const name = stepLabel(step) || (isEnglish() ? `Step ${index + 1}` : `ステップ${index + 1}`);
+  const label = isEnglish() ? `Change marker color for ${name}` : `${name}の識別色を変更`;
+  return `<button class="step-line-color-open" type="button" data-line-color="${itemLineColor(step)}"
+    aria-label="${esc(label)}" title="${esc(label)}"
+    onclick="openItemLineColorSheet('step','${step.id}')"><span class="no">${index + 1}</span></button>`;
+}
+
 function routineCardHtml(rt, context = "list") {
   const ver = latestVersion(rt);
   const runCount = state.sessions.filter((s) => s.routineId === rt.id).reduce((a, s) => a + s.runs.length, 0);
@@ -1091,7 +1198,8 @@ function routineCardHtml(rt, context = "list") {
         <p ${memo ? "data-user-text" : ""}>${memo ? esc(memo) : "タップしてメモを追加"}</p>
       </div>`;
   return `<article class="routine-card ${context === "home" ? "home-routine-card" : ""}">
-    <div class="routine-row">
+    <div class="routine-row" data-line-color="${itemLineColor(rt)}">
+      ${itemLineColorButtonHtml(rt, "routine")}
       <button class="routine-delete-open" onclick="showDeleteRoutine('${rt.id}')"
         aria-label="${esc(deleteLabel)}" title="${esc(deleteLabel)}">✕</button>
       <div class="name"><span data-user-text>${esc(rt.name)}</span>
@@ -1215,6 +1323,40 @@ window.saveRoutineMemo = (id) => {
   rt.memo = input.value.trim();
   saveState(); hideSheet(); render();
   toast(rt.memo ? "簡易メモを保存しました" : "簡易メモを削除しました");
+};
+
+window.openItemLineColorSheet = (kind, id) => {
+  const item = itemLineColorTarget(kind, id);
+  if (!item) return hideSheet();
+  const selected = itemLineColor(item);
+  const itemName = kind === "step" ? (stepLabel(item) || (isEnglish() ? "Step" : "ステップ")) : item.name;
+  showSheet(`
+    <h3>識別色</h3>
+    <div class="sheet-sub" data-user-text>${esc(itemName)}</div>
+    <div class="line-color-help">左端の線の色を選んでください</div>
+    <div class="line-color-palette">
+      ${ITEM_LINE_COLORS.map((color) => {
+        const active = color === selected;
+        const colorLabel = ITEM_LINE_COLOR_LABELS[color][isEnglish() ? 1 : 0];
+        return `<button type="button" class="line-color-choice ${active ? "selected" : ""}"
+          data-line-color="${color}" aria-label="${esc(colorLabel)}" aria-pressed="${active}"
+          onclick="setItemLineColor('${kind}','${id}','${color}')">
+          <span class="line-color-choice-swatch" aria-hidden="true"></span>
+          <small>${esc(colorLabel)}</small>
+          <b aria-hidden="true">${active ? "✓" : ""}</b>
+        </button>`;
+      }).join("")}
+    </div>
+    <button class="btn ghost" type="button" onclick="hideSheet()">閉じる</button>`);
+};
+
+window.setItemLineColor = (kind, id, color) => {
+  const item = itemLineColorTarget(kind, id);
+  if (!item || !ITEM_LINE_COLORS.includes(color)) return;
+  item.lineColor = color;
+  if (kind !== "step") saveState();
+  hideSheet(); render();
+  toast("識別色を変更しました");
 };
 
 // ルーティン削除は「右上の✕ → シート内を右端までスライド」の二段階だけで実行する。
@@ -1395,7 +1537,7 @@ function renderEdit() {
   const rt = view.params.id ? state.routines.find((r) => r.id === view.params.id) : null;
   if (!draft || draft._for !== (view.params.id || "new")) {
     draft = rt
-      ? { _for: rt.id, id: rt.id, name: rt.name, steps: latestVersion(rt).steps.map((s) => ({ ...s })),
+      ? { _for: rt.id, id: rt.id, name: rt.name, steps: cloneRoutineSteps(latestVersion(rt).steps),
           music: rt.music ? { ...rt.music } : null, countdownSeconds: routineCountdownSeconds(rt),
           featureSettings: { ...(rt.featureSettings || defaultRoutineFeatures()) }, _newMusicFile: null }
       : { _for: "new", name: "", steps: [], music: null,
@@ -1418,18 +1560,22 @@ function renderEdit() {
     const namePh = collapsedSlot ? "技名" : (isSlot(s) ? "分岐の名前(例: ラスト技)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "技名");
     const nameOninput = collapsedSlot ? `draft.steps[${i}].options[0].name=this.value` : `draft.steps[${i}].name=this.value`;
     const stepKind = isSlot(s) ? "trick" : (s.kind || "trick");
+    const kindToggleText = isEnglish() ? (stepKind === "trick" ? "Skill" : "Trans.") : (stepKind === "trick" ? "技" : "移行");
+    const kindToggleLabel = isEnglish() ? (stepKind === "trick" ? "Skill" : "Transition") : (stepKind === "trick" ? "技" : "移行");
     const hasStepMeta = showSlots || (showRisk && (collapsedSlot || !isSlot(s)));
     return `
-    <div class="editor-step">
+    <div class="editor-step" data-line-color="${itemLineColor(s)}">
       <div class="es-row1">
         <div class="es-lead">
-          <span class="no">${i + 1}</span>
+          ${stepLineColorButtonHtml(s, i)}
           <span class="drag-handle" data-i="${i}" title="ドラッグで並べ替え" aria-label="ドラッグで並べ替え">⠿</span>
         </div>
         <input type="text" value="${esc(nameVal)}" placeholder="${namePh}"
           oninput="${nameOninput}">
         <button class="kind-toggle es-kind-toggle ${stepKind === "trick" ? "t" : ""}"
-          onclick="toggleStepKind(${i})" ${isSlot(s) ? `aria-label="A/B選択の技。タップで移行に変更" title="移行にする場合は確認します"` : ""}>${stepKind === "trick" ? "技" : "移行"}</button>
+          onclick="toggleStepKind(${i})" ${isSlot(s)
+            ? `aria-label="A/B選択の技。タップで移行に変更" title="移行にする場合は確認します"`
+            : `aria-label="${kindToggleLabel}"`}>${kindToggleText}</button>
       </div>
       <div class="es-row2">
         <div class="es-playback-controls">
@@ -1520,6 +1666,10 @@ function renderEdit() {
   return `
     <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1>${routineMenuAction(rt ? rt.id : "")}</div>
+    ${draft._restoredFromVersion ? `<div class="version-restore-notice">
+      <span><b>v${draft._restoredFromVersion}</b> の構成を編集中です</span>
+      <button type="button" onclick="cancelVersionRestore('${rt.id}')">現在のv${rt.versions.length}に戻す</button>
+    </div>` : ""}
     ${practiceNowDockHtml(editorPreviewPlayerHtml(hasEditorMusic))}
     <div class="card routine-name-card">
       <label class="fld">ルーティン名</label>
@@ -1744,22 +1894,30 @@ window.duplicateRoutine = async (id) => {
     }
     state.routines.push({
       id: uid(), name: `${src.name} (コピー)`, music, copiedFrom: src.id,
+      lineColor: itemLineColor(src),
       countdownSeconds: routineCountdownSeconds(src),
       featureSettings: { ...(src.featureSettings || defaultRoutineFeatures()) },
       partLoop: src.partLoop ? { ...src.partLoop } : undefined,
       versions: [{ id: uid(), createdAt: Date.now(),
-        steps: ver.steps.map((s) => ({ ...s, id: uid(),
+        steps: cloneRoutineSteps(ver.steps).map((s) => ({ ...s, id: uid(),
           options: s.options ? s.options.map((o) => ({ ...o, id: uid() })) : undefined })) }],
     });
     saveState(); draft = null; go("routines");
     toast("複製しました(記録・分析データは引き継ぎません)");
   });
 };
+window.cancelVersionRestore = (routineId) => {
+  const rt = state.routines.find((routine) => routine.id === routineId);
+  if (!rt || !draft || draft.id !== routineId) return;
+  draft.steps = cloneRoutineSteps(latestVersion(rt).steps);
+  delete draft._restoredFromVersion;
+  render(); toast("現在の構成に戻しました");
+};
 window.addOpt = (i) => { draft.steps[i].options.push({ id: uid(), name: "" }); render(); };
 window.delOpt = (i, oi) => { draft.steps[i].options.splice(oi, 1); render(); };
 window.moveStep = (i, d) => { const [s] = draft.steps.splice(i, 1); draft.steps.splice(i + d, 0, s); render(); };
 window.delStep = (i) => { draft.steps.splice(i, 1); render(); };
-window.addStep = (kind) => { draft.steps.push({ id: uid(), name: "", kind }); render(); };
+window.addStep = (kind) => { draft.steps.push({ id: uid(), name: "", kind, lineColor: "blue" }); render(); };
 
 // 技ライブラリから選んでステップに追加(trickIdで動画に紐づく)
 window.sheetPickTrick = () => {
@@ -1775,7 +1933,7 @@ window.sheetPickTrick = () => {
     <h3>技リストから追加</h3>
     <div class="sheet-sub">タップで追加 / 再生マークで動画を確認</div>
     ${tricks.map((t) => `
-      <div class="pick-trick-row" onclick="addStepFromTrick('${t.id}')">
+      <div class="pick-trick-row" data-line-color="${itemLineColor(t)}" onclick="addStepFromTrick('${t.id}')">
         <span class="nm">${esc(t.name)}</span>
         <span class="kn">${fmtTime(t.duration)}</span>
         <button class="mini-btn play" aria-label="${esc(t.name)}の動画を再生" onclick="event.stopPropagation();playTrickVideo('${t.id}',true)">▶</button>
@@ -1786,7 +1944,7 @@ window.sheetPickTrick = () => {
 window.addStepFromTrick = (trickId) => {
   const t = (state.tricks || []).find((x) => x.id === trickId);
   if (!t || !draft) return hideSheet();
-  draft.steps.push({ id: uid(), name: t.name, kind: "trick", trickId: t.id });
+  draft.steps.push({ id: uid(), name: t.name, kind: "trick", trickId: t.id, lineColor: itemLineColor(t) });
   hideSheet(); render();
   toast(`「${t.name}」を追加しました`);
 };
@@ -1869,17 +2027,21 @@ window.saveRoutine = async () => {
       const cur = latestVersion(rt);
       const structuralChange = stepsSignature(cur.steps) !== stepsSignature(draft.steps);
       const hasRuns = state.sessions.some((s) => s.versionId === cur.id && s.runs.length > 0);
-      if (structuralChange && hasRuns) {
-        // 技名・順序・種別が変わった → 新バージョン(統計を混ぜない)
-        rt.versions.push({ id: uid(), createdAt: Date.now(), steps: draft.steps });
+      const restoredFromVersion = draft._restoredFromVersion;
+      if (restoredFromVersion || (structuralChange && hasRuns)) {
+        // 過去版からの復元は常に新バージョン。通常編集は記録済み構成を変えたときだけ版を分ける。
+        rt.versions.push({ id: uid(), createdAt: Date.now(),
+          label: restoredFromVersion ? `v${restoredFromVersion}から復元` : undefined,
+          restoredFromVersion: restoredFromVersion || undefined,
+          steps: cloneRoutineSteps(draft.steps) });
         toast(`構成が変わったので v${rt.versions.length} を作成しました(分析は分かれます)`);
       } else {
         // 構成は同じ(リスク度だけの変更を含む)、または記録がまだない → 在版をその場で更新
-        cur.steps = draft.steps;
+        cur.steps = cloneRoutineSteps(draft.steps);
       }
     } else {
       const music = await applyMusicChange(null);
-      state.routines.push({ id: uid(), name: draft.name.trim(), music,
+      state.routines.push({ id: uid(), name: draft.name.trim(), music, lineColor: "blue",
         countdownSeconds: normalizeRunCountdown(draft.countdownSeconds),
         featureSettings: { ...(draft.featureSettings || defaultRoutineFeatures()) },
         versions: [{ id: uid(), createdAt: Date.now(), steps: draft.steps }] });
@@ -2358,7 +2520,8 @@ window.endSession = async (routineId) => {
   sess.endedAt = Date.now();
   sess.review = document.getElementById("end-note").value.trim();
   sess.nextPlan = document.getElementById("end-plan").value.trim();
-  saveState(); hideSheet(); go("stats", { id: routineId });
+  saveState(); hideSheet(); go("routines");
+  toast("セッションを保存しました");
 };
 // このセッションを記録せず破棄(通しの記録・録音を保存しない)
 window.discardSession = async (routineId) => {
@@ -3575,7 +3738,8 @@ window.loadSampleTricks = async () => {
         if (await blobPut(id, blob)) {
           const d = Math.round(dur * 10) / 10;
           state.tricks.push({ id, name: `${s.n} (サンプル)`, blobId: id, duration: d,
-            fullDuration: d, trimStart: 0, trimEnd: d, size: blob.size, createdAt: Date.now(), sample: true });
+            fullDuration: d, trimStart: 0, trimEnd: d, lineColor: "blue",
+            size: blob.size, createdAt: Date.now(), sample: true });
           ok++;
         }
       } catch (_) { /* 個別失敗はスキップ */ }
@@ -3785,7 +3949,7 @@ async function ensureSampleTricks() {
         if (await blobPut(id, blob)) {
           const d = Math.round(dur * 10) / 10;
           t = { id, name: `${s.n} (サンプル)`, blobId: id, duration: d, fullDuration: d,
-            trimStart: 0, trimEnd: d, size: blob.size, createdAt: Date.now(), sample: true };
+            trimStart: 0, trimEnd: d, lineColor: "blue", size: blob.size, createdAt: Date.now(), sample: true };
           state.tricks.push(t);
         }
       } catch (_) {}
@@ -3828,6 +3992,7 @@ window.loadSampleSet = async () => {
   ];
   const sampleRoutine = {
     id: uid(), name: "サンプル: はじめてのルーティン", music, sampleSet: true,
+    lineColor: "rust",
     memo: "次回は4ボール前の呼吸を一定にし、A/Bを同じ本数ずつ試す。",
     featureSettings: { showRisk: true, showSlots: true },
     partLoop: { a: 18, b: 28 }, // パート練習のデモ区間(4ボールの部分)
@@ -3853,7 +4018,8 @@ function renderTricks() {
   const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
   const totalBytes = tricks.reduce((a, t) => a + (t.size || 0), 0);
   const rows = tricks.map((t) => `
-    <div class="trick-row">
+    <div class="trick-row" data-line-color="${itemLineColor(t)}">
+      ${itemLineColorButtonHtml(t, "trick")}
       <div class="head">
         <span class="nm" data-user-text onclick="sheetRenameTrick('${t.id}')">${esc(t.name)}</span>
         <span class="kn">${t.duration.toFixed(1)}s${(t.trimStart || 0) > 0.05 || (t.trimEnd != null && t.fullDuration != null && t.trimEnd < t.fullDuration - 0.05) ? "✂" : ""}</span>
@@ -3934,7 +4100,7 @@ window.sheetLinkTrick = (i) => {
     <h3>「${esc(s.name || "この技")}」に動画を紐づけ</h3>
     <div class="sheet-sub">タップで紐づけ / 再生マークで動画を確認</div>
     ${tricks.map((t) => `
-      <div class="pick-trick-row" onclick="linkTrickToStep(${i},'${t.id}')">
+      <div class="pick-trick-row" data-line-color="${itemLineColor(t)}" onclick="linkTrickToStep(${i},'${t.id}')">
         <span class="nm">${esc(t.name)}</span>
         <span class="kn">${fmtTime(t.duration)}</span>
         <button class="mini-btn play" aria-label="${esc(t.name)}の動画を再生" onclick="event.stopPropagation();playTrickVideo('${t.id}',${i})">▶</button>
@@ -3977,7 +4143,7 @@ window.sheetLinkTrickToOption = (i, oi) => {
     <h3>「${esc(optionLabel)}」に動画を紐づけ</h3>
     <div class="sheet-sub">この選択肢だけに紐づきます / 再生マークで動画を確認</div>
     ${tricks.map((t) => `
-      <div class="pick-trick-row" onclick="linkTrickToOption(${i},${oi},'${t.id}')">
+      <div class="pick-trick-row" data-line-color="${itemLineColor(t)}" onclick="linkTrickToOption(${i},${oi},'${t.id}')">
         <span class="nm">${esc(t.name)}</span>
         <span class="kn">${fmtTime(t.duration)}</span>
         <button class="mini-btn play" aria-label="${esc(t.name)}の動画を再生"
@@ -4206,7 +4372,7 @@ function probeVideoDuration(blob) {
 async function saveTrick(blob, duration, defaultName) {
   const id = uid();
   if (!(await blobPut(id, blob))) return toast("動画を保存できませんでした");
-  state.tricks.push({ id, name: defaultName, blobId: id, duration, fullDuration: duration,
+  state.tricks.push({ id, name: defaultName, blobId: id, duration, fullDuration: duration, lineColor: "blue",
     trimStart: 0, trimEnd: duration, size: blob.size, createdAt: Date.now() });
   saveState();
   go("tricks");
@@ -4420,7 +4586,7 @@ function renderHelpEnglish() {
     <div class="card"><h2>Section Practice</h2>
       <div class="help-body">Set points A and B on the music and loop that range. Drag either handle for quick adjustment, choose a playback speed from 0.5× to 1.25×, and optionally add a pause before returning to A. Section Practice is deliberately excluded from analysis because its conditions differ from a full run.</div></div>
     <div class="card"><h2>Adding steps</h2>
-      <div class="help-body"><b>Transition</b> covers prop changes, movement, or gaze changes between skills. <b>Risk rating</b> is your expectation before seeing the results. <b>Music cue</b> places a skill at a target time. <b>A/B branch</b> records which of two alternatives you used. Editing a practiced sequence creates a new version so results from different structures are not mixed.</div></div>
+      <div class="help-body"><b>Transition</b> covers prop changes, movement, or gaze changes between skills. <b>Risk rating</b> is your expectation before seeing the results. <b>Music cue</b> places a skill at a target time. <b>A/B branch</b> records which of two alternatives you used. Editing a practiced sequence creates a new version so results from different structures are not mixed. In Edit, open <b>Routine Settings → Sequence History</b> to load an older version. Saving it creates a new version without deleting the current sequence or practice records.</div></div>
     <div class="card"><h2>Reading the analysis</h2>
       <div class="help-body">“2/6 (9–65%)” means 2 issues among 6 runs that reached the step; 9–65% is the 95% uncertainty interval. Small samples produce wide intervals. The app shows <b>where</b> a pattern may exist; test changes in order or preparation before deciding <b>why</b> it happens.</div></div>
     <div class="card"><h2>Editing records</h2>
@@ -4461,7 +4627,7 @@ function renderHelp() {
     </div>
     <div class="card">
       <h2>ステップの登録(編集画面)</h2>
-      <div class="help-body"><b>移行</b> = 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップに入れると分析対象になります。<br><br><b>リスク度(1〜5・任意)</b> = 「この技はどれくらい失敗しそうか」という自分の事前予想。<b>入れなくてもOK</b>です(「リスク —」のまま)。入れておくと、実際の失敗率とのズレ(思い込みと結果の乖離)が分析に表示されます。結果を見て数字を合わせに行くとズレが消えるので、基本は最初の感覚のまま。<br><br><b>♪何秒(キュー)</b> = 技名の右の欄に「1:23」や「83」と入れると、その技を曲のどこに入れるかの目標を指定できます。<b>♪欄を横にスライドすると0.1秒刻みで微調整</b>できます(タップすればキーボード入力)。音源があれば編集画面上部のプレイヤーで曲を流せて、再生位置に合わせて「いまこのへん」のステップが緑に光ります(通し練習でも同様)。順番と秒指定が時系列的に矛盾していると保存できません。タイムラインから書き出したルーティンには自動で入ります。<br><br><b>A/B化</b> = 調子で技を入れ替える箇所は「選択スロット」にできます。通し練習画面のチップでいつでも切替でき、選択肢ごとに失敗率が分かれて集計されます。<br><br>記録済みの通しがある状態で構成(技名・順序・種別・選択肢)を変えると新しいバージョンが作られ、分析は分かれます。条件の違うデータを混ぜないためです。リスク度の変更では分かれません。付属サンプルにはv1〜v3の構成と版ごとの記録が入っているので、分析画面で違いを試せます。「複製」は好調版/安牌版のように別ルーティンとして育てたいときに(記録は引き継ぎません)。</div>
+      <div class="help-body"><b>移行</b> = 持ち替え・立ち位置移動・視線移動など。失敗は技そのものではなく移行で起きることも多いので、怪しい箇所は移行もステップに入れると分析対象になります。<br><br><b>リスク度(1〜5・任意)</b> = 「この技はどれくらい失敗しそうか」という自分の事前予想。<b>入れなくてもOK</b>です(「リスク —」のまま)。入れておくと、実際の失敗率とのズレ(思い込みと結果の乖離)が分析に表示されます。結果を見て数字を合わせに行くとズレが消えるので、基本は最初の感覚のまま。<br><br><b>♪何秒(キュー)</b> = 技名の右の欄に「1:23」や「83」と入れると、その技を曲のどこに入れるかの目標を指定できます。<b>♪欄を横にスライドすると0.1秒刻みで微調整</b>できます(タップすればキーボード入力)。音源があれば編集画面上部のプレイヤーで曲を流せて、再生位置に合わせて「いまこのへん」のステップが緑に光ります(通し練習でも同様)。順番と秒指定が時系列的に矛盾していると保存できません。タイムラインから書き出したルーティンには自動で入ります。<br><br><b>A/B化</b> = 調子で技を入れ替える箇所は「選択スロット」にできます。通し練習画面のチップでいつでも切替でき、選択肢ごとに失敗率が分かれて集計されます。<br><br>記録済みの通しがある状態で構成(技名・順序・種別・選択肢)を変えると新しいバージョンが作られ、分析は分かれます。条件の違うデータを混ぜないためです。リスク度の変更では分かれません。編集画面の<b>個別設定 → 構成の履歴</b>から過去のv1・v2を読み込めます。保存すると新しい版になり、現在の構成と練習記録は残ります。付属サンプルにはv1〜v3の構成と版ごとの記録が入っているので、分析画面で違いを試せます。「複製」は好調版/安牌版のように別ルーティンとして育てたいときに(記録は引き継ぎません)。</div>
     </div>
     <div class="card">
       <h2>分析の数字の読み方</h2>
