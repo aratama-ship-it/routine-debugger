@@ -97,6 +97,17 @@ if (!/onclick="go\('runvideos'\)"/.test(app) || !/runvideos:\s*renderRunVideos/.
 if (!/function renderRunVideos\([\s\S]*?openRunVideo[\s\S]*?runVideoDelete/.test(app)) {
   failures.push("演技映像ライブラリに再生・削除操作がありません");
 }
+if (!/showRoutinePracticeChoice\('\$\{rt\.id\}'\)/.test(app)
+    || !/function routineCardHtml[\s\S]*?routineId:'\$\{rt\.id\}'[\s\S]*?演技映像を見る/.test(app)) {
+  failures.push("ルーティンカードに練習選択とルーティン別演技映像の導線がありません");
+}
+if (!/window\.showRoutinePracticeChoice[\s\S]*?openRoutinePractice\('\$\{id\}','record'\)[\s\S]*?openRoutinePractice\('\$\{id\}','part'\)/.test(app)) {
+  failures.push("練習入口から通し練習・パート練習を選択できません");
+}
+if (!/const routineFilter = view\.params\.routineId[\s\S]*?video\.routineId === routineFilter\.id/.test(app)
+    || !/view\.params\.from === "routines" \? "go\('routines'\)"/.test(app)) {
+  failures.push("演技映像ライブラリをルーティン単位で表示し、一覧へ戻れません");
+}
 
 const shellAssets = [...sw.matchAll(/^\s*"\.\/(.+?)",?$/gm)].map((match) => match[1].split("?")[0]);
 for (const asset of shellAssets) {
