@@ -347,6 +347,12 @@ button:active { opacity: .75; }
 .delete-routine-warning strong { display: block; color: var(--danger); font-size: 15px; }
 .delete-routine-warning span { display: block; margin-top: 5px; color: var(--text); font-size: 13px; font-weight: 740; }
 .delete-routine-warning p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.delete-media-summary {
+  display: flex; margin: 10px 0 12px; padding: 11px 12px; align-items: center; gap: 10px;
+  border-left: 6px solid #2f3d4e; background: var(--card); color: var(--text);
+}
+.delete-media-summary > span { color: #2f3d4e; font-size: 18px; }
+.delete-media-summary > b { font-size: 16px; font-variant-numeric: tabular-nums; }
 .delete-slide-wrap { margin: 0 0 16px; }
 .delete-slide-track { position: relative; height: 62px; overflow: hidden; touch-action: none;
   border: 2px solid var(--sep); border-radius: 7px; background: var(--card2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
@@ -1472,6 +1478,18 @@ label.fld { color: var(--muted); font-weight: 700; }
   background: color-mix(in srgb, var(--paper-header) 72%, transparent);
   color: var(--muted); font-size: 10px; line-height: 1.55;
 }
+.run-video-storage-actions {
+  display: grid; gap: 9px; margin: 15px 0 8px; padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--sep)); border-radius: 5px;
+  background: color-mix(in srgb, var(--danger) 4%, var(--card));
+}
+.run-video-storage-actions > div { display: flex; flex-direction: column; gap: 3px; }
+.run-video-storage-actions b { color: var(--text); font-size: 13px; }
+.run-video-storage-actions span, .run-video-storage-actions small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.run-video-storage-actions .btn.danger-ghost {
+  width: 100%; min-height: 46px; margin: 0; border: 1px solid color-mix(in srgb, var(--danger) 58%, var(--sep));
+  background: var(--card); font-size: 14px; font-weight: 820;
+}
 .run-video-library-list { margin-top: 9px; border-top: 1px solid var(--sep); }
 .run-video-library-row {
   display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px;
@@ -1485,6 +1503,7 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-video-library-actions { display: flex; align-items: center; gap: 6px; }
 .run-video-library-actions .btn { width: auto; min-width: 66px; margin: 0; }
 .run-video-library-scope { margin: -1px 0 8px; color: var(--muted); font-size: 10px; font-weight: 720; }
+.btn.storage-manage-btn { min-height: 44px; margin: 12px 0 7px; font-size: 14px; }
 @media (max-width: 390px) {
   .run-video-library-row { grid-template-columns: 24px minmax(0, 1fr); }
   .run-video-library-actions { grid-column: 2; justify-content: flex-end; }

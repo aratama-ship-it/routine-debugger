@@ -133,6 +133,20 @@ if (!/onclick="go\('runvideos'\)"/.test(app) || !/runvideos:\s*renderRunVideos/.
 if (!/function renderRunVideos\([\s\S]*?openRunVideo[\s\S]*?runVideoDelete/.test(app)) {
   failures.push("演技映像ライブラリに再生・削除操作がありません");
 }
+if (!/function runVideoStorageActions\(videos\)/.test(runVideoSync)
+    || !/window\.showDeleteAllRunVideos\s*=/.test(runVideoSync)
+    || !/onclick="showDeleteAllRunVideos\(\)"/.test(runVideoSync)
+    || !/window\.startRunVideoBulkDeleteSlide\s*=/.test(app)
+    || !/window\.runVideoBulkDeleteKey\s*=/.test(app)
+    || !/async function performRunVideoBulkDelete\(\)/.test(runVideoSync)
+    || !/state\.runVideos\s*=\s*\[\]/.test(runVideoSync)
+    || !/videoIds\.has\(run\.videoId\)[\s\S]*?delete run\.videoId/.test(runVideoSync)
+    || !/Promise\.all\(videos\.map\(\(video\)\s*=>\s*blobDel\(video\.blobId\)\)\)/.test(runVideoSync)
+    || !/映像の使用容量/.test(app)
+    || !/onclick="go\('runvideos'\)">演技映像の保存を管理/.test(app)
+    || !/\.run-video-storage-actions/.test(css)) {
+  failures.push("演技映像の容量表示と、スライド確認付き一括削除が揃っていません");
+}
 if (!/showRoutinePracticeChoice\('\$\{rt\.id\}'\)/.test(app)
     || !/function routineCardHtml[\s\S]*?routineId:'\$\{rt\.id\}'[\s\S]*?演技映像を見る/.test(app)) {
   failures.push("ルーティンカードに練習選択とルーティン別演技映像の導線がありません");
