@@ -76,6 +76,15 @@ if (!/addEventListener\("playing"[\s\S]*?startRunVideoCapture/.test(app)
     || !/\["pause",\s*"ended"\][\s\S]*?stopRunVideoCaptureAtMusicStop/.test(app)) {
   failures.push("通し映像の録画開始・終了が楽曲再生と同期していません");
 }
+const tapStepSource = app.match(/window\.tapStep\s*=\s*\(stepIndex\)\s*=>\s*\{([\s\S]*?)\n\};\n\nwindow\.commitEvent/);
+if (!/const EVENT_TYPES\s*=\s*\[\s*\{\s*id:\s*"drop_recovered"/.test(app)
+    || !/\|\|\s*"drop_recovered"/.test(app)
+    || !tapStepSource || /musicPlayer\.pause\(\)/.test(tapStepSource[1])) {
+  failures.push("復帰できるミスが初期選択になっていないか、ミスタップ時に楽曲を停止しています");
+}
+if (!/openRun\.events\.filter\(\(e\)\s*=>\s*e\.stepIndex\s*===\s*i\)\.length/.test(app)) {
+  failures.push("同じ通し・ステップの複数ミス件数を表示できません");
+}
 if (!/SHEET 00 \/ HOME · \$\{APP_VERSION\}/.test(app)) {
   failures.push("ホームに公開バージョン表示がありません");
 }

@@ -199,6 +199,8 @@
     ["この通しを記録せず中断しました", "Run stopped without saving"],
     ["ノーミスで完走 = 1タップ", "One tap for a clean run"], ["失敗ありで最後まで", "Reached the end with issues"],
     ["完走(失敗あり)を記録", "Log finished run with issues"],
+    ["この通しは続行中です。ミスは複数記録できます。最後までいったら「完走」、別のミスがあれば続けて該当箇所をタップしてください。", "This run is still in progress. You can log multiple issues. Tap Finished at the end, or tap another relevant step to add another issue."],
+    ["何が起きた？ 初期値は「ドロップして復帰」です。中止を選ばない限り通しは続きます。", "What happened? The default is Drop (recovered). The run continues unless you choose a stopped option."],
     ["記録して続行中 — 最後までいったら「完走」", "Issue logged — tap Finished if you reach the end"],
     ["この通しは記録して続行中 → 最後までいったら「完走」、失敗または実施できなかった技があれば該当箇所をタップ", "This run has a saved issue. Tap Finished at the end, or tap any failed or unattempted step."],
     ["記録せず終了(破棄)", "End and discard session"], ["まだ続ける", "Keep practicing"],
@@ -362,6 +364,7 @@
   const rules = [
     [/^(\d+)ステップ \/ v(\d+) \/ 通し(\d+)本$/, "$1 steps / v$2 / $3 runs"],
     [/^(\d+)本$/, "$1 runs"], [/^(\d+)件$/, "$1 items"],
+    [/^記録 (\d+)件$/, "$1 logged"], [/^記録して続行中 — この通しのミス(\d+)件$/, "Issue logged — $1 in this run"],
     [/^通し(\d+)本$/, "$1 runs"], [/^通し (\d+) 本$/, "$1 runs"],
     [/^今日 (\d+) 本$/, "Today: $1 runs"], [/^クリーン (\d+)$/, "Clean: $1"],
     [/^これまでの合計 (\d+)本$/, "$1 total runs"], [/^本日 (\d+)本目$/, "Run $1 today"],
