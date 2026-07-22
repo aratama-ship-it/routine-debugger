@@ -125,6 +125,22 @@ if (!/function runVideoPlaybackAudioMarkup\(video, music, musicAvailable\)/.test
     || !/runVideoPlaybackAudioMarkup\(video, music/.test(runVideoReview)) {
   failures.push("音源入り映像を単一プレイヤーで再生し、旧別音源方式だけ同期処理へ戻せません");
 }
+if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*1/.test(runVideoComposition)
+    || !/function normalizeRunVideoAudioDelay\(value\)/.test(runVideoComposition)
+    || !/audioDelaySeconds:\s*preferredRunVideoAudioDelay\(\)/.test(app)
+    || !/createDelay\(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\)/.test(runVideoComposition)
+    || !/recordingAudioDelaySeconds:\s*cap\.recordingAudioDelaySeconds/.test(app)
+    || !/audioTailMs[\s\S]*?setTimeout\(resolve, audioTailMs\)/.test(app)
+    || !/function runVideoSyncDelayMarkup\(video, target/.test(runVideoSync)
+    || !/max="\$\{RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\}"\s+step="0\.05"/.test(runVideoSync)
+    || !/function bindRunVideoEmbeddedAudioDelay\(video\)[\s\S]*?createMediaElementSource\(player\)[\s\S]*?createDelay/.test(runVideoSync)
+    || !/runVideoSyncDelayMarkup\(capture, "stopped"\)/.test(runVideoSync)
+    || !/runVideoSyncDelayMarkup\(pending, "pending"\)/.test(app)
+    || !/runVideoSyncDelayMarkup\(video, "saved", video\.id\)/.test(runVideoReview)
+    || !/syncAudioDelaySeconds:\s*runVideoDesiredAudioDelay\(pending\)/.test(app)
+    || !/\.run-video-sync-adjust/.test(css)) {
+  failures.push("演技直後の0〜1秒同期補正を試聴・保存し、次回録画へ反映できません");
+}
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/stoppedRunVideoCapture\s*!==\s*capture/.test(runVideoSync)
     || !/onclick="previewStoppedRunVideo\('\$\{rt\.id\}'\)"/.test(app)
@@ -210,7 +226,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 326_000], ["run-video-composition.js", 12_000], ["run-video-sync.js", 18_500], ["run-video-review.js", 12_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 326_000], ["run-video-composition.js", 12_000], ["run-video-sync.js", 24_500], ["run-video-review.js", 12_000], ["styles.css", 122_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

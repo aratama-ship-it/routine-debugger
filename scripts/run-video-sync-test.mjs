@@ -33,6 +33,26 @@ class FakeMedia {
   }
 }
 
+const delayContexts = [];
+class FakeDelayAudioContext {
+  constructor() {
+    this.currentTime = 1;
+    this.state = "running";
+    this.destination = {};
+    this.source = { connected: null, disconnectCalls: 0, connect: (node) => { this.source.connected = node; }, disconnect: () => { this.source.disconnectCalls++; } };
+    this.delay = {
+      delayTime: { value: 0, setValueAtTime(value) { this.value = value; } }, connected: null, disconnectCalls: 0,
+      connect: (node) => { this.delay.connected = node; }, disconnect: () => { this.delay.disconnectCalls++; },
+    };
+    this.closeCalls = 0;
+    delayContexts.push(this);
+  }
+  createMediaElementSource() { return this.source; }
+  createDelay() { return this.delay; }
+  resume() { this.state = "running"; return Promise.resolve(); }
+  close() { this.closeCalls++; this.state = "closed"; return Promise.resolve(); }
+}
+
 const video = new FakeMedia();
 const audio = new FakeMedia();
 const status = { textContent: "" };
@@ -49,7 +69,7 @@ let shownSheet = "";
 let releasedSheetMedia = 0;
 let createdObjectUrl = 0;
 const context = vm.createContext({
-  window: {},
+  window: { AudioContext: FakeDelayAudioContext },
   document: { getElementById: (id) => elements.get(id) || null },
   requestAnimationFrame: () => 1,
   cancelAnimationFrame: () => {},
@@ -77,6 +97,7 @@ const context = vm.createContext({
   toast: () => {},
   sheetVideoUrl: null,
   URL: { createObjectURL: () => `blob:test-${++createdObjectUrl}` },
+  localStorage: { getItem: () => null, setItem: () => {} },
 });
 const compositionSource = await readFile(new URL("../run-video-composition.js", import.meta.url), "utf8");
 const source = await readFile(new URL("../run-video-sync.js", import.meta.url), "utf8");
@@ -157,6 +178,14 @@ context.stoppedRunVideoCapture = embeddedCapture;
 await context.window.previewStoppedRunVideo("r1");
 assert.doesNotMatch(shownSheet, /<audio id="run-video-audio"/, "embedded recordings should use the video player's single timeline");
 assert.match(shownSheet, /音源は映像に収録済みです/, "embedded recordings should explain that the music is inside the video");
+assert.match(shownSheet, /映像と音源の同期補正/, "embedded recordings should expose the post-run sync control");
 assert.equal(context.stoppedRunVideoCapture, embeddedCapture, "embedded preview should also preserve the capture until result logging");
+context.window.runVideoSetSyncDelay("stopped", "", 0.25);
+assert.equal(context.runVideoDesiredAudioDelay(embeddedCapture), 0.25, "the post-run correction should stay with the capture");
+assert.equal(context.runVideoPlaybackAudioDelay(embeddedCapture), 0.25, "an uncorrected existing file should add the selected delay during playback");
+assert.equal(delayContexts.length, 1, "changing the correction should route embedded audio through one delay graph");
+assert.equal(delayContexts[0].delay.delayTime.value, 0.25);
+context.stopRunVideoAudioSync();
+assert.equal(delayContexts[0].closeCalls, 1, "closing the preview should release its audio context");
 
 console.log("Run-video music sync test passed");

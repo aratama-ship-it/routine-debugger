@@ -90,6 +90,7 @@ window.openRunVideo = async (id) => {
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(video)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
       ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
       ${runVideoPlaybackAudioMarkup(video, music, !!sheetRunMusicUrl)}
+      ${runVideoSyncDelayMarkup(video, "saved", video.id)}
       ${markers ? `<div class="time-chips run-video-markers">${markers}</div>` : `<div class="hint">この映像の失敗記録はありません</div>`}
       ${runVideoCurrentStepMarkup(stepContext)}
       <button class="btn" onclick="runVideoDownload('${video.id}')">映像を書き出す</button>
@@ -97,6 +98,7 @@ window.openRunVideo = async (id) => {
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
     bindRunVideoCurrentStep(stepContext);
     if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    else bindRunVideoEmbeddedAudioDelay(video);
   });
 };
 window.runVideoSeek = (time) => {

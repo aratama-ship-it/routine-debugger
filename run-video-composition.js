@@ -4,6 +4,53 @@
 // Web版は録画中に音源を収録する。将来のiOS／Android版は、このレシピを
 // ネイティブの撮影後合成へ渡し、同じ完成形式（音源入りの単一動画）を返す。
 const RUN_VIDEO_COMPOSITION_VERSION = 1;
+const RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS = 1;
+
+function normalizeRunVideoAudioDelay(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  const clamped = Math.max(0, Math.min(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS, number));
+  return Math.round(clamped * 20) / 20; // UIと同じ0.05秒刻み
+}
+
+function runVideoRecordingAudioDelay(video) {
+  const timelineValue = video && video.composition && video.composition.timeline
+    ? video.composition.timeline.recordingAudioDelaySeconds : null;
+  const value = timelineValue != null ? timelineValue : video && video.recordingAudioDelaySeconds;
+  return normalizeRunVideoAudioDelay(value);
+}
+
+function runVideoDesiredAudioDelay(video) {
+  if (video && video.syncAudioDelaySeconds != null) return normalizeRunVideoAudioDelay(video.syncAudioDelaySeconds);
+  return normalizeRunVideoAudioDelay(runVideoRecordingAudioDelay(video)
+    + Number(video && video.playbackAudioDelaySeconds || 0));
+}
+
+function runVideoPlaybackAudioDelay(video) {
+  return normalizeRunVideoAudioDelay(Math.max(0,
+    runVideoDesiredAudioDelay(video) - runVideoRecordingAudioDelay(video)));
+}
+
+function setRunVideoDesiredAudioDelay(video, value) {
+  if (!video) return { desired: 0, recorded: 0, playback: 0, belowRecorded: false };
+  const desired = normalizeRunVideoAudioDelay(value);
+  const recorded = runVideoRecordingAudioDelay(video);
+  const playback = normalizeRunVideoAudioDelay(Math.max(0, desired - recorded));
+  video.syncAudioDelaySeconds = desired;
+  video.playbackAudioDelaySeconds = playback;
+  return { desired, recorded, playback, belowRecorded: desired < recorded };
+}
+
+function preferredRunVideoAudioDelay() {
+  try { return normalizeRunVideoAudioDelay(localStorage.getItem("rd_run_video_audio_delay")); }
+  catch (_) { return 0; }
+}
+
+function savePreferredRunVideoAudioDelay(value) {
+  const normalized = normalizeRunVideoAudioDelay(value);
+  try { localStorage.setItem("rd_run_video_audio_delay", String(normalized)); } catch (_) {}
+  return normalized;
+}
 
 function runVideoCompositionMusicSnapshot(music) {
   if (!music || !music.blobId) return null;
@@ -24,6 +71,8 @@ function createRunVideoCompositionRecipe(music, options = {}) {
   const requestedMode = options.audioMode || (snapshot ? "embedded" : "none");
   const audioMode = snapshot && ["embedded", "linked"].includes(requestedMode) ? requestedMode : "none";
   const gain = Number.isFinite(Number(options.recordingGain)) ? Math.max(0, Number(options.recordingGain)) : 1;
+  const recordingAudioDelaySeconds = audioMode === "embedded"
+    ? normalizeRunVideoAudioDelay(options.recordingAudioDelaySeconds) : 0;
   const musicOffsetSeconds = Number.isFinite(Number(options.musicOffsetSeconds))
     ? Math.max(0, Number(options.musicOffsetSeconds)) : 0;
   return {
@@ -41,6 +90,7 @@ function createRunVideoCompositionRecipe(music, options = {}) {
       musicOffsetSeconds,
       trimStartSeconds: snapshot ? snapshot.trimStart : 0,
       trimEndSeconds: snapshot ? snapshot.trimEnd : null,
+      recordingAudioDelaySeconds,
     },
     music: snapshot,
   };
@@ -66,10 +116,13 @@ function stopRunVideoCompositionTrack(track) {
 
 // カメラの映像トラックと、Web Audioから分岐した楽曲トラックをMediaRecorder用にまとめる。
 // 音源はモニター用フェーダーの手前から分岐するため、保存音量は常に一定になる。
-function createWebRunVideoRecordingStream({ videoStream, audioContext, musicSourceNode, includeMusic = false } = {}) {
+function createWebRunVideoRecordingStream({
+  videoStream, audioContext, musicSourceNode, includeMusic = false, audioDelaySeconds = 0,
+} = {}) {
   const fallback = (reason = "") => ({
     stream: videoStream,
     audioEmbedded: false,
+    recordingAudioDelaySeconds: 0,
     fallbackReason: reason,
     release() {},
   });
@@ -81,10 +134,14 @@ function createWebRunVideoRecordingStream({ videoStream, audioContext, musicSour
   }
 
   let recordGain = null;
+  let recordDelay = null;
   let destination = null;
   let audioTrack = null;
-  let connected = false;
+  let sourceTarget = null;
+  let sourceConnected = false;
   try {
+    const requestedDelay = normalizeRunVideoAudioDelay(audioDelaySeconds);
+    const appliedDelay = requestedDelay > 0 && typeof audioContext.createDelay !== "function" ? 0 : requestedDelay;
     recordGain = audioContext.createGain();
     destination = audioContext.createMediaStreamDestination();
     if (recordGain.gain) {
@@ -94,9 +151,23 @@ function createWebRunVideoRecordingStream({ videoStream, audioContext, musicSour
         recordGain.gain.value = 1;
       }
     }
-    musicSourceNode.connect(recordGain);
+    if (appliedDelay > 0) {
+      recordDelay = audioContext.createDelay(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS);
+      if (recordDelay.delayTime && typeof recordDelay.delayTime.setValueAtTime === "function") {
+        recordDelay.delayTime.setValueAtTime(appliedDelay, Number(audioContext.currentTime) || 0);
+      } else if (recordDelay.delayTime) {
+        recordDelay.delayTime.value = appliedDelay;
+      }
+      musicSourceNode.connect(recordDelay);
+      sourceTarget = recordDelay;
+      sourceConnected = true;
+      recordDelay.connect(recordGain);
+    } else {
+      musicSourceNode.connect(recordGain);
+      sourceTarget = recordGain;
+      sourceConnected = true;
+    }
     recordGain.connect(destination);
-    connected = true;
     audioTrack = destination.stream && destination.stream.getAudioTracks()[0];
     if (!audioTrack) throw new Error("music-audio-track-missing");
 
@@ -110,20 +181,23 @@ function createWebRunVideoRecordingStream({ videoStream, audioContext, musicSour
     return {
       stream,
       audioEmbedded: true,
+      recordingAudioDelaySeconds: appliedDelay,
       fallbackReason: "",
       release() {
         if (released) return;
         released = true;
-        try { musicSourceNode.disconnect(recordGain); } catch (_) {}
+        try { musicSourceNode.disconnect(sourceTarget); } catch (_) {}
+        try { if (recordDelay) recordDelay.disconnect(); } catch (_) {}
         try { recordGain.disconnect(); } catch (_) {}
         try { destination.disconnect(); } catch (_) {}
         stopRunVideoCompositionTrack(audioTrack);
       },
     };
   } catch (error) {
-    if (connected) {
-      try { musicSourceNode.disconnect(recordGain); } catch (_) {}
+    if (sourceConnected) {
+      try { musicSourceNode.disconnect(sourceTarget); } catch (_) {}
     }
+    try { if (recordDelay) recordDelay.disconnect(); } catch (_) {}
     try { if (recordGain) recordGain.disconnect(); } catch (_) {}
     try { if (destination) destination.disconnect(); } catch (_) {}
     stopRunVideoCompositionTrack(audioTrack);
@@ -136,16 +210,22 @@ function createWebRunVideoRecordingStream({ videoStream, audioContext, musicSour
 async function finalizeRunVideoComposition(capture) {
   const music = runVideoCompositionMusicSnapshot(capture && capture.music);
   const audioMode = music ? (capture && capture.audioEmbedded ? "embedded" : "linked") : "none";
+  const recordingAudioDelaySeconds = audioMode === "embedded"
+    ? normalizeRunVideoAudioDelay(capture && capture.recordingAudioDelaySeconds) : 0;
   const composition = createRunVideoCompositionRecipe(music, {
     engine: "web-realtime",
     audioMode,
     recordingGain: 1,
     musicOffsetSeconds: 0,
+    recordingAudioDelaySeconds,
   });
-  return {
+  const result = {
     ...capture,
     audio: audioMode === "embedded",
     audioMode,
+    recordingAudioDelaySeconds,
     composition,
   };
+  setRunVideoDesiredAudioDelay(result, recordingAudioDelaySeconds);
+  return result;
 }

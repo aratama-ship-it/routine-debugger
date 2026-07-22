@@ -4,6 +4,7 @@
 let sheetRunMusicUrl = null;
 let runVideoSyncState = null; // { video, audio, music, wantsPlayback, seeking, resumeAfterSeek, playRequest }
 let runVideoSyncRaf = 0;
+let runVideoEmbeddedDelayState = null; // { video, context, source, delayNode }
 
 // 映像へ「撮影時に使った音源」を軽量な参照として残す。音源Blob自体は複製しない。
 function cloneRunVideoMusicMeta(meta) {
@@ -146,6 +147,7 @@ function stopRunVideoAudioSync() {
   stopRunVideoSyncLoop();
   if (runVideoSyncState && runVideoSyncState.audio) runVideoSyncState.audio.pause();
   runVideoSyncState = null;
+  stopRunVideoEmbeddedAudioDelay();
 }
 function bindRunVideoAudioSync(music) {
   stopRunVideoAudioSync();
@@ -225,6 +227,118 @@ function runVideoPlaybackAudioMarkup(video, music, musicAvailable) {
   </div>`;
 }
 
+function stopRunVideoEmbeddedAudioDelay() {
+  const active = runVideoEmbeddedDelayState;
+  runVideoEmbeddedDelayState = null;
+  if (!active) return;
+  try { active.source.disconnect(); } catch (_) {}
+  try { active.delayNode.disconnect(); } catch (_) {}
+  try { active.context.close(); } catch (_) {}
+}
+
+function resumeRunVideoEmbeddedAudioDelay() {
+  const active = runVideoEmbeddedDelayState;
+  if (!active || active.context.state !== "suspended") return;
+  try {
+    const resumed = active.context.resume();
+    if (resumed && resumed.catch) resumed.catch(() => {});
+  } catch (_) {}
+}
+
+function bindRunVideoEmbeddedAudioDelay(video) {
+  const player = document.getElementById("run-video-player");
+  if (!player || !runVideoHasEmbeddedAudio(video)) return false;
+  const playbackDelay = runVideoPlaybackAudioDelay(video);
+  if (runVideoEmbeddedDelayState && runVideoEmbeddedDelayState.video === player) {
+    const active = runVideoEmbeddedDelayState;
+    if (active.delayNode.delayTime) {
+      if (typeof active.delayNode.delayTime.setValueAtTime === "function") {
+        active.delayNode.delayTime.setValueAtTime(playbackDelay, Number(active.context.currentTime) || 0);
+      } else active.delayNode.delayTime.value = playbackDelay;
+    }
+    resumeRunVideoEmbeddedAudioDelay();
+    return true;
+  }
+  if (playbackDelay <= 0) return false;
+  stopRunVideoEmbeddedAudioDelay();
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return false;
+  let context = null;
+  let source = null;
+  let delayNode = null;
+  try {
+    context = new AC();
+    source = context.createMediaElementSource(player);
+    delayNode = context.createDelay(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS);
+    if (delayNode.delayTime && typeof delayNode.delayTime.setValueAtTime === "function") {
+      delayNode.delayTime.setValueAtTime(playbackDelay, Number(context.currentTime) || 0);
+    } else if (delayNode.delayTime) delayNode.delayTime.value = playbackDelay;
+    source.connect(delayNode);
+    delayNode.connect(context.destination);
+    runVideoEmbeddedDelayState = { video: player, context, source, delayNode };
+    player.addEventListener("play", resumeRunVideoEmbeddedAudioDelay);
+    player.addEventListener("playing", resumeRunVideoEmbeddedAudioDelay);
+    player.addEventListener("pointerdown", resumeRunVideoEmbeddedAudioDelay);
+    resumeRunVideoEmbeddedAudioDelay();
+    return true;
+  } catch (_) {
+    try { if (source) source.disconnect(); } catch (_) {}
+    try { if (delayNode) delayNode.disconnect(); } catch (_) {}
+    try { if (context) context.close(); } catch (_) {}
+    return false;
+  }
+}
+
+function runVideoSyncDelayNote(video) {
+  const desired = runVideoDesiredAudioDelay(video);
+  const recorded = runVideoRecordingAudioDelay(video);
+  if (desired < recorded) {
+    return isEnglish()
+      ? `This video already contains ${recorded.toFixed(2)} sec of delay, so it cannot be reduced without rebuilding the file. ${desired.toFixed(2)} sec will be used for the next recording.`
+      : `この映像には${recorded.toFixed(2)}秒を収録済みのため、ファイルを作り直さずには戻せません。次回撮影には${desired.toFixed(2)}秒を使います。`;
+  }
+  return isEnglish()
+    ? "This video is corrected during in-app playback. The same value is built into the next recording; the current file is not rebuilt."
+    : "この映像はアプリ内再生で補正します。同じ値を次回撮影へ収録時から反映し、現在のファイル自体は作り直しません。";
+}
+
+function runVideoSyncDelayMarkup(video, target, id = "") {
+  if (!runVideoHasEmbeddedAudio(video)) return "";
+  const value = runVideoDesiredAudioDelay(video);
+  return `<section class="run-video-sync-adjust" aria-labelledby="run-video-sync-delay-title">
+    <div class="run-video-sync-adjust-head">
+      <div><b id="run-video-sync-delay-title">${isEnglish() ? "Audio sync correction" : "映像と音源の同期補正"}</b>
+        <span>${isEnglish() ? "If the video looks late, move the music later." : "映像が遅く見えるとき、音源を後ろへ送ります。"}</span></div>
+      <output id="run-video-sync-delay-value">${value.toFixed(2)}${isEnglish() ? " sec" : "秒"}</output>
+    </div>
+    <input id="run-video-sync-delay" type="range" min="0" max="${RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS}" step="0.05" value="${value.toFixed(2)}"
+      aria-label="${isEnglish() ? "Delay recorded music" : "収録音源を遅らせる"}"
+      oninput="runVideoSetSyncDelay('${target}','${esc(id)}',this.value)">
+    <div class="run-video-sync-adjust-scale"><span>${isEnglish() ? "No correction" : "補正なし"}</span><span>${isEnglish() ? "Music +1.00 sec" : "音源を1.00秒遅らせる"}</span></div>
+    <small id="run-video-sync-delay-note">${esc(runVideoSyncDelayNote(video))}</small>
+  </section>`;
+}
+
+function runVideoSyncDelayTarget(target, id) {
+  if (target === "stopped") return stoppedRunVideoCapture;
+  if (target === "pending") return pendingRunVideo;
+  if (target === "saved") return storedRunVideos().find((video) => video.id === id) || null;
+  return null;
+}
+
+window.runVideoSetSyncDelay = (target, id, value) => {
+  const video = runVideoSyncDelayTarget(target, id);
+  if (!video || !runVideoHasEmbeddedAudio(video)) return;
+  const result = setRunVideoDesiredAudioDelay(video, value);
+  savePreferredRunVideoAudioDelay(result.desired);
+  if (target === "saved") saveState();
+  const output = document.getElementById("run-video-sync-delay-value");
+  if (output) output.textContent = `${result.desired.toFixed(2)}${isEnglish() ? " sec" : "秒"}`;
+  const note = document.getElementById("run-video-sync-delay-note");
+  if (note) note.textContent = runVideoSyncDelayNote(video);
+  bindRunVideoEmbeddedAudioDelay(video);
+};
+
 // 音源終了直後の一時映像を、結果確定前でも繰り返し確認する。
 // シートを閉じても stoppedRunVideoCapture は残し、結果入力後の保存確認へ引き継ぐ。
 window.previewStoppedRunVideo = async (routineId) => {
@@ -245,8 +359,10 @@ window.previewStoppedRunVideo = async (routineId) => {
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(capture)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
       ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
       ${runVideoPlaybackAudioMarkup(capture, music, !!sheetRunMusicUrl)}
+      ${runVideoSyncDelayMarkup(capture, "stopped")}
       <button class="btn primary" onclick="hideSheet()">通し結果の記録へ戻る</button>`);
     if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    else bindRunVideoEmbeddedAudioDelay(capture);
   });
 };
 
