@@ -1461,6 +1461,10 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-video-replace-row span, .run-video-row span { color: var(--muted); font-size: 10px; }
 .run-video-replace-row .btn, .run-video-row .btn { width: auto; margin: 0; flex-shrink: 0; }
 .run-video-markers { margin: 8px 0 12px; }
+.run-video-current-step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;margin:8px 0 12px;padding:9px 10px;border:1px solid var(--sep);border-left:6px solid var(--sheet-tab-rust);background:var(--card)}
+.run-video-current-step span{grid-row:1/3;align-self:center;color:var(--accent);font-size:10px;font-weight:850}
+.run-video-current-step strong{overflow:hidden;font-size:15px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+.run-video-current-step small{color:var(--muted);font-size:10px}
 .run-video-library-card { padding-top: 16px; }
 .run-video-library-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .run-video-library-heading h2 { margin: 0; }

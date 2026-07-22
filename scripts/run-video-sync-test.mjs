@@ -11,6 +11,7 @@ class FakeMedia {
     this.volume = 1;
     this.paused = true;
     this.ended = false;
+    this.seeking = false;
     this.playCalls = 0;
     this.pauseCalls = 0;
   }
@@ -83,7 +84,11 @@ vm.runInContext(source, context, { filename: "run-video-sync.js" });
 const music = { blobId: "music-1", name: "Test", trimStart: 10, trimEnd: 110, fullDuration: 200 };
 context.bindRunVideoAudioSync(music);
 video.currentTime = 20;
+video.seeking = true;
 video.emit("seeking");
+assert.equal(audio.currentTime, 0, "audio should not be repeatedly moved while the seek handle is active");
+video.seeking = false;
+video.emit("seeked");
 assert.equal(audio.currentTime, 30, "video seek should include the music trim offset");
 
 video.paused = false;
@@ -92,8 +97,34 @@ await Promise.resolve();
 assert.equal(audio.playCalls, 1, "video play should start the linked music");
 assert.equal(audio.volume, 0.72, "linked music should use the shared music volume");
 
+// iPhoneのネイティブシークが一時的なpauseを挟んでも、シーク前に再生中なら両方を再開する。
+video.currentTime = 40;
+video.seeking = true;
+video.emit("seeking");
+video.paused = true;
 video.emit("pause");
-assert.equal(audio.paused, true, "video pause should pause the linked music");
+assert.equal(audio.paused, true, "seeking should pause the linked music until the final position is known");
+video.seeking = false;
+video.emit("seeked");
+await Promise.resolve();
+await Promise.resolve();
+assert.equal(video.playCalls, 1, "a transient seek pause should resume the video");
+assert.equal(audio.playCalls, 2, "a transient seek pause should resume the linked music");
+assert.equal(audio.currentTime, 50, "seek completion should align music once at the final position");
+
+// 停止中に位置だけ変えた場合は、勝手に再生を始めない。
+video.paused = true;
+video.emit("pause");
+const videoPlayCount = video.playCalls;
+const audioPlayCount = audio.playCalls;
+video.currentTime = 60;
+video.seeking = true;
+video.emit("seeking");
+video.seeking = false;
+video.emit("seeked");
+await Promise.resolve();
+assert.equal(video.playCalls, videoPlayCount, "a paused video should stay paused after seeking");
+assert.equal(audio.playCalls, audioPlayCount, "paused seeking should not start the linked music");
 
 assert.equal(context.runVideoMusicMeta({ routineId: "r1" }).blobId, "music-1", "legacy videos should use the routine music");
 assert.equal(context.runVideoMusicMeta({ routineId: "r1", music: null }), null, "new videos recorded without music should stay video-only");

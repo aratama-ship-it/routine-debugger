@@ -12,24 +12,26 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoSync, css, i18n, html, sw, manifestText] = await Promise.all([
-  read("app.js"), read("run-video-sync.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
+const [app, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
+  read("app.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-sync.js", runVideoSync], ["i18n.js", i18n], ["sw.js", sw]]) {
+for (const [name, source] of [["app.js", app], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
 const appVersion = requireMatch(app, /APP_VERSION\s*=\s*"(v\d+)"/, "APP_VERSION");
 const cacheVersion = requireMatch(sw, /CACHE\s*=\s*"routine-debugger-(v\d+)"/, "Service Worker版");
 const swRunVideoSyncVersion = requireMatch(sw, /run-video-sync\.js\?v=(\d+)/, "Service Worker映像音源同期JS版");
+const swRunVideoReviewVersion = requireMatch(sw, /run-video-review\.js\?v=(\d+)/, "Service Worker通し映像レビューJS版");
 const cssVersion = requireMatch(html, /styles\.css\?v=(\d+)/, "CSS版");
 const i18nVersion = requireMatch(html, /i18n\.js\?v=(\d+)/, "i18n版");
 const runVideoSyncVersion = requireMatch(html, /run-video-sync\.js\?v=(\d+)/, "映像音源同期JS版");
+const runVideoReviewVersion = requireMatch(html, /run-video-review\.js\?v=(\d+)/, "通し映像レビューJS版");
 const jsVersion = requireMatch(html, /app\.js\?v=(\d+)/, "JS版");
 const expected = appVersion && appVersion.slice(1);
-for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像音源同期JS", runVideoSyncVersion], ["JS", jsVersion]]) {
+for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
   if (expected && value !== expected) failures.push(`${label}の版 ${value || "?"} がAPP_VERSION ${expected} と不一致です`);
 }
 
@@ -103,10 +105,22 @@ if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
 }
 if (!/function bindRunVideoAudioSync\(music\)[\s\S]*?addEventListener\("play"[\s\S]*?tryPlayRunVideoAudio/.test(runVideoSync)
     || !/addEventListener\("pause"[\s\S]*?audio\.pause/.test(runVideoSync)
-    || !/addEventListener\("seeking"[\s\S]*?syncRunVideoAudioPosition\(true\)/.test(runVideoSync)
-    || !/addEventListener\("seeked"[\s\S]*?syncRunVideoAudioPosition\(true\)/.test(runVideoSync)
+    || !/function beginRunVideoSeek\(sync\)[\s\S]*?resumeAfterSeek[\s\S]*?sync\.audio\.pause/.test(runVideoSync)
+    || !/function finishRunVideoSeek\(sync\)[\s\S]*?syncRunVideoAudioPosition\(true\)[\s\S]*?shouldResume[\s\S]*?sync\.video\.play/.test(runVideoSync)
+    || !/!sync\.seeking && !video\.seeking[\s\S]*?sync\.wantsPlayback = false/.test(runVideoSync)
     || !/id="run-video-audio"/.test(app)) {
   failures.push("通し映像の再生・停止・シークへ対象音源を同期できません");
+}
+const currentStepMarkup = runVideoReview.match(/function runVideoCurrentStepMarkup\(context\) \{([\s\S]*?)\n\}/);
+if (!/function runVideoReviewStepContext\(video,[\s\S]*?found\.sess\.versionId/.test(runVideoReview)
+    || !/function runVideoReviewStepName\(context, step\)[\s\S]*?runChoice\(context\.run, step\)/.test(runVideoReview)
+    || !currentStepMarkup || /<video\b/.test(currentStepMarkup[1])
+    || !/実施中の技/.test(currentStepMarkup[1])
+    || !/\$\{runVideoCurrentStepMarkup\(stepContext\)\}[\s\S]*?runVideoDownload/.test(runVideoReview)
+    || !/\["loadedmetadata", "timeupdate", "seeking", "seeked"\]/.test(runVideoReview)
+    || !/bindRunVideoCurrentStep\(stepContext\)/.test(runVideoReview)
+    || !/\.run-video-current-step/.test(css)) {
+  failures.push("保存済み通し映像で、撮影時の構成とA/B選択に基づく実施中の技を文字だけで追従表示できません");
 }
 if (!/preserveRunVideoMusicSnapshots/.test(runVideoSync)
     || !/deleteRunVideoMusicBlobIfUnused/.test(runVideoSync)) {
@@ -133,9 +147,9 @@ if (!/onclick="go\('runvideos'\)"/.test(app) || !/runvideos:\s*renderRunVideos/.
 if (!/function renderRunVideos\([\s\S]*?openRunVideo[\s\S]*?runVideoDelete/.test(app)) {
   failures.push("演技映像ライブラリに再生・削除操作がありません");
 }
-if (!/function runVideoStorageActions\(videos\)/.test(runVideoSync)
+if (!/function runVideoStorageActions\(videos\)/.test(runVideoReview)
     || !/window\.showDeleteAllRunVideos\s*=/.test(runVideoSync)
-    || !/onclick="showDeleteAllRunVideos\(\)"/.test(runVideoSync)
+    || !/onclick="showDeleteAllRunVideos\(\)"/.test(runVideoReview)
     || !/window\.startRunVideoBulkDeleteSlide\s*=/.test(app)
     || !/window\.runVideoBulkDeleteKey\s*=/.test(app)
     || !/async function performRunVideoBulkDelete\(\)/.test(runVideoSync)
@@ -167,16 +181,16 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 322_000], ["run-video-sync.js", 16_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 322_000], ["run-video-sync.js", 16_500], ["run-video-review.js", 12_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoSync).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-if (gzipShell > 140_000) failures.push(`主要コードのgzip概算が140KBを超えています (${gzipShell})`);
+if (gzipShell > 143_000) failures.push(`主要コードのgzip概算が143KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

@@ -2,7 +2,7 @@
 "use strict";
 
 let sheetRunMusicUrl = null;
-let runVideoSyncState = null; // { video, audio, music }
+let runVideoSyncState = null; // { video, audio, music, wantsPlayback, seeking, resumeAfterSeek, playRequest }
 let runVideoSyncRaf = 0;
 
 // 映像へ「撮影時に使った音源」を軽量な参照として残す。音源Blob自体は複製しない。
@@ -45,22 +45,6 @@ function runVideoMusicBlobIsReferenced(blobId) {
 async function deleteRunVideoMusicBlobIfUnused(blobId) {
   if (blobId && !runVideoMusicBlobIsReferenced(blobId)) await blobDel(blobId);
 }
-function runVideoStorageBytes(videos = storedRunVideos()) {
-  return videos.reduce((sum, video) => sum + (Number(video.size) || 0), 0);
-}
-function runVideoStorageActions(videos) {
-  if (!videos.length) return "";
-  const english = isEnglish();
-  return `<div class="run-video-storage-actions">
-    <div><b>${english ? "Free storage on this iPhone" : "iPhoneの容量を空ける"}</b>
-      <span>${english
-        ? `Delete ${videos.length} saved performance videos (${fmtBytes(runVideoStorageBytes(videos))}) from this app.`
-        : `このアプリ内の演技映像${videos.length}本（${fmtBytes(runVideoStorageBytes(videos))}）をまとめて削除できます。`}</span></div>
-    <button type="button" class="btn danger-ghost" onclick="showDeleteAllRunVideos()">${english ? "Delete all performance videos" : "演技映像をまとめて削除"}</button>
-    <small>${english ? "Routines, practice records, skill videos, and music remain." : "ルーティン・練習記録・技動画・音源は残ります。"}</small>
-  </div>`;
-}
-
 function runVideoMusicBounds(meta, audio) {
   const mediaDuration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
   const full = mediaDuration || Number(meta && meta.fullDuration) || 0;
@@ -101,21 +85,55 @@ function runVideoSyncTick() {
 function startRunVideoSyncLoop() {
   if (!runVideoSyncRaf) runVideoSyncRaf = requestAnimationFrame(runVideoSyncTick);
 }
-function tryPlayRunVideoAudio() {
+function tryPlayRunVideoAudio(syncPosition = true) {
   const sync = runVideoSyncState;
   if (!sync || !sync.audio) return;
-  syncRunVideoAudioPosition(true);
+  if (syncPosition) syncRunVideoAudioPosition(true);
   sync.audio.playbackRate = sync.video.playbackRate || 1;
   sync.audio.volume = musicVolume;
-  const playing = sync.audio.play();
-  if (playing && playing.then) {
-    playing.then(() => setRunVideoSyncStatus(isEnglish()
-      ? "Music is synced to video playback and seeking"
-      : "映像の再生・一時停止・シークに同期中"))
-      .catch(() => setRunVideoSyncStatus(isEnglish()
-        ? "Tap to start the synced music"
-        : "音源を開始するにはタップしてください", true));
+  if (!sync.audio.paused) {
+    setRunVideoSyncStatus(isEnglish() ? "Music is synced to video playback and seeking" : "映像の再生・一時停止・シークに同期中");
+    return;
   }
+  const request = ++sync.playRequest;
+  let playing;
+  try { playing = sync.audio.play(); }
+  catch (_) { setRunVideoSyncStatus(isEnglish() ? "Tap to resume video and music" : "映像と音源を再開するにはタップしてください", true); return; }
+  if (playing && playing.then) {
+    playing.then(() => {
+      if (runVideoSyncState === sync && request === sync.playRequest) setRunVideoSyncStatus(isEnglish()
+        ? "Music is synced to video playback and seeking" : "映像の再生・一時停止・シークに同期中");
+    }).catch(() => {
+      if (runVideoSyncState === sync && request === sync.playRequest) setRunVideoSyncStatus(isEnglish()
+        ? "Tap to resume video and music" : "映像と音源を再開するにはタップしてください", true);
+    });
+  }
+  return playing;
+}
+function beginRunVideoSeek(sync) {
+  sync.resumeAfterSeek = sync.wantsPlayback || (!sync.video.paused && !sync.video.ended);
+  sync.seeking = true;
+  sync.audio.pause();
+  stopRunVideoSyncLoop();
+  setRunVideoSyncStatus(isEnglish() ? "Moving to the selected position…" : "選んだ位置へ同期中…");
+}
+function finishRunVideoSeek(sync) {
+  syncRunVideoAudioPosition(true);
+  const shouldResume = sync.resumeAfterSeek && !sync.video.ended;
+  sync.resumeAfterSeek = false;
+  if (!shouldResume) { sync.seeking = false; return; }
+  sync.wantsPlayback = true;
+  const tasks = [];
+  try { if (sync.video.paused) tasks.push(sync.video.play()); } catch (_) {}
+  const audioPlay = tryPlayRunVideoAudio(false);
+  if (audioPlay) tasks.push(audioPlay);
+  sync.seeking = false;
+  startRunVideoSyncLoop();
+  Promise.allSettled(tasks.filter(Boolean)).then((results) => {
+    if (runVideoSyncState === sync && results.some((result) => result.status === "rejected")) {
+      setRunVideoSyncStatus(isEnglish() ? "Tap to resume video and music" : "映像と音源を再開するにはタップしてください", true);
+    }
+  });
 }
 function stopRunVideoAudioSync() {
   stopRunVideoSyncLoop();
@@ -127,22 +145,31 @@ function bindRunVideoAudioSync(music) {
   const video = document.getElementById("run-video-player");
   const audio = document.getElementById("run-video-audio");
   if (!video || !audio || !music) return;
-  runVideoSyncState = { video, audio, music };
+  runVideoSyncState = { video, audio, music, wantsPlayback: false, seeking: false, resumeAfterSeek: false, playRequest: 0 };
+  const sync = runVideoSyncState;
   preserveMediaPitch(audio);
   audio.volume = musicVolume;
   audio.addEventListener("loadedmetadata", () => syncRunVideoAudioPosition(true));
   audio.addEventListener("error", () => setRunVideoSyncStatus(isEnglish()
     ? "The linked music could not be played"
     : "紐づいた音源を再生できませんでした"));
-  video.addEventListener("play", () => { tryPlayRunVideoAudio(); startRunVideoSyncLoop(); });
-  video.addEventListener("playing", () => { tryPlayRunVideoAudio(); startRunVideoSyncLoop(); });
-  video.addEventListener("pause", () => { audio.pause(); stopRunVideoSyncLoop(); });
-  video.addEventListener("ended", () => { audio.pause(); stopRunVideoSyncLoop(); syncRunVideoAudioPosition(true); });
-  video.addEventListener("seeking", () => syncRunVideoAudioPosition(true));
-  video.addEventListener("seeked", () => {
-    syncRunVideoAudioPosition(true);
-    if (!video.paused && !video.ended) tryPlayRunVideoAudio();
+  const onPlay = () => {
+    sync.wantsPlayback = true;
+    if (sync.seeking || video.seeking) return;
+    tryPlayRunVideoAudio(); startRunVideoSyncLoop();
+  };
+  video.addEventListener("play", onPlay);
+  video.addEventListener("playing", onPlay);
+  video.addEventListener("pause", () => {
+    audio.pause(); stopRunVideoSyncLoop();
+    if (!sync.seeking && !video.seeking) { sync.wantsPlayback = false; sync.resumeAfterSeek = false; }
   });
+  video.addEventListener("ended", () => {
+    sync.wantsPlayback = false; sync.resumeAfterSeek = false;
+    audio.pause(); stopRunVideoSyncLoop(); syncRunVideoAudioPosition(true);
+  });
+  video.addEventListener("seeking", () => beginRunVideoSeek(sync));
+  video.addEventListener("seeked", () => finishRunVideoSeek(sync));
   video.addEventListener("ratechange", () => {
     audio.playbackRate = video.playbackRate || 1;
     preserveMediaPitch(audio);
@@ -151,9 +178,12 @@ function bindRunVideoAudioSync(music) {
 window.runVideoUnlockAudio = () => {
   const sync = runVideoSyncState;
   if (!sync) return;
+  sync.wantsPlayback = true;
+  sync.seeking = false;
+  sync.resumeAfterSeek = false;
   syncRunVideoAudioPosition(true);
   // iOSで別メディアの自動開始が抑止された場合も、この直接タップで映像と音源を同時に開始する。
-  const audioPlay = sync.audio.play();
+  const audioPlay = tryPlayRunVideoAudio(false);
   const videoPlay = sync.video.paused ? sync.video.play() : null;
   Promise.allSettled([audioPlay, videoPlay].filter(Boolean)).then((results) => {
     if (results.some((result) => result.status === "rejected")) {
@@ -171,7 +201,7 @@ function runVideoAudioSyncMarkup(music, musicAvailable) {
   if (!musicAvailable) return `<div class="run-video-audio-sync is-missing"><b>♪ ${esc(music.name || (isEnglish() ? "Linked music" : "対象音源"))}</b><span>${isEnglish() ? "Music data is missing on this device" : "この端末に音源データが見つかりません"}</span></div>`;
   return `<div class="run-video-audio-sync">
     <div><b>♪ ${esc(music.name || (isEnglish() ? "Linked music" : "対象音源"))}</b><span id="run-video-audio-status">${isEnglish() ? "Playback, pause, and seeking follow the video" : "映像の再生・一時停止・シークに追従します"}</span></div>
-    <button type="button" class="btn small" id="run-video-audio-unlock" hidden onclick="runVideoUnlockAudio()">${isEnglish() ? "Play music" : "♪ 音源を再生"}</button>
+    <button type="button" class="btn small" id="run-video-audio-unlock" hidden onclick="runVideoUnlockAudio()">${isEnglish() ? "Resume video and music" : "▶ 映像と音源を再開"}</button>
   </div>`;
 }
 
