@@ -168,7 +168,7 @@
     ["カメラを使えません。端末の許可設定をご確認ください", "Camera unavailable. Check this device's permission settings."],
     ["映像の撮影を開始できませんでした", "Could not start video recording"],
     ["撮影した映像が空でした", "The recorded video was empty"],
-    ["映像は端末内に保存します。6本目は保存時に入れ替える映像を選びます。", "Videos stay on this device. When saving a sixth video, choose one to replace."],
+    ["映像は端末内に保存します。撮影中はREC欄にプレビューを表示し、6本目は保存時に入れ替える映像を選びます。", "Videos stay on this device. A small preview remains in the REC panel while recording. When saving a sixth video, choose one to replace."],
     ["インカメ・音声なし", "Front camera · no audio"],
     ["通し練習の映像", "Full-run videos"], ["この映像を保存", "Save this video"],
     ["保存しない", "Do not save"], ["保存する映像を入れ替え", "Replace a saved video"],

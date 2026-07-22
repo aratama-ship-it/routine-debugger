@@ -63,6 +63,12 @@ if (!/RUN_VIDEO_LIMIT\s*=\s*5/.test(app)) {
 if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?\}\)/.test(app)) {
   failures.push("通し映像がインカメ・音声なしで設定されていません");
 }
+if (!/aspectRatio:\s*\{\s*ideal:\s*9\s*\/\s*16\s*\}/.test(app) || !/\.run-video-review\s*\{[\s\S]*?aspect-ratio:\s*9\/16/.test(css)) {
+  failures.push("通し映像の撮影・再生が縦9:16で統一されていません");
+}
+if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
+  failures.push("通し練習中のインカメプレビューがありません");
+}
 if (!/storedRunVideos\(\)\.length\s*>=\s*RUN_VIDEO_LIMIT[\s\S]*?showRunVideoReplacement/.test(app)) {
   failures.push("通し映像6本目の入れ替え確認がありません");
 }

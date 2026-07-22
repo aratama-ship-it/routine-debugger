@@ -1350,7 +1350,7 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-camera-head span, .run-camera-confirm > small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .run-video-capacity { flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
 .run-camera-preview {
-  display: block; width: min(220px, 100%); aspect-ratio: 3/4; margin: 0 auto 10px;
+  display: block; width: min(220px, 100%); aspect-ratio: 9/16; margin: 0 auto 10px;
   border: 2px solid var(--text); border-radius: 4px; background: #090909; object-fit: cover;
   transform: scaleX(-1);
 }
@@ -1385,16 +1385,22 @@ label.fld { color: var(--muted); font-weight: 700; }
 }
 .run-confirm-btn:active { opacity: 1; transform: translateY(3px); box-shadow: 0 2px 0 var(--run-shu-edge); }
 .run-video-live {
-  display: flex; min-height: 42px; margin: 0 0 10px; padding: 8px 11px; align-items: center; gap: 7px;
+  display: flex; min-height: 96px; margin: 0 0 10px; padding: 8px 11px; align-items: center; gap: 11px;
   border: 1px solid #9d3430; border-radius: 4px; background: #fff2ee; color: #8d2825;
   font-variant-numeric: tabular-nums;
 }
 .run-video-live-dot { width: 10px; height: 10px; border-radius: 50%; background: #c83f38; box-shadow: 0 0 0 3px rgba(200,63,56,.14); }
+.run-camera-live-preview {
+  flex: 0 0 auto; width: 56px; aspect-ratio: 9/16; border: 1px solid #7f2c29; border-radius: 3px;
+  background: #090909; object-fit: cover; transform: scaleX(-1);
+}
+.run-video-live-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 7px; }
+.run-video-live-copy > div { display: flex; align-items: center; gap: 8px; }
 .run-video-live b { font-size: 13px; letter-spacing: .08em; }
-.run-video-live > span:not(.run-video-live-dot) { font-size: 15px; font-weight: 850; }
-.run-video-live small { margin-left: auto; color: #8d5c59; font-size: 10px; }
+.run-video-live-copy > div > span:not(.run-video-live-dot) { font-size: 15px; font-weight: 850; }
+.run-video-live small { color: #8d5c59; font-size: 10px; }
 .run-video-review {
-  display: block; width: min(430px, 100%); max-height: 58vh; margin: 10px auto 12px;
+  display: block; width: min(340px, 100%); aspect-ratio: 9/16; margin: 10px auto 12px;
   border: 2px solid var(--text); border-radius: 4px; background: #000; object-fit: contain;
 }
 .run-video-save-note { margin: 0 0 9px; color: var(--muted); font-size: 12px; text-align: center; font-weight: 750; }
