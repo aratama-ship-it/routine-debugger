@@ -63,11 +63,21 @@ if (!/RUN_VIDEO_LIMIT\s*=\s*5/.test(app)) {
 if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?\}\)/.test(app)) {
   failures.push("通し映像がインカメ・音声なしで設定されていません");
 }
-if (!/aspectRatio:\s*\{\s*ideal:\s*9\s*\/\s*16\s*\}/.test(app) || !/\.run-video-review\s*\{[\s\S]*?aspect-ratio:\s*9\/16/.test(css)) {
-  failures.push("通し映像の撮影・再生が縦9:16で統一されていません");
+if (!/wide:\s*\{[\s\S]*?ratio:\s*3\s*\/\s*4/.test(app)
+    || !/vertical:\s*\{[\s\S]*?ratio:\s*9\s*\/\s*16/.test(app)
+    || !/selectRunCameraProfile/.test(app)
+    || !/\.run-camera-preview\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect/.test(css)) {
+  failures.push("通し映像の3:4／9:16選択とプレビュー反映がありません");
 }
 if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
   failures.push("通し練習中のインカメプレビューがありません");
+}
+if (!/addEventListener\("playing"[\s\S]*?startRunVideoCapture/.test(app)
+    || !/\["pause",\s*"ended"\][\s\S]*?stopRunVideoCaptureAtMusicStop/.test(app)) {
+  failures.push("通し映像の録画開始・終了が楽曲再生と同期していません");
+}
+if (!/SHEET 00 \/ HOME · \$\{APP_VERSION\}/.test(app)) {
+  failures.push("ホームに公開バージョン表示がありません");
 }
 if (!/storedRunVideos\(\)\.length\s*>=\s*RUN_VIDEO_LIMIT[\s\S]*?showRunVideoReplacement/.test(app)) {
   failures.push("通し映像6本目の入れ替え確認がありません");
@@ -87,7 +97,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 310_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 318_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
