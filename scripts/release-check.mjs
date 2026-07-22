@@ -45,6 +45,33 @@ if (!renderRecordSource || !/\bconst showRisk\s*=/.test(renderRecordSource[1])) 
 if (!/addEventListener\("pagehide", stopPlaybackForPageExit\)/.test(app)) {
   failures.push("ブラウザ離脱時の再生停止処理がありません");
 }
+if (!/featureSettings:\s*\{\s*showRisk:\s*false,\s*showSlots:\s*false\s*\}/.test(app)) {
+  failures.push("サンプルルーティンのリスク度・A\/B分岐が初期OFFではありません");
+}
+for (const property of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
+  if (!app.includes(property)) failures.push(`音程維持の互換設定がありません: ${property}`);
+}
+if (!/function setMusicPlaybackRate\([\s\S]*?preserveMediaPitch\(musicPlayer\)[\s\S]*?musicPlayer\.playbackRate/.test(app)) {
+  failures.push("パート練習の速度変更に音程維持処理が適用されていません");
+}
+if (!/PART_PLAYBACK_STEP\s*=\s*0\.05/.test(app) || !/partNudgePlaybackRate/.test(app)) {
+  failures.push("パート練習の再生速度を0.05倍刻みで調整できません");
+}
+if (!/RUN_VIDEO_LIMIT\s*=\s*5/.test(app)) {
+  failures.push("通し映像の全体保存上限が5本ではありません");
+}
+if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?\}\)/.test(app)) {
+  failures.push("通し映像がインカメ・音声なしで設定されていません");
+}
+if (!/storedRunVideos\(\)\.length\s*>=\s*RUN_VIDEO_LIMIT[\s\S]*?showRunVideoReplacement/.test(app)) {
+  failures.push("通し映像6本目の入れ替え確認がありません");
+}
+if (!/onclick="go\('runvideos'\)"/.test(app) || !/runvideos:\s*renderRunVideos/.test(app)) {
+  failures.push("ホームから演技映像ライブラリへの導線がありません");
+}
+if (!/function renderRunVideos\([\s\S]*?openRunVideo[\s\S]*?runVideoDelete/.test(app)) {
+  failures.push("演技映像ライブラリに再生・削除操作がありません");
+}
 
 const shellAssets = [...sw.matchAll(/^\s*"\.\/(.+?)",?$/gm)].map((match) => match[1].split("?")[0]);
 for (const asset of shellAssets) {
@@ -54,7 +81,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 300_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 310_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
