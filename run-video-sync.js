@@ -1,4 +1,4 @@
-/* ルーティンノート — 無音の通し映像と撮影時の音源を同期再生する */
+/* ルーティンノート — 音源入り通し映像と旧別音源映像の再生互換 */
 "use strict";
 
 let sheetRunMusicUrl = null;
@@ -18,6 +18,9 @@ function cloneRunVideoMusicMeta(meta) {
   });
 }
 function runVideoMusicMeta(video) {
+  if (video && video.composition && video.composition.music) {
+    return cloneRunVideoMusicMeta(video.composition.music);
+  }
   // v162以降は null も「撮影時に楽曲なし」という確定情報。旧映像だけ現在の設定へフォールバックする。
   if (video && Object.prototype.hasOwnProperty.call(video, "music")) {
     return cloneRunVideoMusicMeta(video.music);
@@ -31,8 +34,11 @@ function preserveRunVideoMusicSnapshots(routineId, music) {
   let referenced = false;
   for (const video of storedRunVideos()) {
     if (video.routineId !== routineId) continue;
-    if (!Object.prototype.hasOwnProperty.call(video, "music")) video.music = { ...snapshot };
-    if (video.music && video.music.blobId === snapshot.blobId) referenced = true;
+    // 音源入り映像は単体で再生できるため、元音源Blobを保持し続ける必要はない。
+    if (!Object.prototype.hasOwnProperty.call(video, "music") && !runVideoHasEmbeddedAudio(video)) {
+      video.music = { ...snapshot };
+    }
+    if (runVideoNeedsLinkedMusic(video) && video.music && video.music.blobId === snapshot.blobId) referenced = true;
   }
   return referenced;
 }
@@ -40,7 +46,8 @@ function runVideoMusicBlobIsReferenced(blobId) {
   if (!blobId) return false;
   return state.routines.some((routine) => routine.music && routine.music.blobId === blobId)
     || (state.audios || []).some((audio) => audio.blobId === blobId)
-    || storedRunVideos().some((video) => video.music && video.music.blobId === blobId);
+    || storedRunVideos().some((video) => runVideoNeedsLinkedMusic(video)
+      && video.music && video.music.blobId === blobId);
 }
 async function deleteRunVideoMusicBlobIfUnused(blobId) {
   if (blobId && !runVideoMusicBlobIsReferenced(blobId)) await blobDel(blobId);
@@ -204,6 +211,19 @@ function runVideoAudioSyncMarkup(music, musicAvailable) {
     <button type="button" class="btn small" id="run-video-audio-unlock" hidden onclick="runVideoUnlockAudio()">${isEnglish() ? "Resume video and music" : "▶ 映像と音源を再開"}</button>
   </div>`;
 }
+function runVideoAudioLabel(video) {
+  const mode = runVideoAudioMode(video);
+  if (mode === "embedded") return isEnglish() ? "Music embedded" : "音源入り";
+  if (mode === "linked") return isEnglish() ? "Linked music playback" : "別音源同期";
+  return isEnglish() ? "Video only" : "映像のみ";
+}
+function runVideoPlaybackAudioMarkup(video, music, musicAvailable) {
+  if (!runVideoHasEmbeddedAudio(video)) return runVideoAudioSyncMarkup(music, musicAvailable);
+  return `<div class="run-video-audio-sync is-embedded">
+    <div><b>♪ ${esc((music && music.name) || (isEnglish() ? "Recorded music" : "収録音源"))}</b>
+      <span>${isEnglish() ? "The music is recorded in this video. Playback and seeking use one timeline." : "音源は映像に収録済みです。再生・一時停止・シークは一つの時間軸で動きます。"}</span></div>
+  </div>`;
+}
 
 // 音源終了直後の一時映像を、結果確定前でも繰り返し確認する。
 // シートを閉じても stoppedRunVideoCapture は残し、結果入力後の保存確認へ引き継ぐ。
@@ -212,7 +232,8 @@ window.previewStoppedRunVideo = async (routineId) => {
   if (!capture || capture.routineId !== routineId) return toast("確認できる撮影映像がありません");
   return withLoading("撮影映像を準備中…", async () => {
     const music = runVideoMusicMeta(capture);
-    const musicBlob = music ? await blobGet(music.blobId) : null;
+    const needsLinkedMusic = runVideoNeedsLinkedMusic(capture);
+    const musicBlob = needsLinkedMusic && music ? await blobGet(music.blobId) : null;
     if (stoppedRunVideoCapture !== capture) return toast("確認できる撮影映像がありません");
     releaseSheetMedia();
     sheetVideoUrl = URL.createObjectURL(capture.blob);
@@ -220,12 +241,12 @@ window.previewStoppedRunVideo = async (routineId) => {
     showSheet(`
       <h3>今撮った通し映像</h3>
       <div class="sheet-sub">結果を記録する前の確認です。閉じると通し練習画面へ戻ります。</div>
-      <div class="sheet-sub">${uiText(runVideoProfile(capture).label)} / ${isEnglish() ? "Recorded without audio" : "撮影音声なし"} / ${fmtTimeFine(capture.duration)} / ${fmtBytes(capture.size)}</div>
+      <div class="sheet-sub">${uiText(runVideoProfile(capture).label)} / ${runVideoAudioLabel(capture)} / ${fmtTimeFine(capture.duration)} / ${fmtBytes(capture.size)}</div>
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(capture)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
-      ${sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
-      ${runVideoAudioSyncMarkup(music, !!sheetRunMusicUrl)}
+      ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
+      ${runVideoPlaybackAudioMarkup(capture, music, !!sheetRunMusicUrl)}
       <button class="btn primary" onclick="hideSheet()">通し結果の記録へ戻る</button>`);
-    if (sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
   });
 };
 

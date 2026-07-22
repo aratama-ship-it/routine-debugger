@@ -78,7 +78,9 @@ const context = vm.createContext({
   sheetVideoUrl: null,
   URL: { createObjectURL: () => `blob:test-${++createdObjectUrl}` },
 });
+const compositionSource = await readFile(new URL("../run-video-composition.js", import.meta.url), "utf8");
 const source = await readFile(new URL("../run-video-sync.js", import.meta.url), "utf8");
+vm.runInContext(compositionSource, context, { filename: "run-video-composition.js" });
 vm.runInContext(source, context, { filename: "run-video-sync.js" });
 
 const music = { blobId: "music-1", name: "Test", trimStart: 10, trimEnd: 110, fullDuration: 200 };
@@ -143,5 +145,18 @@ assert.equal(releasedSheetMedia, 1, "instant preview should release any previous
 assert.match(shownSheet, /今撮った通し映像/, "instant preview should open the just-recorded video sheet");
 assert.match(shownSheet, /run-video-player/, "instant preview should include a video player");
 assert.equal(context.stoppedRunVideoCapture, stoppedCapture, "previewing must keep the capture for result logging and save confirmation");
+
+const embeddedCapture = {
+  ...stoppedCapture,
+  audio: true,
+  audioMode: "embedded",
+  audioEmbedded: true,
+  composition: context.createRunVideoCompositionRecipe(music),
+};
+context.stoppedRunVideoCapture = embeddedCapture;
+await context.window.previewStoppedRunVideo("r1");
+assert.doesNotMatch(shownSheet, /<audio id="run-video-audio"/, "embedded recordings should use the video player's single timeline");
+assert.match(shownSheet, /音源は映像に収録済みです/, "embedded recordings should explain that the music is inside the video");
+assert.equal(context.stoppedRunVideoCapture, embeddedCapture, "embedded preview should also preserve the capture until result logging");
 
 console.log("Run-video music sync test passed");

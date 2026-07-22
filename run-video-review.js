@@ -67,9 +67,10 @@ window.openRunVideo = async (id) => {
   if (!video) return toast("映像データが見つかりません");
   return withLoading("映像と音源を読み込み中…", async () => {
     const music = runVideoMusicMeta(video);
+    const needsLinkedMusic = runVideoNeedsLinkedMusic(video);
     const [blob, musicBlob] = await Promise.all([
       blobGet(video.blobId),
-      music ? blobGet(music.blobId) : Promise.resolve(null),
+      needsLinkedMusic && music ? blobGet(music.blobId) : Promise.resolve(null),
     ]);
     if (!blob) return toast("映像データが見つかりません");
     stopRunVideoAudioSync();
@@ -85,17 +86,17 @@ window.openRunVideo = async (id) => {
     }).join("") : "";
     showSheet(`
       <h3>${esc(runVideoTitle(video))}</h3>
-      <div class="sheet-sub">${uiText("インカメ")} / ${uiText(runVideoProfile(video).label)} / ${isEnglish() ? "Recorded without audio" : "撮影音声なし"} / ${fmtTimeFine(video.duration)}</div>
+      <div class="sheet-sub">${uiText("インカメ")} / ${uiText(runVideoProfile(video).label)} / ${runVideoAudioLabel(video)} / ${fmtTimeFine(video.duration)}</div>
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(video)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
-      ${sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
-      ${runVideoAudioSyncMarkup(music, !!sheetRunMusicUrl)}
+      ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
+      ${runVideoPlaybackAudioMarkup(video, music, !!sheetRunMusicUrl)}
       ${markers ? `<div class="time-chips run-video-markers">${markers}</div>` : `<div class="hint">この映像の失敗記録はありません</div>`}
       ${runVideoCurrentStepMarkup(stepContext)}
       <button class="btn" onclick="runVideoDownload('${video.id}')">映像を書き出す</button>
       <button class="btn danger-ghost" onclick="runVideoDelete('${video.id}')">この映像を削除</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
     bindRunVideoCurrentStep(stepContext);
-    if (sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
   });
 };
 window.runVideoSeek = (time) => {

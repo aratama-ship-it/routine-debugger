@@ -12,26 +12,28 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
-  read("app.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
+const [app, runVideoComposition, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
+  read("app.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
+for (const [name, source] of [["app.js", app], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
 const appVersion = requireMatch(app, /APP_VERSION\s*=\s*"(v\d+)"/, "APP_VERSION");
 const cacheVersion = requireMatch(sw, /CACHE\s*=\s*"routine-debugger-(v\d+)"/, "Service Worker版");
+const swRunVideoCompositionVersion = requireMatch(sw, /run-video-composition\.js\?v=(\d+)/, "Service Worker映像音源合成JS版");
 const swRunVideoSyncVersion = requireMatch(sw, /run-video-sync\.js\?v=(\d+)/, "Service Worker映像音源同期JS版");
 const swRunVideoReviewVersion = requireMatch(sw, /run-video-review\.js\?v=(\d+)/, "Service Worker通し映像レビューJS版");
 const cssVersion = requireMatch(html, /styles\.css\?v=(\d+)/, "CSS版");
 const i18nVersion = requireMatch(html, /i18n\.js\?v=(\d+)/, "i18n版");
+const runVideoCompositionVersion = requireMatch(html, /run-video-composition\.js\?v=(\d+)/, "映像音源合成JS版");
 const runVideoSyncVersion = requireMatch(html, /run-video-sync\.js\?v=(\d+)/, "映像音源同期JS版");
 const runVideoReviewVersion = requireMatch(html, /run-video-review\.js\?v=(\d+)/, "通し映像レビューJS版");
 const jsVersion = requireMatch(html, /app\.js\?v=(\d+)/, "JS版");
 const expected = appVersion && appVersion.slice(1);
-for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
+for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像音源合成JS", swRunVideoCompositionVersion], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像音源合成JS", runVideoCompositionVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
   if (expected && value !== expected) failures.push(`${label}の版 ${value || "?"} がAPP_VERSION ${expected} と不一致です`);
 }
 
@@ -72,7 +74,7 @@ if (!/RUN_VIDEO_LIMIT\s*=\s*5/.test(app)) {
   failures.push("通し映像の全体保存上限が5本ではありません");
 }
 if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?\}\)/.test(app)) {
-  failures.push("通し映像がインカメ・音声なしで設定されていません");
+  failures.push("通し映像がインカメ・カメラマイクOFFで設定されていません");
 }
 if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/\s*3/.test(app)
     || !/vertical:\s*\{[\s\S]*?ratio:\s*9\s*\/\s*16/.test(app)
@@ -95,6 +97,33 @@ if (!/cap\.music\s*=\s*cloneRunVideoMusicMeta\(rt\s*&&\s*rt\.music\)/.test(app)
     || !/music:\s*pending\.music\s*\?\s*\{\s*\.\.\.pending\.music\s*\}\s*:\s*null/.test(app)
     || !/function runVideoMusicMeta\(video\)/.test(runVideoSync)) {
   failures.push("通し映像へ撮影時の対象音源が保存されていません");
+}
+if (!/RUN_VIDEO_COMPOSITION_VERSION\s*=\s*1/.test(runVideoComposition)
+    || !/function createRunVideoCompositionRecipe\(music, options/.test(runVideoComposition)
+    || !/output:\s*"single-video"/.test(runVideoComposition)
+    || !/engine:\s*"web-realtime"/.test(runVideoComposition)
+    || !/function finalizeRunVideoComposition\(capture\)/.test(runVideoComposition)
+    || !/function createWebRunVideoRecordingStream/.test(runVideoComposition)
+    || !/createMediaStreamDestination/.test(runVideoComposition)
+    || !/recordingGain:\s*1/.test(runVideoComposition)
+    || !/microphone:\s*false/.test(runVideoComposition)) {
+  failures.push("将来のネイティブ後合成へ差し替えられる通し映像の合成レシピがありません");
+}
+if (!/let audioCtx = null, musicSourceNode = null, gainNode = null/.test(app)
+    || !/musicSourceNode = audioCtx\.createMediaElementSource\(musicPlayer\)/.test(app)
+    || !/createWebRunVideoRecordingStream\(\{[\s\S]*?musicSourceNode[\s\S]*?includeMusic:\s*!!cap\.music/.test(app)
+    || !/audioBitsPerSecond\s*=\s*128000/.test(app)
+    || !/await finalizeRunVideoComposition\(\{/.test(app)
+    || !/audioMode:\s*pending\.audioMode/.test(app)
+    || !/composition:\s*pending\.composition/.test(app)) {
+  failures.push("Web版の新規通し映像へアプリ音源を一定音量で収録し、合成情報を保存できません");
+}
+if (!/function runVideoPlaybackAudioMarkup\(video, music, musicAvailable\)/.test(runVideoSync)
+    || !/runVideoHasEmbeddedAudio\(video\)/.test(runVideoSync)
+    || !/runVideoNeedsLinkedMusic\(video\)/.test(runVideoReview)
+    || !/needsLinkedMusic && music \? blobGet/.test(runVideoReview)
+    || !/runVideoPlaybackAudioMarkup\(video, music/.test(runVideoReview)) {
+  failures.push("音源入り映像を単一プレイヤーで再生し、旧別音源方式だけ同期処理へ戻せません");
 }
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/stoppedRunVideoCapture\s*!==\s*capture/.test(runVideoSync)
@@ -181,16 +210,16 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 322_000], ["run-video-sync.js", 16_500], ["run-video-review.js", 12_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 326_000], ["run-video-composition.js", 12_000], ["run-video-sync.js", 18_500], ["run-video-review.js", 12_000], ["styles.css", 120_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-if (gzipShell > 143_000) failures.push(`主要コードのgzip概算が143KBを超えています (${gzipShell})`);
+if (gzipShell > 149_000) failures.push(`主要コードのgzip概算が149KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));
