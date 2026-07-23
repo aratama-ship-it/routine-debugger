@@ -12,28 +12,30 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoComposition, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
-  read("app.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
+const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
 const appVersion = requireMatch(app, /APP_VERSION\s*=\s*"(v\d+)"/, "APP_VERSION");
 const cacheVersion = requireMatch(sw, /CACHE\s*=\s*"routine-debugger-(v\d+)"/, "Service Worker版");
+const swRunVideoOrientationVersion = requireMatch(sw, /run-video-orientation\.js\?v=(\d+)/, "Service Worker映像向き判定JS版");
 const swRunVideoCompositionVersion = requireMatch(sw, /run-video-composition\.js\?v=(\d+)/, "Service Worker映像音源合成JS版");
 const swRunVideoSyncVersion = requireMatch(sw, /run-video-sync\.js\?v=(\d+)/, "Service Worker映像音源同期JS版");
 const swRunVideoReviewVersion = requireMatch(sw, /run-video-review\.js\?v=(\d+)/, "Service Worker通し映像レビューJS版");
 const cssVersion = requireMatch(html, /styles\.css\?v=(\d+)/, "CSS版");
 const i18nVersion = requireMatch(html, /i18n\.js\?v=(\d+)/, "i18n版");
+const runVideoOrientationVersion = requireMatch(html, /run-video-orientation\.js\?v=(\d+)/, "映像向き判定JS版");
 const runVideoCompositionVersion = requireMatch(html, /run-video-composition\.js\?v=(\d+)/, "映像音源合成JS版");
 const runVideoSyncVersion = requireMatch(html, /run-video-sync\.js\?v=(\d+)/, "映像音源同期JS版");
 const runVideoReviewVersion = requireMatch(html, /run-video-review\.js\?v=(\d+)/, "通し映像レビューJS版");
 const jsVersion = requireMatch(html, /app\.js\?v=(\d+)/, "JS版");
 const expected = appVersion && appVersion.slice(1);
-for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像音源合成JS", swRunVideoCompositionVersion], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像音源合成JS", runVideoCompositionVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
+for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像向き判定JS", swRunVideoOrientationVersion], ["Service Worker映像音源合成JS", swRunVideoCompositionVersion], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像向き判定JS", runVideoOrientationVersion], ["映像音源合成JS", runVideoCompositionVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
   if (expected && value !== expected) failures.push(`${label}の版 ${value || "?"} がAPP_VERSION ${expected} と不一致です`);
 }
 
@@ -51,8 +53,8 @@ if (!renderRecordSource || !/\bconst showRisk\s*=/.test(renderRecordSource[1])) 
 if (!/addEventListener\("pagehide", stopPlaybackForPageExit\)/.test(app)) {
   failures.push("ブラウザ離脱時の再生停止処理がありません");
 }
-if (!/featureSettings:\s*\{\s*showRisk:\s*false,\s*showSlots:\s*false\s*\}/.test(app)) {
-  failures.push("サンプルルーティンのリスク度・A\/B分岐が初期OFFではありません");
+if (!/featureSettings:\s*\{\s*showRisk:\s*false,\s*showSlots:\s*false,\s*showPracticeVideo:\s*true\s*\}/.test(app)) {
+  failures.push("サンプルルーティンのリスク度・A\/B分岐が初期OFF、プレビュー動画が初期ONではありません");
 }
 for (const property of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
   if (!app.includes(property)) failures.push(`音程維持の互換設定がありません: ${property}`);
@@ -62,6 +64,136 @@ if (!/function setMusicPlaybackRate\([\s\S]*?preserveMediaPitch\(musicPlayer\)[\
 }
 if (!/PART_PLAYBACK_STEP\s*=\s*0\.05/.test(app) || !/partNudgePlaybackRate/.test(app)) {
   failures.push("パート練習の再生速度を0.05倍刻みで調整できません");
+}
+if (!/showPracticeVideo:\s*true/.test(app)
+    || !/rt\.featureSettings\.showPracticeVideo\s*=\s*true/.test(app)
+    || !/delete state\.settings\.practicePreviewMode/.test(app)
+    || !/routineSwitchRow\("プレビュー動画",[\s\S]*?"showPracticeVideo"/.test(app)
+    || !/function practicePreviewNameOnly\(\)[\s\S]*?!routineFeatureEnabled\(rt, "showPracticeVideo"\)/.test(app)
+    || /function practicePreviewModeHtml\(\)|window\.setPracticePreviewMode/.test(app)
+    || !/if \(practicePreviewNameOnly\(\)\) return;/.test(app)
+    || !/\.practice-now\.name-only/.test(css)
+    || !/\["プレビュー動画", "Preview video"\]/.test(i18n)) {
+  failures.push("通し・パート練習のプレビュー動画が初期ONで、個別設定から切り替えられる仕様ではありません");
+}
+const renderSettingsSource = app.match(/function renderSettings\(\) \{([\s\S]*?)\n\}\n\nwindow\.setLanguage/);
+if (!renderSettingsSource
+    || /すべてのルーティンに適用|switchRow\("リスク度"|switchRow\("A\/B分岐"/.test(renderSettingsSource[1])
+    || !/function defaultRoutineFeatures\(\)[\s\S]*?showRisk:\s*false[\s\S]*?showSlots:\s*false/.test(app)
+    || !/routineSwitchRow\("リスク度"/.test(app)
+    || !/routineSwitchRow\("A\/B分岐"/.test(app)) {
+  failures.push("リスク度・A/B分岐が全体設定では非表示で、個別設定だけから変更できる仕様ではありません");
+}
+if (/技名|Sequence name/.test(app) || /技名|Skill name|skill name/.test(i18n)
+    || !/placeholder="選択肢\$\{String\.fromCharCode\(65 \+ oi\)\}のシーケンス名"/.test(app)
+    || !/\["シーケンス名", "Sequence"\]/.test(i18n)
+    || !/\[\/\^選択肢\(\[A-Z\]\)のシーケンス名\$\/, "Option \$1 sequence"\]/.test(i18n)) {
+  failures.push("名称を示す用語が、日本語はシーケンス名、英語はSequenceに統一されていません");
+}
+if (!/<div class="es-name-field">[\s\S]*?<span class="es-duration">\$\{editorDurationLabel\(s, showSlots\)\}<\/span>/.test(app)
+    || !/oninput="\$\{nameOninput\};updateEditorSequenceDuration\(this\)"/.test(app)
+    || !/function updateEditorSequenceDuration\(input\)/.test(app)
+    || !/context\.measureText\(label\)\.width/.test(app)
+    || !/nameWidth \+ durationWidth \+ 18 <= available/.test(app)
+    || !/\.es-name-field\.duration-visible input\[type=text\]/.test(css)
+    || !/\.es-name-field\.duration-visible \.es-duration/.test(css)) {
+  failures.push("編集行の長さがシーケンス名右側に表示され、重なる場合だけ隠れる仕様ではありません");
+}
+if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
+    || !/function cueIntervalAt\(index\)[\s\S]*?nextCue - currentCue - duration/.test(app)
+    || !/terminal \? editorMusicEndForDraft\(\)/.test(app)
+    || !/function cueIntervalWarningHtml\(index\)/.test(app)
+    || !/楽曲終了まで \$\{seconds\}秒の空間あり/.test(app)
+    || !/class="cue-gap-actions"/.test(app)
+    || !/addStep\('trick',\$\{insertAt\}\)/.test(app)
+    || !/sheetPickTrick\(\$\{insertAt\}\)/.test(app)
+    || !/addStep\('transition',\$\{insertAt\}\)/.test(app)
+    || !/window\.dismissCueInterval\s*=/.test(app)
+    || !/window\.addStep = \(kind, insertAt = null\)/.test(app)
+    || !/window\.sheetPickTrick = \(insertAt = null\)/.test(app)
+    || !/window\.addStepFromTrick = \(trickId, insertAt = null\)/.test(app)
+    || !/draft\.steps\.splice\(at, 0, step\)/.test(app)
+    || !/window\.fitCueToPrevious\s*=\s*\(i\)[\s\S]*?Number\(previous\.cue\) \+ stepDur\(previous\)/.test(app)
+    || !/class="cue-position-actions"/.test(app)
+    || !/\.cue-interval-alert\.gap/.test(css)
+    || !/\.cue-interval-alert\.overlap/.test(css)
+    || !/\.cue-gap-actions button/.test(css)
+    || !/\.editor-step \.cue-fit/.test(css)) {
+  failures.push("キュー間と楽曲末尾の空白・マイナス区間警告、空白内追加、閉じる操作、FIT整列が揃っていません");
+}
+if (/onclick="editorAutoCue\(\)"/.test(app)
+    || !/const emptyStepActions = `[\s\S]*?addStep\('trick',0\)[\s\S]*?sheetPickTrick\(0\)[\s\S]*?addStep\('transition',0\)/.test(app)
+    || !/\$\{stepRows \|\| `[\s\S]*?\$\{emptyStepActions\}`\}/.test(app)) {
+  failures.push("編集末尾の追加・自動セット領域が非表示で、空のルーティンだけに初回追加導線を残す仕様ではありません");
+}
+if (/stepsSignature/.test(app)
+    || !/function showRoutineSaveChoice\(rt\)/.test(app)
+    || !/保存方法を選ぶ/.test(app)
+    || !/runsOfVersion\(rt\.id, currentVersion\.id\)\.length/.test(app)
+    || !/commitRoutineSave\('version'\)/.test(app)
+    || !/commitRoutineSave\('overwrite'\)/.test(app)
+    || !/window\.commitRoutineSave = async \(mode\)/.test(app)
+    || !/if \(mode === "version"\)[\s\S]*?rt\.versions\.push/.test(app)
+    || !/current\.steps = cloneRoutineSteps\(draft\.steps\)/.test(app)
+    || !/現在のv\$\{currentNo\}には通し\$\{runCount\}本の記録/.test(app)
+    || !/保存時に、新しいバージョンとして残すか/.test(app)
+    || !/分析を分けて残す<b>新しいバージョン<\/b>か、現在版の上書き/.test(app)) {
+  failures.push("既存ルーティンの保存時に、新バージョン保存と現在版の上書きを影響説明付きで選べません");
+}
+if (!/function renderHelpEnglish\(\)[\s\S]*?Start here[\s\S]*?Keep your data safe/.test(app)
+    || !/function renderHelp\(\)[\s\S]*?まずはこの流れ[\s\S]*?データを守る/.test(app)
+    || !/Build the routine\.[\s\S]*?Review and refine\.[\s\S]*?repeat the cycle/.test(app)
+    || !/ルーティンを組み立てる。[\s\S]*?振り返り、細かく練習する。[\s\S]*?またこの流れを繰り返して精度を高める/.test(app)
+    || (app.match(/class="card help-guide-card"/g) || []).length !== 10
+    || !/class="help-quick-steps"/.test(app)
+    || !/\.help-quick-steps li/.test(css)) {
+  failures.push("使い方が日英とも、準備・練習・振り返り・次の練習の循環として整理されていません");
+}
+if (/st\.fails\s*\?\s*`\$\{st\.recov\}/.test(app)
+    || !/let recov = 0, fails = 0;[\s\S]*?if \(e\.type !== "drop_abort"\) recov\+\+/.test(app)) {
+  failures.push("乱れ・ドロップ後の回復は記録・集計を維持しつつ、分析概要から非表示になっていません");
+}
+if (!/const runFailureEventCount\s*=/.test(app)
+    || !/failureCountDistribution\s*=\s*\[/.test(app)
+    || !/failuresPerRun\s*=\s*total \? fails \/ total : 0/.test(app)
+    || !/class="stat-overview analysis-overview"/.test(app)
+    || !/class="failure-count-estimate"/.test(app)
+    || !/平均ミス回数/.test(app)
+    || !/これまでの通しから推定。回避・実施できずは含みません。/.test(app)
+    || /openConfidenceLevelSheet|saveConfidenceLevel|analysisConfidenceLevel/.test(app)
+    || !/\.failure-count-grid/.test(css)) {
+  failures.push("95%区間が、1通しの平均失敗回数と0回・1回・2回・3回以上の実測確率へ置き換わっていません");
+}
+if (!/function failureRateClass\(item\)[\s\S]*?rate >= 0\.5[\s\S]*?failure-rate-red[\s\S]*?rate >= 0\.3[\s\S]*?failure-rate-orange[\s\S]*?rate >= 0\.1[\s\S]*?failure-rate-yellow/.test(app)
+    || !/step-stat \$\{s\.step\.kind\} \$\{failureRateClass\(s\)\}/.test(app)
+    || !/slot-opt-stat \$\{failureRateClass\(o\)\}/.test(app)
+    || !/\.failure-rate-yellow/.test(css) || !/\.failure-rate-orange/.test(css) || !/\.failure-rate-red/.test(css)
+    || !/SAMPLE_HISTORY_SCHEMA\s*=\s*3/.test(app)
+    || !/Array\.isArray\(fail\[0\]\) \? fail : \[fail\]/.test(app)
+    || !/4ボールは半数で乱れ/.test(app)) {
+  failures.push("失敗率10%・30%・50%の背景色分けと、それを確認できるサンプル履歴がありません");
+}
+if (!/SAMPLE_SEQUENCE_SCHEMA\s*=\s*2/.test(app)
+    || !/function ensureSampleSequenceDemo\(rt\)/.test(app)
+    || !/function remapExpandedSampleSessions\(rt, version, previousSteps\)/.test(app)
+    || !/sampleSequenceSchema:\s*SAMPLE_SEQUENCE_SCHEMA/.test(app)
+    || !/["']コラムス["']/.test(app)
+    || !/["']ミルズメス風["']/.test(app)
+    || !/["']サークルトス["']/.test(app)
+    || !/v3 A\/B分岐と技を追加/.test(app)
+    || !/A\/B分岐と技を追加/.test(i18n)) {
+  failures.push("サンプルv3が10シーケンス構成へ移行できません");
+}
+if (!/SAMPLE_TRANSITION_COLOR_SCHEMA\s*=\s*1/.test(app)
+    || !/function ensureSampleTransitionColors\(rt\)/.test(app)
+    || !/step\.kind === "transition" \? "rust" : "blue"/.test(app)
+    || !/sampleTransitionColorSchema:\s*SAMPLE_TRANSITION_COLOR_SCHEMA/.test(app)) {
+  failures.push("サンプルルーティンの移行だけを朱色の識別線にできません");
+}
+if (!/PART_LOOP_DELAY_DEFAULT\s*=\s*3/.test(app)
+    || !/if \(stored == null\) return PART_LOOP_DELAY_DEFAULT/.test(app)
+    || !/rt\.partLoop\.delaySeconds\s*=\s*next/.test(app)) {
+  failures.push("パート練習のループ間隔が初期3秒で、0秒も明示保存できる仕様ではありません");
 }
 if (!/musicPlayer\.preload\s*=\s*"metadata"/.test(app)
     || !/async function loadMusic\([\s\S]*?musicPlayer\.load\(\)/.test(app)) {
@@ -85,6 +217,21 @@ if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/
     || !/\.run-video-review\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)) {
   failures.push("通し映像の4:3横長／9:16縦長選択と各プレビューへの反映がありません");
 }
+if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeight, frameWidth = 0, frameHeight = 0\)/.test(runVideoOrientation)
+    || !/blocked:\s*requiresLandscape\s*&&\s*\(!viewportLandscape\s*\|\|\s*!frameLandscape\)/.test(runVideoOrientation)
+    || !/wide:\s*\{[\s\S]*?orientation:\s*"landscape"/.test(app)
+    || !/id="run-camera-orientation"/.test(app)
+    || !/id="run-confirm-start"/.test(app)
+    || !/async function prepareRunCamera\([\s\S]*?currentRunCameraOrientationState\(profile\.id, null\)[\s\S]*?orientation\.blocked/.test(app)
+    || !/window\.startRunCountdown\s*=\s*\([\s\S]*?currentRunCameraOrientationState\(runCamera\.profileId, runCamera\)\.blocked/.test(app)
+    || !/function startRunVideoCapture\([\s\S]*?currentRunCameraOrientationState\(cap\.profileId, cap\)\.blocked/.test(app)
+    || !/addEventListener\("resize", scheduleRunCameraOrientationUi\)/.test(app)
+    || !/addEventListener\("orientationchange", scheduleRunCameraOrientationUi\)/.test(app)
+    || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
+    || !/4:3横長はiPhoneを横向きに、9:16縦長は縦向きにして撮影します/.test(app)
+    || !/\.run-camera-orientation/.test(css)) {
+  failures.push("4:3横長撮影を画面・実カメラ双方の横向き確認後だけ開始する保護がありません");
+}
 if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
   failures.push("通し練習中のインカメプレビューがありません");
 }
@@ -101,22 +248,29 @@ if (!/cap\.music\s*=\s*cloneRunVideoMusicMeta\(rt\s*&&\s*rt\.music\)/.test(app)
 if (!/RUN_VIDEO_COMPOSITION_VERSION\s*=\s*1/.test(runVideoComposition)
     || !/function createRunVideoCompositionRecipe\(music, options/.test(runVideoComposition)
     || !/output:\s*"single-video"/.test(runVideoComposition)
-    || !/engine:\s*"web-realtime"/.test(runVideoComposition)
     || !/function finalizeRunVideoComposition\(capture\)/.test(runVideoComposition)
-    || !/function createWebRunVideoRecordingStream/.test(runVideoComposition)
+    || !/function composeRunVideoAfterCapture/.test(runVideoComposition)
+    || !/canvas\.captureStream/.test(runVideoComposition)
+    || !/createMediaElementSource\(audio\)/.test(runVideoComposition)
     || !/createMediaStreamDestination/.test(runVideoComposition)
+    || !/engine:\s*"web-post-save"/.test(runVideoComposition)
+    || !/function finalizeRunVideoPostComposition/.test(runVideoComposition)
     || !/recordingGain:\s*1/.test(runVideoComposition)
     || !/microphone:\s*false/.test(runVideoComposition)) {
   failures.push("将来のネイティブ後合成へ差し替えられる通し映像の合成レシピがありません");
 }
-if (!/let audioCtx = null, musicSourceNode = null, gainNode = null/.test(app)
-    || !/musicSourceNode = audioCtx\.createMediaElementSource\(musicPlayer\)/.test(app)
-    || !/createWebRunVideoRecordingStream\(\{[\s\S]*?musicSourceNode[\s\S]*?includeMusic:\s*!!cap\.music/.test(app)
-    || !/audioBitsPerSecond\s*=\s*128000/.test(app)
+if (!/function startRunVideoCapture\([\s\S]*?new MediaRecorder\(cap\.stream, options\)/.test(app)
+    || !/cap\.audioEmbedded\s*=\s*false/.test(app)
     || !/await finalizeRunVideoComposition\(\{/.test(app)
+    || !/composeRunVideoAfterCapture\(\{[\s\S]*?pendingRunVideoMusicBlob[\s\S]*?onProgress:\s*updateRunVideoCompositionProgress/.test(app)
+    || !/finalizeRunVideoPostComposition\(pending, composed\)/.test(app)
+    || !/window\.cancelRunVideoPostComposition/.test(app)
+    || !/window\.savePendingRunVideoLinked/.test(app)
+    || !/id="run-video-compose-bar"/.test(app)
     || !/audioMode:\s*pending\.audioMode/.test(app)
-    || !/composition:\s*pending\.composition/.test(app)) {
-  failures.push("Web版の新規通し映像へアプリ音源を一定音量で収録し、合成情報を保存できません");
+    || !/composition:\s*pending\.composition/.test(app)
+    || !/postComposition:\s*pending\.postComposition/.test(app)) {
+  failures.push("Web版の新規通し映像をカメラ単独で記録し、保存時に音源合成・進捗・退避保存まで行えません");
 }
 if (!/function runVideoPlaybackAudioMarkup\(video, music, musicAvailable\)/.test(runVideoSync)
     || !/runVideoHasEmbeddedAudio\(video\)/.test(runVideoSync)
@@ -127,10 +281,10 @@ if (!/function runVideoPlaybackAudioMarkup\(video, music, musicAvailable\)/.test
 }
 if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*1/.test(runVideoComposition)
     || !/function normalizeRunVideoAudioDelay\(value\)/.test(runVideoComposition)
-    || !/audioDelaySeconds:\s*preferredRunVideoAudioDelay\(\)/.test(app)
-    || !/createDelay\(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\)/.test(runVideoComposition)
-    || !/recordingAudioDelaySeconds:\s*cap\.recordingAudioDelaySeconds/.test(app)
-    || !/audioTailMs[\s\S]*?setTimeout\(resolve, audioTailMs\)/.test(app)
+    || !/cap\.requestedAudioDelaySeconds\s*=\s*preferredRunVideoAudioDelay\(\)/.test(app)
+    || !/audioDelaySeconds:\s*normalizeRunVideoAudioDelay\(capture\.syncAudioDelaySeconds/.test(runVideoComposition)
+    || !/requestedAudioDelaySeconds:\s*cap\.requestedAudioDelaySeconds/.test(app)
+    || !/composition\.engine === "web-post-save-pending"/.test(runVideoSync)
     || !/function runVideoSyncDelayMarkup\(video, target/.test(runVideoSync)
     || !/max="\$\{RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\}"\s+step="0\.05"/.test(runVideoSync)
     || !/function bindRunVideoEmbeddedAudioDelay\(video\)[\s\S]*?createMediaElementSource\(player\)[\s\S]*?createDelay/.test(runVideoSync)
@@ -148,7 +302,7 @@ if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/\.run-video-stopped \.run-video-instant-preview/.test(css)) {
   failures.push("音源停止直後の一時映像を、結果入力前に何度でもプレビューできません");
 }
-if (!/function bindRunVideoAudioSync\(music\)[\s\S]*?addEventListener\("play"[\s\S]*?tryPlayRunVideoAudio/.test(runVideoSync)
+if (!/function bindRunVideoAudioSync\(music, sourceVideo = null\)[\s\S]*?addEventListener\("play"[\s\S]*?tryPlayRunVideoAudio/.test(runVideoSync)
     || !/addEventListener\("pause"[\s\S]*?audio\.pause/.test(runVideoSync)
     || !/function beginRunVideoSeek\(sync\)[\s\S]*?resumeAfterSeek[\s\S]*?sync\.audio\.pause/.test(runVideoSync)
     || !/function finishRunVideoSeek\(sync\)[\s\S]*?syncRunVideoAudioPosition\(true\)[\s\S]*?shouldResume[\s\S]*?sync\.video\.play/.test(runVideoSync)
@@ -226,16 +380,16 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 326_000], ["run-video-composition.js", 12_000], ["run-video-sync.js", 24_500], ["run-video-review.js", 12_000], ["styles.css", 122_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 342_000], ["run-video-orientation.js", 3_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 27_000], ["run-video-review.js", 12_000], ["styles.css", 128_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-if (gzipShell > 149_000) failures.push(`主要コードのgzip概算が149KBを超えています (${gzipShell})`);
+if (gzipShell > 161_000) failures.push(`主要コードのgzip概算が161KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

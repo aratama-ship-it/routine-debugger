@@ -2,7 +2,7 @@
 "use strict";
 
 let sheetRunMusicUrl = null;
-let runVideoSyncState = null; // { video, audio, music, wantsPlayback, seeking, resumeAfterSeek, playRequest }
+let runVideoSyncState = null; // { video, audio, music, sourceVideo, wantsPlayback, seeking, resumeAfterSeek, playRequest, audioStartTimer }
 let runVideoSyncRaf = 0;
 let runVideoEmbeddedDelayState = null; // { video, context, source, delayNode }
 
@@ -73,7 +73,8 @@ function syncRunVideoAudioPosition(force = false) {
   const sync = runVideoSyncState;
   if (!sync || !sync.audio || !sync.music) return;
   const bounds = runVideoMusicBounds(sync.music, sync.audio);
-  const relative = Math.max(0, Math.min(sync.video.currentTime || 0, bounds.duration || Infinity));
+  const delay = sync.sourceVideo ? runVideoDesiredAudioDelay(sync.sourceVideo) : 0;
+  const relative = Math.max(0, Math.min((sync.video.currentTime || 0) - delay, bounds.duration || Infinity));
   const expected = bounds.start + relative;
   if (!Number.isFinite(expected)) return;
   if (force || Math.abs((sync.audio.currentTime || 0) - expected) > 0.16) {
@@ -96,6 +97,23 @@ function startRunVideoSyncLoop() {
 function tryPlayRunVideoAudio(syncPosition = true) {
   const sync = runVideoSyncState;
   if (!sync || !sync.audio) return;
+  clearTimeout(sync.audioStartTimer);
+  sync.audioStartTimer = null;
+  const delay = sync.sourceVideo ? runVideoDesiredAudioDelay(sync.sourceVideo) : 0;
+  const waitSeconds = Math.max(0, delay - (Number(sync.video.currentTime) || 0));
+  if (waitSeconds > 0.015) {
+    sync.audio.pause();
+    if (syncPosition) syncRunVideoAudioPosition(true);
+    setRunVideoSyncStatus(isEnglish()
+      ? `Music starts in ${waitSeconds.toFixed(2)} sec`
+      : `音源開始まで ${waitSeconds.toFixed(2)}秒`);
+    sync.audioStartTimer = setTimeout(() => {
+      if (runVideoSyncState === sync && sync.wantsPlayback && !sync.video.paused && !sync.video.ended) {
+        tryPlayRunVideoAudio(true);
+      }
+    }, Math.ceil(waitSeconds * 1000));
+    return Promise.resolve();
+  }
   if (syncPosition) syncRunVideoAudioPosition(true);
   sync.audio.playbackRate = sync.video.playbackRate || 1;
   sync.audio.volume = musicVolume;
@@ -119,6 +137,8 @@ function tryPlayRunVideoAudio(syncPosition = true) {
   return playing;
 }
 function beginRunVideoSeek(sync) {
+  clearTimeout(sync.audioStartTimer);
+  sync.audioStartTimer = null;
   sync.resumeAfterSeek = sync.wantsPlayback || (!sync.video.paused && !sync.video.ended);
   sync.seeking = true;
   sync.audio.pause();
@@ -145,16 +165,22 @@ function finishRunVideoSeek(sync) {
 }
 function stopRunVideoAudioSync() {
   stopRunVideoSyncLoop();
-  if (runVideoSyncState && runVideoSyncState.audio) runVideoSyncState.audio.pause();
+  if (runVideoSyncState) {
+    clearTimeout(runVideoSyncState.audioStartTimer);
+    if (runVideoSyncState.audio) runVideoSyncState.audio.pause();
+  }
   runVideoSyncState = null;
   stopRunVideoEmbeddedAudioDelay();
 }
-function bindRunVideoAudioSync(music) {
+function bindRunVideoAudioSync(music, sourceVideo = null) {
   stopRunVideoAudioSync();
   const video = document.getElementById("run-video-player");
   const audio = document.getElementById("run-video-audio");
   if (!video || !audio || !music) return;
-  runVideoSyncState = { video, audio, music, wantsPlayback: false, seeking: false, resumeAfterSeek: false, playRequest: 0 };
+  runVideoSyncState = {
+    video, audio, music, sourceVideo, wantsPlayback: false, seeking: false,
+    resumeAfterSeek: false, playRequest: 0, audioStartTimer: null,
+  };
   const sync = runVideoSyncState;
   preserveMediaPitch(audio);
   audio.volume = musicVolume;
@@ -170,6 +196,8 @@ function bindRunVideoAudioSync(music) {
   video.addEventListener("play", onPlay);
   video.addEventListener("playing", onPlay);
   video.addEventListener("pause", () => {
+    clearTimeout(sync.audioStartTimer);
+    sync.audioStartTimer = null;
     audio.pause(); stopRunVideoSyncLoop();
     if (!sync.seeking && !video.seeking) { sync.wantsPlayback = false; sync.resumeAfterSeek = false; }
   });
@@ -290,6 +318,11 @@ function bindRunVideoEmbeddedAudioDelay(video) {
 }
 
 function runVideoSyncDelayNote(video) {
+  if (video && video.composition && video.composition.engine === "web-post-save-pending") {
+    return isEnglish()
+      ? "This value is built into the finished video when you save. The original camera recording stays unchanged."
+      : "ここで決めた値を保存時の合成へ反映します。元のカメラ映像は変更せず、完成映像を作ります。";
+  }
   const desired = runVideoDesiredAudioDelay(video);
   const recorded = runVideoRecordingAudioDelay(video);
   if (desired < recorded) {
@@ -303,7 +336,9 @@ function runVideoSyncDelayNote(video) {
 }
 
 function runVideoSyncDelayMarkup(video, target, id = "") {
-  if (!runVideoHasEmbeddedAudio(video)) return "";
+  const postSavePending = video && video.composition && video.composition.engine === "web-post-save-pending"
+    && (target === "pending" || target === "stopped");
+  if (!runVideoHasEmbeddedAudio(video) && !postSavePending) return "";
   const value = runVideoDesiredAudioDelay(video);
   return `<section class="run-video-sync-adjust" aria-labelledby="run-video-sync-delay-title">
     <div class="run-video-sync-adjust-head">
@@ -328,7 +363,9 @@ function runVideoSyncDelayTarget(target, id) {
 
 window.runVideoSetSyncDelay = (target, id, value) => {
   const video = runVideoSyncDelayTarget(target, id);
-  if (!video || !runVideoHasEmbeddedAudio(video)) return;
+  const postSavePending = video && video.composition && video.composition.engine === "web-post-save-pending"
+    && (target === "pending" || target === "stopped");
+  if (!video || (!runVideoHasEmbeddedAudio(video) && !postSavePending)) return;
   const result = setRunVideoDesiredAudioDelay(video, value);
   savePreferredRunVideoAudioDelay(result.desired);
   if (target === "saved") saveState();
@@ -336,7 +373,15 @@ window.runVideoSetSyncDelay = (target, id, value) => {
   if (output) output.textContent = `${result.desired.toFixed(2)}${isEnglish() ? " sec" : "秒"}`;
   const note = document.getElementById("run-video-sync-delay-note");
   if (note) note.textContent = runVideoSyncDelayNote(video);
-  bindRunVideoEmbeddedAudioDelay(video);
+  if (postSavePending && runVideoSyncState && runVideoSyncState.sourceVideo === video) {
+    clearTimeout(runVideoSyncState.audioStartTimer);
+    runVideoSyncState.audioStartTimer = null;
+    runVideoSyncState.audio.pause();
+    syncRunVideoAudioPosition(true);
+    if (runVideoSyncState.wantsPlayback && !runVideoSyncState.video.paused) tryPlayRunVideoAudio(true);
+  } else {
+    bindRunVideoEmbeddedAudioDelay(video);
+  }
 };
 
 // 音源終了直後の一時映像を、結果確定前でも繰り返し確認する。
@@ -361,7 +406,7 @@ window.previewStoppedRunVideo = async (routineId) => {
       ${runVideoPlaybackAudioMarkup(capture, music, !!sheetRunMusicUrl)}
       ${runVideoSyncDelayMarkup(capture, "stopped")}
       <button class="btn primary" onclick="hideSheet()">通し結果の記録へ戻る</button>`);
-    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music, capture);
     else bindRunVideoEmbeddedAudioDelay(capture);
   });
 };

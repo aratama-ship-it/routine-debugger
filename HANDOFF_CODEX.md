@@ -39,7 +39,7 @@ v57で **通し練習の実行画面まで含めて完全に統一**した。
 - `currentChoice(sess, st)`（1226付近）が唯一の判定ポイント: `!state.settings.showSlots` なら
   保存済み `slotDefaults` を無視して常に `options[0].id`（＝A）を返す。
 - `renderRecord` のステップ一覧（1275付近）: OFF時はA/Bステップも通常ステップとして表示
-  （ラベル＝Aの技名、`.slot`クラス/チップなし）。
+  （ラベル＝Aのシーケンス名、`.slot`クラス/チップなし）。
 - `tapStep` の記録シート（1421付近）: OFF時は「どちらをやった?」チップを出さない。
   `commitEvent`（1446付近）は `#opt-grid` が存在しないため `currentChoice` 経由でAへ自動フォールバック。
 - `renderHistory` のスロット選択修正チップ（1897付近）もOFF時は非表示（データ保持、ONで復帰）。

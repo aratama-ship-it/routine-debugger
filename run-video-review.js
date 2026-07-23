@@ -97,7 +97,7 @@ window.openRunVideo = async (id) => {
       <button class="btn danger-ghost" onclick="runVideoDelete('${video.id}')">この映像を削除</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
     bindRunVideoCurrentStep(stepContext);
-    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music);
+    if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music, video);
     else bindRunVideoEmbeddedAudioDelay(video);
   });
 };

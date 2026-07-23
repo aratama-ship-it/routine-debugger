@@ -73,6 +73,8 @@ const context = vm.createContext({
   document: { getElementById: (id) => elements.get(id) || null },
   requestAnimationFrame: () => 1,
   cancelAnimationFrame: () => {},
+  setTimeout,
+  clearTimeout,
   Promise,
   Object,
   Number,
@@ -187,5 +189,18 @@ assert.equal(delayContexts.length, 1, "changing the correction should route embe
 assert.equal(delayContexts[0].delay.delayTime.value, 0.25);
 context.stopRunVideoAudioSync();
 assert.equal(delayContexts[0].closeCalls, 1, "closing the preview should release its audio context");
+
+const postSaveCapture = await context.finalizeRunVideoComposition({
+  ...stoppedCapture,
+  audioEmbedded: false,
+  requestedAudioDelaySeconds: 0.1,
+});
+context.stoppedRunVideoCapture = postSaveCapture;
+await context.window.previewStoppedRunVideo("r1");
+assert.match(shownSheet, /映像と音源の同期補正/, "post-save composition should keep the sync control before saving");
+assert.match(shownSheet, /保存時の合成へ反映します/, "the control should explain that the value is baked in on save");
+context.window.runVideoSetSyncDelay("stopped", "", 0.3);
+assert.equal(context.runVideoDesiredAudioDelay(postSaveCapture), 0.3, "post-save composition should use the selected correction");
+context.stopRunVideoAudioSync();
 
 console.log("Run-video music sync test passed");
