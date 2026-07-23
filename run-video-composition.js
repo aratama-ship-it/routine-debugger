@@ -169,6 +169,26 @@ function createRunVideoPostCompositionPlan(capture = {}, videoMeta = {}, audioMe
   };
 }
 
+// Web版は映像をほぼ等速で再生しながら再録画する。過去の同端末実績があればその比率を優先し、
+// 未実施なら映像時間＋準備時間から、開始前に見せる安全側の時間幅を返す。
+function estimateRunVideoComposition(capture = {}, completed = []) {
+  const duration = Math.max(0, Number(capture.duration) || 0);
+  const ratios = (Array.isArray(completed) ? completed.slice(-7) : []).map((video) => {
+    const sourceDuration = Math.max(0, Number(video && video.duration) || 0);
+    const elapsed = Math.max(0, Number(video && video.postComposition && video.postComposition.elapsedMs) || 0) / 1000;
+    return sourceDuration && elapsed ? elapsed / sourceDuration : 0;
+  }).filter((ratio) => ratio >= 0.75 && ratio <= 3).sort((a, b) => a - b);
+  const center = ratios.length
+    ? duration * ratios[Math.floor(ratios.length / 2)]
+    : duration + 8;
+  const spread = ratios.length ? Math.max(4, center * 0.15) : Math.max(8, duration * 0.2);
+  return {
+    minSeconds: Math.ceil(Math.max(duration, center - spread)),
+    maxSeconds: Math.ceil(Math.max(duration + 1, center + spread)),
+    sampleCount: ratios.length,
+  };
+}
+
 function runVideoPostCompositionError(code, message) {
   const error = new Error(message || code);
   error.code = code;

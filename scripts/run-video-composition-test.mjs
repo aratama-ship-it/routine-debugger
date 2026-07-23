@@ -45,6 +45,17 @@ assert.equal(plan.trimStart, 3.5);
 assert.equal(plan.trimEnd, 93.5);
 assert.equal(plan.audioDelaySeconds, 0.35);
 
+const estimateWithoutHistory = context.estimateRunVideoComposition({ duration: 60 });
+assert.equal(estimateWithoutHistory.minSeconds, 60);
+assert.equal(estimateWithoutHistory.maxSeconds, 80);
+assert.equal(estimateWithoutHistory.sampleCount, 0);
+const estimateWithHistory = context.estimateRunVideoComposition({ duration: 100 }, [
+  { duration: 50, postComposition: { elapsedMs: 60000 } },
+]);
+assert.equal(estimateWithHistory.minSeconds, 102);
+assert.equal(estimateWithHistory.maxSeconds, 138);
+assert.equal(estimateWithHistory.sampleCount, 1);
+
 const rawBlob = { size: 10, type: "video/mp4" };
 const pending = await context.finalizeRunVideoComposition({
   blob: rawBlob,

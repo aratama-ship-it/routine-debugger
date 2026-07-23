@@ -17,6 +17,70 @@ function runVideoStorageActions(videos) {
   </div>`;
 }
 
+function runVideoCompositionSaveMarkup(pending, willCompose, needsLinkedMusic, replaceId = "") {
+  const english = isEnglish();
+  const replaceArg = esc(replaceId);
+  const slots = `<div class="run-video-save-note">${english ? "Saved slots" : "保存枠"} ${storedRunVideos().length}/${RUN_VIDEO_LIMIT}${english ? " videos" : "本"}</div>`;
+  if (willCompose) {
+    const estimate = estimateRunVideoComposition(pending, storedRunVideos());
+    const time = `${fmtTime(estimate.minSeconds)}〜${fmtTime(estimate.maxSeconds)}`;
+    const basis = estimate.sampleCount
+      ? (english ? `Based on ${estimate.sampleCount} previous composition${estimate.sampleCount === 1 ? "" : "s"} on this device.`
+        : `この端末の過去${estimate.sampleCount}回の合成実績を反映しています。`)
+      : (english ? "First-use estimate based on the video duration and setup overhead."
+        : "映像時間と準備時間から出した初回の目安です。");
+    return `<div class="run-video-compose-intro">
+      <b>${english ? `Estimated time ${time}` : `推定時間 ${time}`}</b>
+      <span>${basis}<br>${english
+        ? "Keep this screen open while combining. To leave now, choose Compose later."
+        : "合成中はこの画面を開いたままにしてください。今は行わない場合は「後で合成」を選べます。"}</span>
+    </div>
+    ${slots}
+    <button class="btn primary" onclick="savePendingRunVideo('${replaceArg}')">${english
+      ? (replaceId ? "Combine music and update video" : "Combine now and save")
+      : (replaceId ? "音源を合成して更新" : "今すぐ合成して保存")}</button>
+    ${replaceId ? "" : `<button class="btn" onclick="deferPendingRunVideoComposition()">${english ? "Compose later" : "後で合成"}</button>`}
+    <button class="btn ghost" onclick="discardPendingRunVideo()">${replaceId
+      ? (english ? "Close without combining" : "合成せず閉じる")
+      : (english ? "Do not save" : "保存しない")}</button>`;
+  }
+  const warning = needsLinkedMusic ? `<div class="run-video-compose-intro is-warning">
+    <b>${english ? "Music data is unavailable" : "音源データが見つかりません"}</b>
+    <span>${english ? "This recording can only be saved as video." : "この撮影は映像のみで保存できます。"}</span>
+  </div>` : "";
+  return `${warning}${slots}
+    <button class="btn primary" onclick="${needsLinkedMusic ? "savePendingRunVideoLinked" : "savePendingRunVideo"}('${replaceArg}')">${english ? "Save this video" : "この映像を保存"}</button>
+    <button class="btn ghost" onclick="discardPendingRunVideo()">${replaceId
+      ? (english ? "Close" : "閉じる") : (english ? "Do not save" : "保存しない")}</button>`;
+}
+
+function runVideoDeferredCompositionAction(video, detail = false) {
+  if (!runVideoNeedsLinkedMusic(video) || !runVideoMusicMeta(video)) return "";
+  const english = isEnglish();
+  const label = detail
+    ? (english ? "Combine linked music" : "音源を合成")
+    : (english ? "Combine" : "合成");
+  return `<button class="btn ${detail ? "primary" : "small"}" aria-label="${english ? "Combine music into this video" : "この映像へ音源を合成"}"
+    onclick="prepareStoredRunVideoComposition('${esc(video.id)}')">♪ ${label}</button>`;
+}
+
+window.prepareStoredRunVideoComposition = async (id) => {
+  const video = storedRunVideos().find((item) => item.id === id);
+  const music = runVideoMusicMeta(video);
+  if (!video || !runVideoNeedsLinkedMusic(video) || !music) {
+    return toast(isEnglish() ? "This video is not waiting for composition" : "この映像は合成待ちではありません");
+  }
+  return withLoading(isEnglish() ? "Preparing composition…" : "合成の準備中…", async () => {
+    const blob = await blobGet(video.blobId);
+    if (!blob) return toast(isEnglish() ? "Video data is unavailable" : "映像データが見つかりません");
+    clearPendingRunVideo();
+    pendingRunVideo = { ...video, blob, music: { ...music } };
+    pendingRunVideoReplaceId = id;
+    pendingRunVideoUrl = URL.createObjectURL(blob);
+    await showRunVideoReview();
+  });
+};
+
 function runVideoReviewStepContext(video, found = findRunRecord(video.sessionId, video.runId)) {
   const routine = state.routines.find((item) => item.id === video.routineId);
   if (!routine || !found.sess) return null;
@@ -91,6 +155,7 @@ window.openRunVideo = async (id) => {
       ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
       ${runVideoPlaybackAudioMarkup(video, music, !!sheetRunMusicUrl)}
       ${runVideoSyncDelayMarkup(video, "saved", video.id)}
+      ${runVideoDeferredCompositionAction(video, true)}
       ${markers ? `<div class="time-chips run-video-markers">${markers}</div>` : `<div class="hint">この映像の失敗記録はありません</div>`}
       ${runVideoCurrentStepMarkup(stepContext)}
       <button class="btn" onclick="runVideoDownload('${video.id}')">映像を書き出す</button>

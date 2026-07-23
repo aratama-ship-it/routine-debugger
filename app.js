@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v192"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v196"; // 要望フォーム等で自動送信するアプリ版
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -1016,6 +1016,7 @@ let runVideoStopPromise = null;
 let pendingRunVideo = null; // 録画終了後、保存／破棄を選ぶまでの一時Blob
 let pendingRunVideoUrl = null;
 let pendingRunVideoMusicBlob = null;
+let pendingRunVideoReplaceId = "";
 let runVideoPostCompositionController = null;
 let runVideoPostCompositionBusy = false;
 
@@ -1151,6 +1152,7 @@ function clearPendingRunVideo() {
   if (pendingRunVideoUrl) URL.revokeObjectURL(pendingRunVideoUrl);
   pendingRunVideoUrl = null;
   pendingRunVideoMusicBlob = null;
+  pendingRunVideoReplaceId = "";
   pendingRunVideo = null;
 }
 function runCameraConfirmBody(routineId, status = "") {
@@ -1446,31 +1448,19 @@ async function showRunVideoReview() {
     ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
     ${runVideoPlaybackAudioMarkup(pending, music, !!sheetRunMusicUrl)}
     ${runVideoSyncDelayMarkup(pending, "pending")}
-    ${willCompose ? `<div class="run-video-compose-intro">
-      <b>${isEnglish() ? "Music is combined when you save" : "保存時に映像と音源を合成します"}</b>
-      <span>${isEnglish()
-        ? "This can take about as long as the video. Keep this screen open until it finishes."
-        : "映像の長さと同程度かかる場合があります。完了まで画面を閉じずにお待ちください。"}</span>
-    </div>` : needsLinkedMusic ? `<div class="run-video-compose-intro is-warning">
-      <b>${isEnglish() ? "Music data is unavailable" : "音源データが見つかりません"}</b>
-      <span>${isEnglish() ? "This recording can only be saved as video." : "この撮影は映像のみで保存できます。"}</span>
-    </div>` : ""}
-    <div class="run-video-save-note">保存枠 ${storedRunVideos().length}/${RUN_VIDEO_LIMIT}本</div>
-    <button class="btn primary" onclick="savePendingRunVideo()">${willCompose
-      ? (isEnglish() ? "Combine video and music, then save" : "映像と音源を合成して保存")
-      : (isEnglish() ? "Save this video" : "この映像を保存")}</button>
-    <button class="btn ghost" onclick="discardPendingRunVideo()">保存しない</button>`);
+    ${runVideoCompositionSaveMarkup(pending, willCompose, needsLinkedMusic, pendingRunVideoReplaceId)}`);
   if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music, pending);
   else bindRunVideoEmbeddedAudioDelay(pending);
 }
-function showRunVideoReplacement() {
+function showRunVideoReplacement(action = "compose") {
   if (!pendingRunVideo) return;
+  const saveAction = action === "defer" ? "deferPendingRunVideoComposition" : "savePendingRunVideo";
   stopRunVideoAudioSync();
   if (sheetRunMusicUrl) { URL.revokeObjectURL(sheetRunMusicUrl); sheetRunMusicUrl = null; }
   const rows = [...storedRunVideos()].sort((a, b) => b.at - a.at).map((video) => `
     <div class="run-video-replace-row">
       <div><b>${esc(runVideoTitle(video))}</b><span>${fmtTimeFine(video.duration)} / ${fmtBytes(video.size || 0)}</span></div>
-      <button class="btn small danger-ghost" onclick="savePendingRunVideo('${video.id}')">この映像と入れ替える</button>
+      <button class="btn small danger-ghost" onclick="${saveAction}('${video.id}')">この映像と入れ替える</button>
     </div>`).join("");
   showSheet(`
     <h3>保存する映像を入れ替え</h3>
@@ -1565,8 +1555,9 @@ window.cancelRunVideoPostComposition = () => {
   if (runVideoPostCompositionController) runVideoPostCompositionController.abort();
 };
 
-window.savePendingRunVideoLinked = async (replaceId = "") => {
+window.savePendingRunVideoLinked = async (replaceId = "", deferred = false) => {
   if (!pendingRunVideo || runVideoPostCompositionBusy) return;
+  if (replaceId) pendingRunVideoReplaceId = replaceId;
   let pending = pendingRunVideo;
   const saveVideoOnly = !pendingRunVideoMusicBlob && runVideoNeedsLinkedMusic(pending);
   if (saveVideoOnly) {
@@ -1574,12 +1565,15 @@ window.savePendingRunVideoLinked = async (replaceId = "") => {
     pendingRunVideo = pending;
   }
   await persistPendingRunVideo(pending, replaceId, replaceId ? "通し映像を入れ替えました"
-    : saveVideoOnly ? "映像のみで保存しました" : "別音源同期のまま保存しました");
+    : saveVideoOnly ? "映像のみで保存しました"
+      : deferred ? (isEnglish() ? "Saved to compose later" : "後で合成できる状態で保存しました")
+        : "別音源同期のまま保存しました");
 };
 
 window.savePendingRunVideo = async (replaceId = "") => {
   if (!pendingRunVideo || runVideoPostCompositionBusy) return;
-  if (!replaceId && storedRunVideos().length >= RUN_VIDEO_LIMIT) return showRunVideoReplacement();
+  if (replaceId) pendingRunVideoReplaceId = replaceId;
+  if (!replaceId && storedRunVideos().length >= RUN_VIDEO_LIMIT) return showRunVideoReplacement("compose");
   const pending = pendingRunVideo;
   if (!runVideoNeedsLinkedMusic(pending)) return persistPendingRunVideo(pending, replaceId);
   if (!pendingRunVideoMusicBlob) return showRunVideoCompositionFailure(
@@ -1619,9 +1613,19 @@ window.savePendingRunVideo = async (replaceId = "") => {
     showRunVideoCompositionFailure(error, replaceId);
   }
 };
+window.deferPendingRunVideoComposition = async (replaceId = "") => {
+  if (!pendingRunVideo || runVideoPostCompositionBusy) return;
+  if (!replaceId && storedRunVideos().length >= RUN_VIDEO_LIMIT) return showRunVideoReplacement("defer");
+  if (replaceId) pendingRunVideoReplaceId = replaceId;
+  await window.savePendingRunVideoLinked(replaceId, true);
+};
 window.discardPendingRunVideo = () => {
+  const wasStored = !!pendingRunVideoReplaceId;
   clearPendingRunVideo();
-  hideSheet(); render(); toast("今回の映像は保存しませんでした");
+  hideSheet(); render();
+  toast(wasStored
+    ? (isEnglish() ? "Closed without combining" : "合成せず戻りました")
+    : (isEnglish() ? "This video was not saved" : "今回の映像は保存しませんでした"));
 };
 
 // ---------- 録音の聴き返し(統計画面) ----------
@@ -1940,7 +1944,7 @@ function routineCardHtml(rt, context = "list") {
         aria-label="${esc(memoLabel)}" onclick="showRoutineMemo('${rt.id}')"
         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRoutineMemo('${rt.id}')}"
         title="${rawMemo ? "タップして全文を表示" : "タップしてメモを追加"}">
-        <span class="routine-quick-note-label">簡易メモ</span>
+        <span class="routine-quick-note-label">簡易メモ <span aria-hidden="true">✎</span></span>
         <p ${rawMemo ? "data-user-text" : ""}>${rawMemo ? esc(memo) : "タップしてメモを追加"}</p>
       </div>`;
   return `<article class="routine-card ${context === "home" ? "home-routine-card" : ""}">
@@ -1971,8 +1975,8 @@ window.showRoutinePracticeChoice = (id) => {
   const english = isEnglish();
   showSheet(`
     <div class="practice-choice-head">
-      <small>${english ? "PRACTICE" : "PRACTICE / 練習"}</small>
-      <h3>${english ? "Choose a practice mode" : "練習方法を選ぶ"}</h3>
+      <small>${english ? "RUN" : "PRACTICE / 練習"}</small>
+      <h3>${english ? "Choose a mode" : "練習方法を選ぶ"}</h3>
       <p data-user-text>${esc(routineDisplayName(rt))}</p>
     </div>
     <div class="practice-choice-list">
@@ -2101,11 +2105,12 @@ function renderRunVideos() {
         <small>${fmtTimeFine(video.duration)} / ${fmtBytes(video.size || 0)} / ${linkedMusic
           ? (runVideoHasEmbeddedAudio(video)
             ? (english ? `Music included: ${esc(linkedMusic.name || "Recorded music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}を収録済み`)
-            : (english ? `Linked music: ${esc(linkedMusic.name || "Linked music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}と別同期`))
+            : (english ? `Composition pending: ${esc(linkedMusic.name || "Linked music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}・合成待ち`))
           : (english ? "Video only" : "映像のみ")}</small>
       </div>
       <div class="run-video-library-actions">
         <button class="btn small" aria-label="${esc(playLabel)}" onclick="openRunVideo('${video.id}')">▶ ${english ? "Play" : "再生"}</button>
+        ${runVideoDeferredCompositionAction(video)}
         <button class="mini-btn del" aria-label="${esc(deleteLabel)}" onclick="runVideoDelete('${video.id}')">✕</button>
       </div>
     </article>`;
@@ -2496,7 +2501,7 @@ function cueIntervalWarningHtml(index) {
   const dismiss = isEnglish() ? "Dismiss this interval warning" : "この区間警告を閉じる";
   const insertAt = index + 1;
   const actions = interval.kind === "gap" ? `<div class="cue-gap-actions" aria-label="${isEnglish() ? "Add a sequence in this gap" : "この空間にシーケンスを追加"}">
-    <button type="button" onclick="addStep('trick',${insertAt})" aria-label="${isEnglish() ? "Add a skill in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Skill" : "技"}</button>
+    <button type="button" onclick="addStep('trick',${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Sequence" : "技"}</button>
     <button type="button" onclick="sheetPickTrick(${insertAt})" aria-label="${isEnglish() ? "Choose a skill from the library for this gap" : "空間に技リストから追加"}">＋${isEnglish() ? "Library" : "技リストから"}</button>
     <button type="button" onclick="addStep('transition',${insertAt})" aria-label="${isEnglish() ? "Add a transition in this gap" : "空間に移行を追加"}">＋${isEnglish() ? "Transition" : "移行"}</button>
   </div>` : (!interval.terminal ? `<div class="cue-overlap-actions">
@@ -3153,7 +3158,7 @@ function routineRunProgress(routineId) {
   };
 }
 
-// セッション(練習日)と1本の通しは別に扱う。スタート確認後にだけ失敗/クリーンを記録できる。
+// 通し記録はスタート後のみ。
 let activeFullRunRoutineId = null;
 let runCountdownTimer = null;
 let runCountdownFinishTimer = null;
@@ -3301,8 +3306,7 @@ window.startRunCountdown = (routineId) => {
   }, 1000);
 };
 
-// スロットの現在の選択(セッションの既定値。演技中に変えたらチップで切り替える)
-// A/B分岐がOFFの間は、選択チップを出さず常に選択肢A(options[0])に固定する
+// A/B選択。機能OFF時はAに固定。
 function currentChoice(rt, sess, st) {
   if (!routineFeatureEnabled(rt, "showSlots")) return st.options[0].id;
   return (sess && sess.slotDefaults && sess.slotDefaults[st.id]) || st.options[0].id;
@@ -3341,7 +3345,8 @@ function renderRecord() {
         ? `<div class="hint">♪ 音源データが見つかりません(バックアップ復元後は編集画面で再添付してください)</div>`
         : `<div class="music-name">♪ ${esc(rt.music.name)}</div>
            <div class="music-time big"><span id="music-cur">${fmtTimeFine(musicLoadedFor === rt.id ? musicCurrentTime() : 0)}</span><span class="dur"> / <span id="music-dur">${fmtTime(recordMusicDuration)}</span></span></div>
-           <input type="range" id="music-seek" min="0" max="${recordMusicDuration || 100}" step="0.1" value="${musicLoadedFor === rt.id ? musicCurrentTime() : 0}" oninput="musicSeek(this.value)">
+           <progress id="music-seek" max="${recordMusicDuration || 100}" value="${musicLoadedFor === rt.id ? musicCurrentTime() : 0}"
+             aria-label="${isEnglish() ? "Music progress" : "楽曲の進行位置"}"></progress>
            <div class="music-controls">
              <button class="music-pill primary" id="music-toggle-pill" onclick="musicToggle()">▶ 再生</button>
              <button class="music-pill" onclick="musicStop()">■ 停止(頭に戻す)</button>
@@ -3355,6 +3360,9 @@ function renderRecord() {
 
   const showSlots = routineFeatureEnabled(rt, "showSlots");
   const showRisk = routineFeatureEnabled(rt, "showRisk");
+  const missButton = (label, i) => `<button type="button" class="btn small danger-ghost"
+    aria-label="${esc(label)}のミス記録" onclick="event.stopPropagation();tapStep(${i})"
+    ${runActive ? "" : "disabled aria-disabled=\"true\""}>ミス記録</button>`;
   const stepBtns = ver.steps.map((s, i) => {
     const hitCount = isOpen ? openRun.events.filter((e) => e.stepIndex === i).length : 0;
     if (isSlot(s) && showSlots) {
@@ -3369,6 +3377,7 @@ function renderRecord() {
             onclick="event.stopPropagation();setSlotChoice('${s.id}','${o.id}')">${esc(optionDisplayName(o))}</button>`).join("")}</div>
         </div>
         ${hitCount ? `<span class="badge hit">記録 ${hitCount}件</span>` : showRisk && risk >= 3 ? `<span class="badge risk-${risk}">${RISK_LABEL[risk]}</span>` : ""}
+        ${missButton(stepDisplayName(s), i)}
       </div>`;
     }
     if (isSlot(s)) {
@@ -3378,6 +3387,7 @@ function renderRecord() {
       return `<div class="step-btn ${s.kind}" onclick="tapStep(${i})">
         <span class="no">${i + 1}</span><span class="nm">${s.cue != null ? `<span class="cue-chip">♪${fmtCue(s.cue)}</span> ` : ""}${esc(optionDisplayName(selOpt) || stepDisplayName(s))}</span>
         ${hitCount ? `<span class="badge hit">記録 ${hitCount}件</span>` : showRisk && risk >= 3 ? `<span class="badge risk-${risk}">${RISK_LABEL[risk]}</span>` : ""}
+        ${missButton(optionDisplayName(selOpt) || stepDisplayName(s), i)}
       </div>`;
     }
     const risk = s.risk; // 任意。未設定ならバッジなし
@@ -3386,6 +3396,7 @@ function renderRecord() {
       <span class="no">${i + 1}</span><span class="nm">${s.cue != null ? `<span class="cue-chip">♪${fmtCue(s.cue)}</span> ` : ""}${esc(stepDisplayName(s))}</span>
       ${hasVideo ? `<button class="mini-btn play" aria-label="${esc(stepDisplayName(s))}の動画を再生" onclick="event.stopPropagation();playTrickVideo('${s.trickId}')">▶</button>` : ""}
       ${hitCount ? `<span class="badge hit">記録 ${hitCount}件</span>` : showRisk && risk >= 3 ? `<span class="badge risk-${risk}">${RISK_LABEL[risk]}</span>` : ""}
+      ${missButton(stepDisplayName(s), i)}
     </div>`;
   }).join("");
 
@@ -3424,7 +3435,7 @@ function renderRecord() {
     ${musicCard}
     ${isOpen ? `<div class="openrun-note">この通しは続行中です。ミスは複数記録できます。最後までいったら「完走」、別のミスがあれば続けて該当箇所をタップしてください。</div>` : ""}
     <div class="card">
-      <h2>${runActive ? "失敗・実施できなかった場所をタップ" : "スタート後、該当する場所をタップ"}</h2>
+      <h2>${runActive ? "各シーケンスの「ミス記録」をタップ" : "スタート後、「ミス記録」をタップ"}</h2>
       <div class="step-list">${stepBtns}</div>
     </div>
     <button class="clean-btn record-result-btn" onclick="${isOpen ? "finishOpenRun()" : "recordClean()"}"
@@ -3518,7 +3529,7 @@ window.tapStep = (stepIndex) => {
   if (!activeSession(rt.id)) return sheetStartSession(rt);
   if (!fullRunIsActive(rt.id)) return toast("先に通し練習をスタートしてください");
   const step = latestVersion(rt).steps[stepIndex];
-  // タップした瞬間の時刻だけを先に確保する。続行できるミスでは楽曲と録画を止めず、複数地点を残せるようにする。
+  // 楽曲を止めず、タップ時刻を先に保持する。
   pendingCapture = {};
   if (rt.music && musicLoadedFor === rt.id && !musicMissing &&
       (musicCurrentTime() > 0.05 || !musicPlayer.paused)) {
@@ -3572,8 +3583,7 @@ window.commitEvent = async (stepIndex) => {
   const note = document.getElementById("ev-note").value.trim();
   const ev = { stepId: ver.steps[stepIndex].id, stepIndex, type: typeId, tags, note, ...(pendingCapture || {}) };
   pendingCapture = null;
-  // 未実施は、同じ通し内で直前に記録された実際の失敗と結び付ける。
-  // 現時点の画面では集計だけに使い、将来「どの失敗が次の技へ波及したか」を分析できる形で保持する。
+  // 未実施は同じ通し内の直前の失敗に紐づける。
   if (typeId === "not_attempted" && openRun && openRun.routineId === rt.id) {
     const cause = [...openRun.events].reverse().find((e) => e.type !== "not_attempted");
     if (cause) {

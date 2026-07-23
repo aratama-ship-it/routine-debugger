@@ -90,6 +90,12 @@ if (/技名|Sequence name/.test(app) || /技名|Skill name|skill name/.test(i18n
     || !/\[\/\^選択肢\(\[A-Z\]\)のシーケンス名\$\/, "Option \$1 sequence"\]/.test(i18n)) {
   failures.push("名称を示す用語が、日本語はシーケンス名、英語はSequenceに統一されていません");
 }
+if (!/\["練習", "Run"\]/.test(i18n)
+    || !/\["＋ 技", "\+ Sequence"\]/.test(i18n)
+    || !/Add a sequence in this gap[\s\S]*?\? "Sequence" : "技"/.test(app)
+    || !/routine-quick-note-label">簡易メモ <span aria-hidden="true">✎<\/span>/.test(app)) {
+  failures.push("英語のRun・Sequence表記、またはQuick memoの編集マークが揃っていません");
+}
 if (!/<div class="es-name-field">[\s\S]*?<span class="es-duration">\$\{editorDurationLabel\(s, showSlots\)\}<\/span>/.test(app)
     || !/oninput="\$\{nameOninput\};updateEditorSequenceDuration\(this\)"/.test(app)
     || !/function updateEditorSequenceDuration\(input\)/.test(app)
@@ -259,6 +265,7 @@ if (!/RUN_VIDEO_COMPOSITION_VERSION\s*=\s*1/.test(runVideoComposition)
     || !/createMediaStreamDestination/.test(runVideoComposition)
     || !/engine:\s*"web-post-save"/.test(runVideoComposition)
     || !/function finalizeRunVideoPostComposition/.test(runVideoComposition)
+    || !/function estimateRunVideoComposition/.test(runVideoComposition)
     || !/recordingGain:\s*1/.test(runVideoComposition)
     || !/microphone:\s*false/.test(runVideoComposition)) {
   failures.push("将来のネイティブ後合成へ差し替えられる通し映像の合成レシピがありません");
@@ -270,6 +277,11 @@ if (!/function startRunVideoCapture\([\s\S]*?new MediaRecorder\(cap\.stream, opt
     || !/finalizeRunVideoPostComposition\(pending, composed\)/.test(app)
     || !/window\.cancelRunVideoPostComposition/.test(app)
     || !/window\.savePendingRunVideoLinked/.test(app)
+    || !/window\.deferPendingRunVideoComposition/.test(app)
+    || !/runVideoDeferredCompositionAction\(video\)/.test(app)
+    || !/function runVideoCompositionSaveMarkup/.test(runVideoReview)
+    || !/推定時間/.test(runVideoReview)
+    || !/window\.prepareStoredRunVideoComposition/.test(runVideoReview)
     || !/id="run-video-compose-bar"/.test(app)
     || !/audioMode:\s*pending\.audioMode/.test(app)
     || !/composition:\s*pending\.composition/.test(app)
@@ -337,6 +349,15 @@ if (!/const EVENT_TYPES\s*=\s*\[\s*\{\s*id:\s*"drop_recovered"/.test(app)
 }
 if (!/openRun\.events\.filter\(\(e\)\s*=>\s*e\.stepIndex\s*===\s*i\)\.length/.test(app)) {
   failures.push("同じ通し・ステップの複数ミス件数を表示できません");
+}
+if (!renderRecordSource || !/<progress id="music-seek"[\s\S]*?aria-label=/.test(renderRecordSource[1])
+    || /<input type="range" id="music-seek"/.test(renderRecordSource[1])
+    || /oninput="musicSeek/.test(renderRecordSource[1])) {
+  failures.push("通し練習の楽曲位置が、操作不能な進行バーとして表示されていません");
+}
+if (!renderRecordSource || !/const missButton = \(label, i\)[\s\S]*?>ミス記録<\/button>/.test(renderRecordSource[1])
+    || (renderRecordSource[1].match(/\$\{missButton\(/g) || []).length !== 3) {
+  failures.push("通し練習の各シーケンスにミス記録ボタンがありません");
 }
 if (!/SHEET 00 \/ HOME · \$\{APP_VERSION\}/.test(app)) {
   failures.push("ホームに公開バージョン表示がありません");
