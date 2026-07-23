@@ -108,6 +108,9 @@ if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
     || !/addStep\('trick',\$\{insertAt\}\)/.test(app)
     || !/sheetPickTrick\(\$\{insertAt\}\)/.test(app)
     || !/addStep\('transition',\$\{insertAt\}\)/.test(app)
+    || !/class="cue-overlap-actions"/.test(app)
+    || !/次のシーケンスを遅らせてFIT/.test(app)
+    || !/onclick="fitCueToPrevious\(\$\{insertAt\}\)"/.test(app)
     || !/window\.dismissCueInterval\s*=/.test(app)
     || !/window\.addStep = \(kind, insertAt = null\)/.test(app)
     || !/window\.sheetPickTrick = \(insertAt = null\)/.test(app)
@@ -118,6 +121,7 @@ if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
     || !/\.cue-interval-alert\.gap/.test(css)
     || !/\.cue-interval-alert\.overlap/.test(css)
     || !/\.cue-gap-actions button/.test(css)
+    || !/\.cue-overlap-actions button/.test(css)
     || !/\.editor-step \.cue-fit/.test(css)) {
   failures.push("キュー間と楽曲末尾の空白・マイナス区間警告、空白内追加、閉じる操作、FIT整列が揃っていません");
 }

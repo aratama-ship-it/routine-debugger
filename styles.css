@@ -1696,8 +1696,9 @@ label.fld { color: var(--muted); font-weight: 700; }
 .cue-interval-alert.gap{border-color:var(--warn);background:rgba(161,107,25,.09);color:var(--warn)}
 .cue-interval-alert.overlap{border-color:var(--danger);background:rgba(181,72,63,.09);color:var(--danger)}
 .cue-interval-dismiss{margin-left:auto;width:26px;height:26px;padding:0;border:0;background:transparent;color:currentColor;box-shadow:none}
-.cue-gap-actions{display:flex;width:100%;gap:4px;margin-top:3px}
-.cue-gap-actions button{flex:1;min-height:27px;padding:2px;border:1px solid currentColor;border-radius:3px;background:rgba(248,244,233,.58);color:inherit;font-size:9px;font-weight:750;box-shadow:0 2px 0 var(--paper-shadow)}
+.cue-gap-actions,.cue-overlap-actions{display:flex;width:100%;gap:4px;margin-top:3px}
+.cue-gap-actions button,.cue-overlap-actions button{flex:1;min-height:27px;padding:2px;border:1px solid currentColor;border-radius:3px;background:rgba(248,244,233,.58);color:inherit;font-size:9px;font-weight:750;box-shadow:0 2px 0 var(--paper-shadow)}
+.cue-overlap-actions button{min-height:31px;font-size:10px;font-weight:800}
 .kind-toggle, .risk-select, .mini-btn { border-radius: 4px; }
 .mini-btn.play, .video-play-btn, .video-trim-btn { border-radius: 5px !important; box-shadow: 0 3px 0 var(--paper-shadow) !important; }
 .es-opt { padding-left: 7px; border-left: 3px solid var(--blue); }

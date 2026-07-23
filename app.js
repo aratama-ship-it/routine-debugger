@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v191"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v192"; // 要望フォーム等で自動送信するアプリ版
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -2499,7 +2499,10 @@ function cueIntervalWarningHtml(index) {
     <button type="button" onclick="addStep('trick',${insertAt})" aria-label="${isEnglish() ? "Add a skill in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Skill" : "技"}</button>
     <button type="button" onclick="sheetPickTrick(${insertAt})" aria-label="${isEnglish() ? "Choose a skill from the library for this gap" : "空間に技リストから追加"}">＋${isEnglish() ? "Library" : "技リストから"}</button>
     <button type="button" onclick="addStep('transition',${insertAt})" aria-label="${isEnglish() ? "Add a transition in this gap" : "空間に移行を追加"}">＋${isEnglish() ? "Transition" : "移行"}</button>
-  </div>` : "";
+  </div>` : (!interval.terminal ? `<div class="cue-overlap-actions">
+    <button type="button" onclick="fitCueToPrevious(${insertAt})"
+      aria-label="${isEnglish() ? "Delay the next sequence and fit its cue" : "次のシーケンスを遅らせてFIT"}">${isEnglish() ? "Delay next sequence & FIT" : "次のシーケンスを遅らせてFIT"}</button>
+  </div>` : "");
   return `<div class="gap-note cue-interval-alert ${interval.kind}" role="note">
     <span>${label}</span>
     <button type="button" class="cue-interval-dismiss" onclick="dismissCueInterval(${index})"
