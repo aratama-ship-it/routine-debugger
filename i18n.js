@@ -151,6 +151,7 @@
     ["▶ 再生", "▶ Play"], ["❚❚ 一時停止", "❚❚ Pause"], ["■ 停止", "■ Stop"],
     ["■ 停止(頭に戻す)", "■ Stop (restart)"], ["動画を再生", "Play video"],
     ["再生速度", "Playback speed"], ["パート練習の再生速度", "Section Practice playback speed"],
+    ["スロー音質優先", "Slow-play quality mode"], ["iPhoneでは音量を端末側で調整", "On iPhone, use device volume"],
     ["始点A", "Start point A"], ["終点B", "End point B"],
     ["技を追加するとここに表示されます", "Add a skill to show it here"],
     ["プレビュー位置は固定されます", "The preview area stays fixed"],

@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v196"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v197"; // 要望フォーム等で自動送信するアプリ版
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -487,26 +487,27 @@ function playMedia(media, failureMessage = "再生を開始できませんでし
 }
 
 // ---------- 楽曲プレイヤー(グローバル: 再描画しても再生が途切れない) ----------
-const musicPlayer = new Audio();
-musicPlayer.loop = false; // 区間ループはpartTickだけで制御し、Audio要素自体には任せない
-musicPlayer.preload = "metadata";
-function preserveMediaPitch(media) {
-  for (const key of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
-    if (!(key in media)) continue;
-    try { media[key] = true; } catch (_) {}
-  }
+let musicPlayer = null;
+const musicPlayback = window.RoutineMusicPlayback.create({
+  onSwitch: (player) => { musicPlayer = player; },
+  onResume: (player) => {
+    ensureAudioGraph();
+    playMedia(player, "楽曲を再生できませんでした");
+  },
+  onUpdate: () => updateMusicUI(),
+});
+const musicGraphPlayer = musicPlayback.graphPlayer;
+const musicNativeRatePlayer = musicPlayback.nativeRatePlayer;
+musicPlayer = musicGraphPlayer;
+function useNativePartRatePlayer(rate) {
+  return musicPlayback.usesNative(rate, view.name === "part");
 }
 function setMusicPlaybackRate(rate = 1) {
   const next = Number(rate);
   const safeRate = Number.isFinite(next) && next > 0 ? next : 1;
-  preserveMediaPitch(musicPlayer);
-  musicPlayer.defaultPlaybackRate = safeRate;
-  musicPlayer.playbackRate = safeRate;
-  preserveMediaPitch(musicPlayer);
+  musicPlayer = musicPlayback.setRate(safeRate, view.name === "part");
 }
 setMusicPlaybackRate(1);
-musicPlayer.addEventListener("loadedmetadata", () => preserveMediaPitch(musicPlayer));
-musicPlayer.addEventListener("ratechange", () => preserveMediaPitch(musicPlayer));
 let musicLoadedFor = null;   // ロード済みのroutineId
 let musicObjectUrl = null;
 let musicMissing = false;    // バックアップ復元後などで音源Blobが無い場合
@@ -878,12 +879,23 @@ function recordTickUI() {
   rows.forEach((el, i) => el.classList.toggle("now", i === ai));
   updatePracticeNowUI();
 }
-musicPlayer.addEventListener("loadedmetadata", syncMusicMetadata);
-["timeupdate", "loadedmetadata", "play", "pause", "ended"].forEach((ev) =>
-  musicPlayer.addEventListener(ev, updateMusicUI));
-
 // timeupdateは毎秒4回程度しか発火せず0.1秒表示がカクつくため、再生中はrAFで滑らかに更新する
 let musicRaf = 0;
+musicPlayback.bindEvents({
+  onMetadata: syncMusicMetadata,
+  onMediaUpdate: updateMusicUI,
+  onPlay: () => { if (!musicRaf) musicRaf = requestAnimationFrame(musicRafTick); },
+  onStop: () => {
+    if (musicRaf) { cancelAnimationFrame(musicRaf); musicRaf = 0; }
+    updateMusicUI(); // 停止時に最終位置へ同期
+    if (runCamera && runCamera.recording) stopRunVideoCaptureAtMusicStop();
+  },
+  // 音が鳴り始めた時点で録画する。
+  onPlaying: () => {
+    if (!activeFullRunRoutineId || !runCameraArmed || !runCameraReady(activeFullRunRoutineId)) return;
+    if (startRunVideoCapture(activeFullRunRoutineId)) render();
+  },
+});
 function musicRafTick() {
   enforceMusicTrimEnd();
   const rel = musicCurrentTime();
@@ -898,41 +910,38 @@ function musicRafTick() {
   if (view.name === "part") updatePartLoopPlayhead();
   musicRaf = requestAnimationFrame(musicRafTick);
 }
-musicPlayer.addEventListener("play", () => { if (!musicRaf) musicRaf = requestAnimationFrame(musicRafTick); });
-["pause", "ended"].forEach((ev) => musicPlayer.addEventListener(ev, () => {
-  if (musicRaf) { cancelAnimationFrame(musicRaf); musicRaf = 0; }
-  updateMusicUI(); // 停止時に最終位置へ同期
-  if (runCamera && runCamera.recording) stopRunVideoCaptureAtMusicStop();
-}));
-// 楽曲付き通しは、カウントダウン中の再生権限取得ではなく、START後に実際に鳴り始めた時点で録画する。
-musicPlayer.addEventListener("playing", () => {
-  if (!activeFullRunRoutineId || !runCameraArmed || !runCameraReady(activeFullRunRoutineId)) return;
-  if (startRunVideoCapture(activeFullRunRoutineId)) render();
-});
 
 // 音量: iOS Safariは audio.volume を無視するため、Web Audio APIのGainNodeを通して制御する
 let musicVolume = Number(localStorage.getItem("rd_volume") || 1);
 let audioCtx = null, musicSourceNode = null, gainNode = null;
 function ensureAudioGraph() {
+  // Safariのスロー時はWeb Audioを迂回する。
+  if (musicPlayer === musicNativeRatePlayer) {
+    musicPlayer.volume = musicVolume;
+    return;
+  }
   if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   try {
     audioCtx = new AC();
-    musicSourceNode = audioCtx.createMediaElementSource(musicPlayer);
+    musicSourceNode = audioCtx.createMediaElementSource(musicGraphPlayer);
     gainNode = audioCtx.createGain();
     musicSourceNode.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     gainNode.gain.value = musicVolume;
     // GainNodeが音量を担当する間は、media element側を1にして二重適用を防ぐ。
-    musicPlayer.volume = 1;
+    musicGraphPlayer.volume = 1;
   } catch (_) { audioCtx = null; musicSourceNode = null; gainNode = null; }
 }
 window.musicSetVolume = (v) => {
   musicVolume = Number(v);
-  if (gainNode) {
+  if (musicPlayer === musicNativeRatePlayer) {
+    musicPlayer.volume = musicVolume;
+    if (gainNode) gainNode.gain.value = musicVolume;
+  } else if (gainNode) {
     gainNode.gain.value = musicVolume;
-    musicPlayer.volume = 1;
+    musicGraphPlayer.volume = 1;
   } else {
     musicPlayer.volume = musicVolume; // GainNodeが使えない環境向けのフォールバック
   }
@@ -4210,6 +4219,11 @@ function renderPart() {
           </div>
         </div>
       </div>
+      ${useNativePartRatePlayer(playbackRate) ? `
+        <div class="part-speed-quality" role="status">
+          <strong>スロー音質優先</strong>
+          <span>iPhoneでは音量を端末側で調整</span>
+        </div>` : ""}
     </div>
     <div class="card">
       <h2>ループ区間</h2>

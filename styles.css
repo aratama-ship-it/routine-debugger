@@ -562,6 +562,7 @@ body.dragging-active { user-select: none; -webkit-user-select: none; touch-actio
 .part-speed-row button:disabled { opacity: .38; box-shadow: none; }
 .part-speed-presets button { min-height: 30px; padding-inline: 6px; }
 .part-speed-row button.selected { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.part-speed-quality{text-align:right;color:var(--muted);font-size:10px}
 #music-vol { flex: 1; accent-color: var(--accent); height: 4px; }
 .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger);
   display: inline-block; margin-right: 8px; animation: recblink 1.2s infinite; align-self: center; }

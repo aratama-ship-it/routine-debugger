@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, css, i18n, html, sw, manifestText] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
+const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, css, i18n, html, sw, manifestText] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("styles.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["i18n.js", i18n], ["sw.js", sw]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["i18n.js", i18n], ["sw.js", sw]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -27,15 +27,17 @@ const swRunVideoOrientationVersion = requireMatch(sw, /run-video-orientation\.js
 const swRunVideoCompositionVersion = requireMatch(sw, /run-video-composition\.js\?v=(\d+)/, "Service Worker映像音源合成JS版");
 const swRunVideoSyncVersion = requireMatch(sw, /run-video-sync\.js\?v=(\d+)/, "Service Worker映像音源同期JS版");
 const swRunVideoReviewVersion = requireMatch(sw, /run-video-review\.js\?v=(\d+)/, "Service Worker通し映像レビューJS版");
+const swMusicPlaybackVersion = requireMatch(sw, /music-playback\.js\?v=(\d+)/, "Service Worker楽曲再生JS版");
 const cssVersion = requireMatch(html, /styles\.css\?v=(\d+)/, "CSS版");
 const i18nVersion = requireMatch(html, /i18n\.js\?v=(\d+)/, "i18n版");
 const runVideoOrientationVersion = requireMatch(html, /run-video-orientation\.js\?v=(\d+)/, "映像向き判定JS版");
 const runVideoCompositionVersion = requireMatch(html, /run-video-composition\.js\?v=(\d+)/, "映像音源合成JS版");
 const runVideoSyncVersion = requireMatch(html, /run-video-sync\.js\?v=(\d+)/, "映像音源同期JS版");
 const runVideoReviewVersion = requireMatch(html, /run-video-review\.js\?v=(\d+)/, "通し映像レビューJS版");
+const musicPlaybackVersion = requireMatch(html, /music-playback\.js\?v=(\d+)/, "楽曲再生JS版");
 const jsVersion = requireMatch(html, /app\.js\?v=(\d+)/, "JS版");
 const expected = appVersion && appVersion.slice(1);
-for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像向き判定JS", swRunVideoOrientationVersion], ["Service Worker映像音源合成JS", swRunVideoCompositionVersion], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像向き判定JS", runVideoOrientationVersion], ["映像音源合成JS", runVideoCompositionVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["JS", jsVersion]]) {
+for (const [label, value] of [["Service Worker", cacheVersion && cacheVersion.slice(1)], ["Service Worker映像向き判定JS", swRunVideoOrientationVersion], ["Service Worker映像音源合成JS", swRunVideoCompositionVersion], ["Service Worker映像音源同期JS", swRunVideoSyncVersion], ["Service Worker通し映像レビューJS", swRunVideoReviewVersion], ["Service Worker楽曲再生JS", swMusicPlaybackVersion], ["CSS", cssVersion], ["i18n", i18nVersion], ["映像向き判定JS", runVideoOrientationVersion], ["映像音源合成JS", runVideoCompositionVersion], ["映像音源同期JS", runVideoSyncVersion], ["通し映像レビューJS", runVideoReviewVersion], ["楽曲再生JS", musicPlaybackVersion], ["JS", jsVersion]]) {
   if (expected && value !== expected) failures.push(`${label}の版 ${value || "?"} がAPP_VERSION ${expected} と不一致です`);
 }
 
@@ -57,10 +59,24 @@ if (!/featureSettings:\s*\{\s*showRisk:\s*false,\s*showSlots:\s*false,\s*showPra
   failures.push("サンプルルーティンのリスク度・A\/B分岐が初期OFF、プレビュー動画が初期ONではありません");
 }
 for (const property of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
-  if (!app.includes(property)) failures.push(`音程維持の互換設定がありません: ${property}`);
+  if (!musicPlayback.includes(property)) failures.push(`音程維持の互換設定がありません: ${property}`);
 }
-if (!/function setMusicPlaybackRate\([\s\S]*?preserveMediaPitch\(musicPlayer\)[\s\S]*?musicPlayer\.playbackRate/.test(app)) {
+if (!/function setMusicPlaybackRate\([\s\S]*?musicPlayback\.setRate\(safeRate, view\.name === "part"\)/.test(app)
+    || !/const applyRate = \(player, rate\)[\s\S]*?preservePitch\(player\)[\s\S]*?player\.playbackRate = rate/.test(musicPlayback)) {
   failures.push("パート練習の速度変更に音程維持処理が適用されていません");
+}
+if (!/const musicPlayback = window\.RoutineMusicPlayback\.create/.test(app)
+    || !/const musicGraphPlayer = musicPlayback\.graphPlayer/.test(app)
+    || !/const musicNativeRatePlayer = musicPlayback\.nativeRatePlayer/.test(app)
+    || !/function hasAffectedApplePlaybackEngine\(/.test(musicPlayback)
+    || !/const usesNative = \(rate, partView,[\s\S]*?hasAffectedApplePlaybackEngine\(nav\)/.test(musicPlayback)
+    || !/const target = usesNative\(rate, partView\) \? nativeRatePlayer : graphPlayer/.test(musicPlayback)
+    || !/musicPlayback\.bindEvents/.test(app)
+    || !/function bindEvents\(/.test(musicPlayback)
+    || !/function ensureAudioGraph\(\)[\s\S]*?musicPlayer === musicNativeRatePlayer[\s\S]*?createMediaElementSource\(musicGraphPlayer\)/.test(app)
+    || !/\.part-speed-quality/.test(css)
+    || !/\["スロー音質優先", "Slow-play quality mode"\]/.test(i18n)) {
+  failures.push("Safari/iPhoneの速度変更時にWeb Audioを迂回する音質対策が揃っていません");
 }
 if (!/PART_PLAYBACK_STEP\s*=\s*0\.05/.test(app) || !/partNudgePlaybackRate/.test(app)) {
   failures.push("パート練習の再生速度を0.05倍刻みで調整できません");
@@ -205,7 +221,7 @@ if (!/PART_LOOP_DELAY_DEFAULT\s*=\s*3/.test(app)
     || !/rt\.partLoop\.delaySeconds\s*=\s*next/.test(app)) {
   failures.push("パート練習のループ間隔が初期3秒で、0秒も明示保存できる仕様ではありません");
 }
-if (!/musicPlayer\.preload\s*=\s*"metadata"/.test(app)
+if (!/player\.preload\s*=\s*"metadata"/.test(musicPlayback)
     || !/async function loadMusic\([\s\S]*?musicPlayer\.load\(\)/.test(app)) {
   failures.push("再生前に楽曲メタデータを読み込む設定がありません");
 }
@@ -245,8 +261,9 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
 if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
   failures.push("通し練習中のインカメプレビューがありません");
 }
-if (!/addEventListener\("playing"[\s\S]*?startRunVideoCapture/.test(app)
-    || !/\["pause",\s*"ended"\][\s\S]*?stopRunVideoCaptureAtMusicStop/.test(app)) {
+if (!/musicPlayback\.bindEvents\(\{[\s\S]*?onStop:[\s\S]*?stopRunVideoCaptureAtMusicStop[\s\S]*?onPlaying:[\s\S]*?startRunVideoCapture/.test(app)
+    || !/player\.addEventListener\("playing", active\(onPlaying\)\)/.test(musicPlayback)
+    || !/\["pause", "ended"\][\s\S]*?active\(onStop\)/.test(musicPlayback)) {
   failures.push("通し映像の録画開始・終了が楽曲再生と同期していません");
 }
 if (!/cap\.music\s*=\s*cloneRunVideoMusicMeta\(rt\s*&&\s*rt\.music\)/.test(app)
@@ -405,14 +422,14 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 342_000], ["run-video-orientation.js", 3_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 27_000], ["run-video-review.js", 12_000], ["styles.css", 128_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 342_000], ["run-video-orientation.js", 3_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 27_000], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["styles.css", 128_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(css).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
 if (gzipShell > 161_000) failures.push(`主要コードのgzip概算が161KBを超えています (${gzipShell})`);
 
