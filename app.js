@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v197"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v200"; // 要望フォーム等で自動送信するアプリ版
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -1763,9 +1763,9 @@ function headerSettingsIcon(kind) {
       <circle cx="13" cy="10" r="1.7"></circle><circle cx="9" cy="15" r="1.7"></circle>
     </svg>`;
   }
-  return `<svg class="head-settings-icon" viewBox="0 0 20 20" aria-hidden="true">
-    <path d="M10 3.2v2M10 14.8v2M3.2 10h2M14.8 10h2M5.2 5.2l1.4 1.4M13.4 13.4l1.4 1.4M14.8 5.2l-1.4 1.4M6.6 13.4l-1.4 1.4"></path>
-    <circle cx="10" cy="10" r="3.1"></circle>
+  return `<svg class="head-settings-icon" viewBox="0 0 24 24" stroke-width="2" style="fill:none" aria-hidden="true">
+    <path d="M9 1h6l.5 4 3-2L22 6.5 19 9l4 .5v5l-4 .5 3 3-4 4-3-3-.5 4h-5L9 19l-3 3-4-4 3-3-4-.5v-5L5 9 2 6l4-4 3 3V1Z"></path>
+    <circle cx="12" cy="12" r="4.4"></circle>
   </svg>`;
 }
 
