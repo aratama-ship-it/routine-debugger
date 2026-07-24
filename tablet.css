@@ -1,4 +1,4 @@
-/* ルーティンノート — iPad / tablet layout (768–1199px) */
+/* ルーティンノート — iPad / wide browser layout */
 .tablet-edit-layout,
 .tablet-edit-side,
 .tablet-edit-main,
@@ -8,8 +8,9 @@
 .tablet-edit-save-actions {
   display: contents;
 }
+.home-wide-routines { display: none; }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) {
   #app {
     width: min(94vw, 1040px);
     max-width: 1040px;
@@ -114,7 +115,64 @@
   .batch-link-status { text-align: left; }
 }
 
-@media (min-width: 900px) and (max-width: 1199px) {
+/* 横向きiPadとPCは、同じ見開き型のワイドUIを使う。 */
+@media (min-width: 900px) and (orientation: landscape), (min-width: 1200px) {
+  .topbar:has(.back-btn) {
+    grid-template-columns: minmax(96px, 1fr) minmax(0, 2fr) minmax(96px, 1fr);
+  }
+  .routine-head-actions { justify-self: end; }
+
+  .home-simple-main { display: none; }
+  .home-wide-routines {
+    position: relative;
+    z-index: 1;
+    display: block;
+    padding-top: 36px;
+  }
+  .home-wide-routines-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+    padding-bottom: 9px;
+    border-bottom: 1px dashed var(--sheet-muted);
+  }
+  .home-wide-routines-head small {
+    display: block;
+    color: var(--sheet-tab-rust);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .12em;
+  }
+  .home-wide-routines-head h2 {
+    margin: 2px 0 0;
+    color: var(--sheet-ink);
+    font-size: 22px;
+    line-height: 1.2;
+  }
+  .home-wide-routines-head button {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid #77766e;
+    border-radius: 5px;
+    background: var(--sheet-paper-raised);
+    color: var(--sheet-accent-edge);
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 3px 0 var(--sheet-shadow);
+  }
+  .home-wide-routine-list { display: grid; gap: 18px; }
+  .home-wide-routine-list .home-routine-card { margin: 0; }
+  .home-wide-previous-label {
+    margin-bottom: -12px;
+    color: var(--sheet-muted);
+    font-size: 10px;
+    font-weight: 760;
+    letter-spacing: .055em;
+  }
+
   .tablet-edit-layout,
   .tablet-practice-layout {
     display: grid;
@@ -188,4 +246,197 @@
     aspect-ratio: 1;
   }
   .tablet-part-layout .tablet-practice-main > .music-card { margin-bottom: 0; }
+
+  /* 長尺動画は左で映像を固定し、右でキューと登録方法を詰める。 */
+  .batch-import-layout {
+    grid-template-columns: minmax(340px, .82fr) minmax(0, 1.18fr);
+    align-items: start;
+    gap: 26px;
+  }
+  .batch-import-layout > .batch-source {
+    position: sticky;
+    top: calc(84px + var(--safe-top));
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .batch-import-layout > .batch-cut-editor,
+  .batch-import-layout > .batch-list-card,
+  .batch-import-layout > .batch-save-panel {
+    grid-column: 2;
+  }
+}
+
+/* PCでは紙面を広げるが、読み線が長くなりすぎないところで止める。 */
+@media (min-width: 1200px) {
+  #app {
+    width: min(94vw, 1380px);
+    max-width: 1380px;
+    padding-inline: 32px;
+  }
+  #app:not(:has(> .home-simple-shell)) {
+    padding-inline: 32px;
+  }
+  #app:not(:has(> .home-simple-shell)) > .topbar {
+    margin-inline: -32px;
+    padding-inline: 28px;
+  }
+  .bottombar {
+    width: min(94vw, 1380px);
+    max-width: 1380px;
+    padding-inline: 32px;
+  }
+
+  .home-simple-shell { margin-inline: -32px; }
+  .home-binder-edge { width: 52px; }
+  .home-binder-edge::before {
+    inset-inline: 13px;
+    background-size: 24px 78px;
+  }
+  .home-paper-sheet {
+    margin-left: 44px;
+    padding-inline: 72px 46px;
+  }
+  .home-simple-head { min-height: calc(82px + var(--safe-top)); }
+  .home-title-block h1 { font-size: 27px; }
+  .home-wide-routines { padding-top: 42px; }
+  .home-wide-routines-head h2 { font-size: 25px; }
+  .home-paper-space { min-height: 150px; }
+  .home-library-grid { gap: 16px; }
+  .home-library-grid button {
+    min-height: 78px;
+    padding-inline: 18px;
+  }
+  .home-library-copy b { font-size: 14px; }
+
+  /* PCでは使い方と全体設定を、現在の作業を残したまま右側で参照する。 */
+  body[data-wide-panel] #sheet-backdrop {
+    background: rgba(24, 25, 23, .34);
+  }
+  #sheet:not(.wide-side-sheet) {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(620px, calc(100vw - 96px));
+    max-width: none;
+    max-height: min(84dvh, 760px);
+    margin: 0;
+    padding: 22px 26px 28px 38px;
+    border-radius: 7px;
+    box-shadow: 0 8px 0 color-mix(in srgb, var(--paper-shadow) 76%, transparent),
+      0 26px 70px rgba(0, 0, 0, .34);
+    transform: translate(-50%, -50%);
+    animation: wideModalIn .2s cubic-bezier(.22, .78, .28, 1);
+  }
+  #sheet:not(.wide-side-sheet) > .grabber { display: none; }
+  #sheet.trim-sheet:not(.wide-side-sheet) {
+    width: min(880px, calc(100vw - 96px));
+    max-height: 90dvh;
+    padding-inline: 30px;
+  }
+  #sheet.wide-side-sheet {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(520px, 42vw);
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0 26px 34px 38px;
+    border: 0;
+    border-left: 8px solid var(--blue);
+    border-radius: 0;
+    box-shadow: -12px 0 0 color-mix(in srgb, var(--paper-shadow) 65%, transparent),
+      -30px 0 60px rgba(0, 0, 0, .25);
+    animation: widepanelin .24s cubic-bezier(.22, .78, .28, 1);
+  }
+  #sheet.wide-side-sheet > .grabber { display: none; }
+  .wide-side-panel-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 84px;
+    margin: 0 -8px 18px -16px;
+    padding: 14px 8px 12px 16px;
+    border-bottom: 2px solid var(--text);
+    background: color-mix(in srgb, var(--sheet-bg) 95%, transparent);
+  }
+  .wide-side-panel-head small {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--sheet-tab-rust);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .12em;
+  }
+  #sheet .wide-side-panel-head h3 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .wide-side-panel-close {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #77766e;
+    border-radius: 4px;
+    background: var(--sheet-paper-raised);
+    color: var(--danger);
+    font-size: 29px;
+    line-height: 1;
+    box-shadow: 0 3px 0 var(--sheet-shadow);
+  }
+  .wide-side-panel-body { padding-bottom: 28px; }
+  .wide-side-panel-body > .card { margin-bottom: 14px; }
+  .wide-side-panel-body .help-guide-card h2 { font-size: 16px; }
+  .wide-side-panel-body .help-quick-steps li { font-size: 13px; }
+  body[data-wide-panel="help"] .home-help-btn,
+  body[data-wide-panel="settings"] .global-settings-btn {
+    background: var(--sheet-tab-rust);
+    color: #fff;
+    box-shadow: 0 2px 0 #7d481d;
+  }
+
+  .tablet-edit-layout,
+  .tablet-record-layout {
+    grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+    gap: 34px;
+  }
+  .tablet-part-layout {
+    grid-template-columns: minmax(380px, 470px) minmax(0, 1fr);
+    gap: 34px;
+  }
+  .tablet-edit-side .practice-now,
+  .tablet-practice-side .practice-now {
+    --practice-preview-size: 210px;
+  }
+  .editor-step .es-name-field input[type=text] { font-size: 19px; }
+
+  .batch-import-layout {
+    grid-template-columns: minmax(390px, 470px) minmax(0, 1fr);
+    gap: 34px;
+  }
+  .batch-source video { max-height: 62vh; }
+  .batch-segment-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@keyframes widepanelin {
+  from { transform: translateX(100%); opacity: .75; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes wideModalIn {
+  from { transform: translate(-50%, calc(-50% + 24px)) scale(.985); opacity: .72; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sheet.wide-side-sheet,
+  #sheet:not(.wide-side-sheet) { animation: none; }
 }

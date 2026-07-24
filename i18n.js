@@ -56,7 +56,7 @@
     ["簡易メモを保存しました", "Quick memo saved"], ["簡易メモを削除しました", "Quick memo removed"],
     ["セッションを保存しました", "Session saved"],
     ["練習", "Run"], ["通し練習", "Full Run"], ["パート練習", "Section Practice"],
-    ["演技映像を見る", "View Videos"], ["分析", "Analysis"],
+    ["演技映像", "Performance Videos"], ["分析", "Analysis"],
     ["＋ 新規ルーティン", "+ New routine"], ["サンプルルーティンを読み込む", "Load sample routine"],
     ["まだルーティンがありません。", "No routines yet."],
     ["技と移行を順番に登録するところから始めます。", "Start by arranging sequences and transitions in order."],

@@ -408,6 +408,30 @@ if (!/\.topbar \.back-btn\s*\{[\s\S]*?width:\s*max-content[\s\S]*?min-height:\s*
     || !/\.routine-stack-list \.routine-row \.actions\s*\{[\s\S]*?display:\s*grid[\s\S]*?repeat\(4,\s*minmax\(0,\s*1fr\)\)/.test(tabletCss)) {
   failures.push("iPadの戻るボタンが適正サイズで、ルーティン一覧が横幅いっぱいの一行表示になっていません");
 }
+if (!/@media \(min-width:\s*900px\) and \(orientation:\s*landscape\),\s*\(min-width:\s*1200px\)/.test(tabletCss)
+    || !/\.home-simple-main\s*\{\s*display:\s*none/.test(tabletCss)
+    || !/\.home-wide-routines\s*\{[\s\S]*?display:\s*block/.test(tabletCss)
+    || !/const wideRoutines = previousRoutine[\s\S]*?\[previousRoutine,\s*\.\.\.routines\.filter/.test(app)
+    || !/class="home-wide-previous-label">前回のルーティン/.test(app)
+    || !/@media \(min-width:\s*1200px\)[\s\S]*?max-width:\s*1380px/.test(tabletCss)
+    || !/\.tablet-edit-layout,[\s\S]*?\.tablet-record-layout\s*\{[\s\S]*?minmax\(360px,\s*440px\)/.test(tabletCss)
+    || !/\.batch-import-layout > \.batch-source\s*\{[\s\S]*?position:\s*sticky/.test(tabletCss)) {
+  failures.push("PCと横向きiPadで共通のワイドUIへ切り替わる指定が揃っていません");
+}
+if (!/function pcWideSidePanelEnabled\(\)[\s\S]*?min-width:\s*1200px/.test(app)
+    || !/function openWideSidePanel\(kind\)/.test(app)
+    || !/window\.openHelp = \(\) =>[\s\S]*?openWideSidePanel\("help"\)[\s\S]*?go\("help"\)/.test(app)
+    || !/window\.openGlobalSettings = \(\) =>[\s\S]*?openWideSidePanel\("settings"\)[\s\S]*?go\("settings"/.test(app)
+    || !/#sheet\.wide-side-sheet\s*\{[\s\S]*?right:\s*0[\s\S]*?left:\s*auto[\s\S]*?height:\s*100dvh/.test(tabletCss)
+    || !/body\[data-wide-panel="settings"\] \.global-settings-btn/.test(tabletCss)) {
+  failures.push("PCの使い方・全体設定が、現在画面を保つ右側ドロワーになっていません");
+}
+if (!/#sheet:not\(\.wide-side-sheet\)\s*\{[\s\S]*?top:\s*50%[\s\S]*?left:\s*50%[\s\S]*?transform:\s*translate\(-50%,\s*-50%\)/.test(tabletCss)
+    || !/#sheet:not\(\.wide-side-sheet\) > \.grabber\s*\{\s*display:\s*none/.test(tabletCss)
+    || !/#sheet\.trim-sheet:not\(\.wide-side-sheet\)\s*\{[\s\S]*?width:\s*min\(880px/.test(tabletCss)
+    || !/@keyframes wideModalIn/.test(tabletCss)) {
+  failures.push("PCの下部シートが、動画トリムを含む中央モーダル表示へ統一されていません");
+}
 const homeHeaderRule = css.match(/\.home-simple-head\s*\{([^}]*)\}/);
 if (!homeHeaderRule || !/min-height:\s*calc\(66px \+ var\(--safe-top\)\)/.test(homeHeaderRule[1])) {
   failures.push("ホーム画面のヘッダー高が他画面と揃っていません");
@@ -475,7 +499,9 @@ if (!/function runVideoStorageActions\(videos\)/.test(runVideoReview)
   failures.push("演技映像の容量表示と、スライド確認付き一括削除が揃っていません");
 }
 if (!/showRoutinePracticeChoice\('\$\{rt\.id\}'\)/.test(app)
-    || !/function routineCardHtml[\s\S]*?routineId:'\$\{rt\.id\}'[\s\S]*?演技映像を見る/.test(app)) {
+    || !/function routineCardHtml[\s\S]*?routineId:'\$\{rt\.id\}'[\s\S]*?<span>演技映像<\/span>/.test(app)
+    || /演技映像を見る/.test(app)
+    || !/\["演技映像", "Performance Videos"\]/.test(i18n)) {
   failures.push("ルーティンカードに練習選択とルーティン別演技映像の導線がありません");
 }
 if (!/window\.showRoutinePracticeChoice[\s\S]*?openRoutinePractice\('\$\{id\}','record'\)[\s\S]*?openRoutinePractice\('\$\{id\}','part'\)/.test(app)) {
@@ -494,7 +520,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 344_000], ["run-video-orientation.js", 3_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 27_000], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 8_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 27_000], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
@@ -503,7 +529,7 @@ for (const [name, max] of budgets) {
 }
 const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-if (gzipShell > 174_000) failures.push(`主要コードのgzip概算が174KBを超えています (${gzipShell})`);
+if (gzipShell > 180_000) failures.push(`主要コードのgzip概算が180KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

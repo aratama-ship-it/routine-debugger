@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v213"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v217"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -432,12 +432,28 @@ function versionStats(routine, versionId) {
 }
 
 // ---------- シート/トースト ----------
+let activeWideSidePanel = null;
+let wideSidePanelReturnFocus = null;
+
 function showSheet(html, variant = "") {
   $sheet.innerHTML = `<div class="grabber"></div>` + html;
   $sheet.classList.toggle("trim-sheet", variant === "trim-sheet");
+  $sheet.classList.toggle("wide-side-sheet", variant === "wide-side-sheet");
+  if (variant !== "wide-side-sheet") {
+    activeWideSidePanel = null;
+    wideSidePanelReturnFocus = null;
+    delete document.body.dataset.widePanel;
+    $sheet.removeAttribute("role");
+    $sheet.removeAttribute("aria-modal");
+    $sheet.removeAttribute("aria-label");
+  }
   $sheet.classList.remove("hidden");
   $backdrop.classList.remove("hidden");
   applyUiLanguage($sheet);
+  $sheet.setAttribute("role", "dialog");
+  $sheet.setAttribute("aria-modal", "true");
+  $sheet.setAttribute("aria-label", $sheet.querySelector("h3")?.textContent.trim()
+    || (isEnglish() ? "Dialog" : "確認"));
   if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // シート内の技動画にトリム適用
 }
 function releaseSheetMedia() {
@@ -465,11 +481,22 @@ function hideSheet() {
   if (runCamera && !runCamera.recording && !runCameraArmed) stopRunCameraNow();
   // 保存確認を外側タップで閉じた場合も、一時映像をメモリへ残さない。
   if (pendingRunVideo) clearPendingRunVideo();
+  const restoreFocus = $sheet.classList.contains("wide-side-sheet") ? wideSidePanelReturnFocus : null;
   releaseSheetMedia();
-  $sheet.classList.remove("trim-sheet");
+  $sheet.classList.remove("trim-sheet", "wide-side-sheet");
   $sheet.classList.add("hidden");
   $backdrop.classList.add("hidden");
   $sheet.innerHTML = "";
+  $sheet.removeAttribute("role");
+  $sheet.removeAttribute("aria-modal");
+  $sheet.removeAttribute("aria-label");
+  activeWideSidePanel = null;
+  wideSidePanelReturnFocus = null;
+  delete document.body.dataset.widePanel;
+  document.querySelectorAll(".global-settings-btn, .home-help-btn").forEach((button) => {
+    button.setAttribute("aria-expanded", "false");
+  });
+  if (restoreFocus && document.contains(restoreFocus)) requestAnimationFrame(() => restoreFocus.focus());
 }
 $backdrop.addEventListener("click", hideSheet);
 
@@ -1783,6 +1810,10 @@ function globalSettingsAction() {
 // グローバル設定は、開いた元の画面とルーティンID等のパラメータを保って往復する。
 // 設定画面を直接開いた場合や再読み込み後は、安全な予備動作としてHOMEへ戻す。
 window.openGlobalSettings = () => {
+  if (pcWideSidePanelEnabled()) {
+    if (activeWideSidePanel === "settings") return hideSheet();
+    return openWideSidePanel("settings");
+  }
   if (view.name === "settings") return;
   go("settings", { returnView: view.name, returnParams: { ...(view.params || {}) } });
 };
@@ -1972,7 +2003,7 @@ function routineCardHtml(rt, context = "list") {
         <button class="btn small primary" onclick="showRoutinePracticeChoice('${rt.id}')">練習</button>
         <button class="btn small routine-video-action"
           onclick="go('runvideos',{from:'${context === "home" ? "home" : "routines"}',routineId:'${rt.id}'})">
-          <span>演技映像を見る</span><small>${isEnglish() ? `${videoCount} videos` : `${videoCount}本`}</small>
+          <span>演技映像</span><small>${isEnglish() ? `${videoCount} videos` : `${videoCount}本`}</small>
         </button>
         <button class="btn small" onclick="go('stats',{id:'${rt.id}'})">分析</button>
         <button class="btn small ghost" onclick="go('edit',{id:'${rt.id}'})">編集</button>
@@ -2034,6 +2065,14 @@ function renderHome() {
     <div class="home-recent-empty">
       <span>まだ練習したルーティンはありません</span>
     </div>`;
+  const wideRoutines = previousRoutine
+    ? [previousRoutine, ...routines.filter((routine) => routine.id !== previousRoutine.id)]
+    : routines;
+  const wideRoutineRows = wideRoutines.length
+    ? wideRoutines.map((routine, index) => `
+        ${index === 0 && previousRoutine ? `<div class="home-wide-previous-label">前回のルーティン</div>` : ""}
+        ${routineCardHtml(routine, "home")}`).join("")
+    : `<div class="home-recent-empty">まだルーティンがありません</div>`;
 
   return `
     <div class="home-simple-shell">
@@ -2045,7 +2084,7 @@ function renderHome() {
             <h1>ルーティンノート</h1>
           </div>
           <div class="home-head-buttons">
-            <button onclick="go('help')">使い方</button>
+            <button class="home-help-btn" onclick="openHelp()" aria-expanded="false">使い方</button>
             ${globalSettingsAction()}
           </div>
         </header>
@@ -2059,6 +2098,13 @@ function renderHome() {
             ${previousButton}
           </section>
         </main>
+        <section class="home-wide-routines" aria-labelledby="home-wide-routines-title">
+          <div class="home-wide-routines-head">
+            <div><small>ROUTINES</small><h2 id="home-wide-routines-title">ルーティン</h2></div>
+            <button type="button" onclick="go('edit',{})">＋ 新規ルーティン</button>
+          </div>
+          <div class="home-wide-routine-list">${wideRoutineRows}</div>
+        </section>
         <div class="home-paper-space" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div>
         <footer class="home-libraries" aria-label="ライブラリ">
           <div class="home-library-grid">
@@ -5973,6 +6019,66 @@ function parseCue(str) {
 const fmtCue = (sec) => fmtTimeFine(sec);
 
 // ========== 使い方(UIから追い出した説明の集約先) ==========
+function pcWideSidePanelEnabled() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(min-width: 1200px)").matches;
+}
+
+function pageBodyWithoutTopbar(html) {
+  return String(html || "").replace(/^\s*<div class="topbar">[\s\S]*?<\/div>\s*/, "");
+}
+
+function wideSidePanelMarkup(kind) {
+  const english = isEnglish();
+  const settingsPanel = kind === "settings";
+  const title = settingsPanel
+    ? (english ? "Global Settings" : "グローバル設定")
+    : (english ? "Guide" : "使い方");
+  const kicker = settingsPanel ? "SETTINGS / GLOBAL" : "GUIDE / ROUTINE NOTE";
+  const body = pageBodyWithoutTopbar(settingsPanel ? renderSettings() : renderHelp());
+  return `
+    <header class="wide-side-panel-head">
+      <div><small>${kicker}</small><h3>${title}</h3></div>
+      <button class="wide-side-panel-close" type="button" onclick="hideSheet()"
+        aria-label="${english ? "Close" : "閉じる"}">×</button>
+    </header>
+    <div class="wide-side-panel-body">${body}</div>`;
+}
+
+function openWideSidePanel(kind) {
+  if (!pcWideSidePanelEnabled()) return kind === "settings"
+    ? go("settings", { returnView: view.name, returnParams: { ...(view.params || {}) } })
+    : go("help");
+  if (!activeWideSidePanel) wideSidePanelReturnFocus = document.activeElement;
+  activeWideSidePanel = kind === "settings" ? "settings" : "help";
+  showSheet(wideSidePanelMarkup(activeWideSidePanel), "wide-side-sheet");
+  document.body.dataset.widePanel = activeWideSidePanel;
+  $sheet.setAttribute("role", "dialog");
+  $sheet.setAttribute("aria-modal", "true");
+  $sheet.setAttribute("aria-label", activeWideSidePanel === "settings"
+    ? (isEnglish() ? "Global Settings" : "グローバル設定")
+    : (isEnglish() ? "Guide" : "使い方"));
+  document.querySelectorAll(".global-settings-btn").forEach((button) => {
+    button.setAttribute("aria-expanded", activeWideSidePanel === "settings" ? "true" : "false");
+  });
+  document.querySelectorAll(".home-help-btn").forEach((button) => {
+    button.setAttribute("aria-expanded", activeWideSidePanel === "help" ? "true" : "false");
+  });
+  requestAnimationFrame(() => $sheet.querySelector(".wide-side-panel-close")?.focus());
+}
+
+function refreshWideSidePanel() {
+  if (activeWideSidePanel && pcWideSidePanelEnabled()) openWideSidePanel(activeWideSidePanel);
+}
+
+window.openHelp = () => {
+  if (pcWideSidePanelEnabled()) {
+    if (activeWideSidePanel === "help") return hideSheet();
+    return openWideSidePanel("help");
+  }
+  if (!$sheet.classList.contains("hidden")) hideSheet();
+  go("help");
+};
+
 function renderHelpEnglish() {
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')">Back</button><h1>Guide</h1></div>
@@ -6066,18 +6172,20 @@ function renderSettings() {
       <h2>初期化${infoBtn("reset")}</h2>
       <button class="btn danger-ghost" style="width:100%" onclick="resetAllData()">この端末のデータを全て削除</button>
     </div>
-    <button class="btn" onclick="go('help')">使い方を見る</button>`;
+    <button class="btn" onclick="openHelp()">使い方を見る</button>`;
 }
 
 window.setLanguage = (language) => {
   state.settings.language = language === "en" ? "en" : "ja";
   saveState(); render();
+  refreshWideSidePanel();
   toast(isEnglish() ? "Language: English" : "表示言語: 日本語");
 };
 
 window.setVideoQuality = (k) => {
   state.settings.videoQuality = k;
   saveState(); render();
+  refreshWideSidePanel();
   toast(`動画の画質: ${(VIDEO_PROFILES[k] || {}).label || k}`);
 };
 
