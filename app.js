@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v205"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v213"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1694,6 +1694,7 @@ window.recDelete = async (sessId, recId) => {
 // ---------- 画面遷移 ----------
 function go(name, params = {}) {
   if (name !== view.name) musicLoadGeneration++;
+  if (view.name === "trickbatch" && name !== "trickbatch") batchSequenceImportCleanup();
   // 記録画面を離れるとき: 楽曲は一時停止、録音中なら保存して終了
   if (view.name === "record" && name !== "record") {
     clearRunCountdown();
@@ -1897,7 +1898,8 @@ function render() {
   const r = { home: renderHome, routines: renderRoutines, edit: renderEdit, record: renderRecord,
     stats: renderStats, settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail,
     part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec,
-    audios: renderAudios, runvideos: renderRunVideos }[view.name];
+    trickbatch: renderBatchSequenceImport, audios: renderAudios, runvideos: renderRunVideos }[view.name];
+  document.body.dataset.view = view.name;
   $app.innerHTML = r ? r() : renderHome();
   applySingleDesign(); // 過去のスキン値に関係なく、常にルーズリーフデザインへ固定
   ensureGlobalSettingsAction();
@@ -1907,6 +1909,7 @@ function render() {
   // 音源ロードによる再描画後も、常設の現在シーケンス名と静止プレビューを同じDOMへ同期する
   if (["record", "part", "edit"].includes(view.name)) updatePracticeNowUI();
   if (view.name === "record") bindRunCameraLivePreview();
+  if (view.name === "trickbatch") requestAnimationFrame(bindBatchSequenceImportUi);
 }
 
 // ルーティンカードはホームの「前回」と一覧で共通化し、どちらからも目的の操作へ1タップで入れる。
@@ -2673,21 +2676,30 @@ function renderEdit() {
       <span><b>v${draft._restoredFromVersion}</b> の構成を編集中です</span>
       <button type="button" onclick="cancelVersionRestore('${rt.id}')">現在のv${rt.versions.length}に戻す</button>
     </div>` : ""}
-    ${practiceNowDockHtml(editorPreviewPlayerHtml(hasEditorMusic))}
-    <div class="card routine-name-card">
-      <label class="fld">ルーティン名</label>
-      <input type="text" value="${esc(sampleDisplayText(draft.name, draft._sampleContent))}" placeholder="例: 2026ステージ用 4分" oninput="draft.name=this.value">
+    <div class="tablet-edit-layout">
+      <aside class="tablet-edit-side" aria-label="${isEnglish() ? "Preview and music" : "プレビューと楽曲"}">
+        ${practiceNowDockHtml(editorPreviewPlayerHtml(hasEditorMusic))}
+        <div class="card routine-name-card">
+          <label class="fld">ルーティン名</label>
+          <input type="text" value="${esc(sampleDisplayText(draft.name, draft._sampleContent))}" placeholder="例: 2026ステージ用 4分" oninput="draft.name=this.value">
+        </div>
+        ${musicCard}
+      </aside>
+      <main class="tablet-edit-main">
+        <div class="card tablet-step-card">
+          <h2>ステップ(技と移行) — 上から実施順${infoBtn("steps")}</h2>
+          ${stepRows || `<div class="empty">最初のシーケンスを追加</div>${emptyStepActions}`}
+        </div>
+        ${rt ? `<p class="hint">${isEnglish()
+          ? `When saving, choose whether to keep the edit as a new version or overwrite the current v${rt.versions.length}.`
+          : `保存時に、新しいバージョンとして残すか、現在のv${rt.versions.length}を上書きするか選べます。`}</p>` : ""}
+        <div class="tablet-edit-save-actions">
+          <button class="btn primary" onclick="saveRoutine()">保存</button>
+          ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>` : ""}
+        </div>
+      </main>
     </div>
-    ${musicCard}
-    <div class="card">
-      <h2>ステップ(技と移行) — 上から実施順${infoBtn("steps")}</h2>
-      ${stepRows || `<div class="empty">最初のシーケンスを追加</div>${emptyStepActions}`}
-    </div>
-    ${rt ? `<p class="hint">${isEnglish()
-      ? `When saving, choose whether to keep the edit as a new version or overwrite the current v${rt.versions.length}.`
-      : `保存時に、新しいバージョンとして残すか、現在のv${rt.versions.length}を上書きするか選べます。`}</p>` : ""}
-    <button class="btn primary" onclick="saveRoutine()">保存</button>
-    ${rt ? `<button class="btn" onclick="duplicateRoutine('${rt.id}')">このルーティンを複製</button>` : ""}`;
+    `;
 }
 window.toggleKind = (i) => { draft.steps[i].kind = draft.steps[i].kind === "trick" ? "transition" : "trick"; render(); };
 window.toggleStepKind = (i) => {
@@ -3414,44 +3426,50 @@ function renderRecord() {
     <div class="topbar"><button class="back-btn" onclick="endSessionAsk('${rt.id}')">戻る</button>
       <h1 class="record-mode-head"><span>通し練習モード</span><small>${esc(routineDisplayName(rt))}</small></h1>
       ${routineMenuAction(rt.id, `<span class="sub">v${rt.versions.length}</span>`)}</div>
-    ${practiceNowDockHtml()}
-    <button class="run-start-btn ${runActive ? "active" : ""}" onclick="confirmRunStart('${rt.id}')"
-      ${runActive ? "disabled aria-disabled=\"true\"" : ""}>
-      <small>${runActive ? "IN PROGRESS" : "START"}</small>
-      <b class="run-start-number">本日 ${runProgress.nextToday}本目</b>
-      <strong>${runActive ? "通し練習中" : "通し練習をスタート"}</strong>
-      <span class="run-start-total">これまでの合計 ${runProgress.totalCompleted}本</span>
-      <span class="run-start-countdown">${runActive ? "終わったら結果を記録してください" : `${countdown}秒カウントダウン`}</span>
-    </button>
-    <div class="runbar">
-      <span class="stat">${isEnglish() ? `Today <b>${runProgress.todayCompleted}</b> runs` : `今日 <b>${runProgress.todayCompleted}</b> 本`}</span>
-      <span class="stat">${isEnglish() ? `Clean <b>${runProgress.todayClean}</b>` : `クリーン <b>${runProgress.todayClean}</b>`}</span>
-      ${sess ? `<span class="stat">${isEnglish() ? "Condition" : "体調"} <b>${uiText((FEELINGS.find((f) => f.v === sess.feeling) || {}).label || "-")}</b></span>` : ""}
+    <div class="tablet-practice-layout tablet-record-layout">
+      <aside class="tablet-practice-side" aria-label="${isEnglish() ? "Run controls" : "通し練習の操作"}">
+        ${practiceNowDockHtml()}
+        <button class="run-start-btn ${runActive ? "active" : ""}" onclick="confirmRunStart('${rt.id}')"
+          ${runActive ? "disabled aria-disabled=\"true\"" : ""}>
+          <small>${runActive ? "IN PROGRESS" : "START"}</small>
+          <b class="run-start-number">本日 ${runProgress.nextToday}本目</b>
+          <strong>${runActive ? "通し練習中" : "通し練習をスタート"}</strong>
+          <span class="run-start-total">これまでの合計 ${runProgress.totalCompleted}本</span>
+          <span class="run-start-countdown">${runActive ? "終わったら結果を記録してください" : `${countdown}秒カウントダウン`}</span>
+        </button>
+        <div class="runbar">
+          <span class="stat">${isEnglish() ? `Today <b>${runProgress.todayCompleted}</b> runs` : `今日 <b>${runProgress.todayCompleted}</b> 本`}</span>
+          <span class="stat">${isEnglish() ? `Clean <b>${runProgress.todayClean}</b>` : `クリーン <b>${runProgress.todayClean}</b>`}</span>
+          ${sess ? `<span class="stat">${isEnglish() ? "Condition" : "体調"} <b>${uiText((FEELINGS.find((f) => f.v === sess.feeling) || {}).label || "-")}</b></span>` : ""}
+        </div>
+        ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
+          <video id="run-camera-live-preview" class="run-camera-live-preview" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
+            aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
+          <div class="run-video-live-copy">
+            <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
+            <small>${isEnglish()
+              ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
+              : `${runCameraProfile(runCamera.profileId).label}・インカメ・${runVideoAudioLabel(runCamera)}`}</small>
+          </div>
+        </div>` : ""}
+        ${stoppedRunVideoCapture && stoppedRunVideoCapture.routineId === rt.id ? `<div class="run-video-stopped" role="status">
+          <span aria-hidden="true">■</span><div><b>撮影終了・すぐ確認できます</b><small>音源の停止に合わせて終了しました。結果を記録する前でも、何度でも映像を確認できます。</small></div>
+          <button type="button" class="btn run-video-instant-preview" onclick="previewStoppedRunVideo('${rt.id}')">▶ 今撮った映像を見る</button>
+        </div>` : ""}
+        ${musicCard}
+      </aside>
+      <main class="tablet-practice-main">
+        ${isOpen ? `<div class="openrun-note">この通しは続行中です。ミスは複数記録できます。最後までいったら「完走」、別のミスがあれば続けて該当箇所をタップしてください。</div>` : ""}
+        <div class="card tablet-step-card">
+          <h2>${runActive ? "各シーケンスの「ミス記録」をタップ" : "スタート後、「ミス記録」をタップ"}</h2>
+          <div class="step-list">${stepBtns}</div>
+        </div>
+        <button class="clean-btn record-result-btn" onclick="${isOpen ? "finishOpenRun()" : "recordClean()"}"
+          ${runActive ? "" : "disabled aria-disabled=\"true\""}>
+          ${isOpen ? "完走" : "クリーン"}<span class="sub">${isOpen ? "失敗ありで最後まで" : runActive ? "ノーミスで完走 = 1タップ" : "通し練習のスタート後に記録できます"}</span>
+        </button>
+      </main>
     </div>
-    ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
-      <video id="run-camera-live-preview" class="run-camera-live-preview" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
-        aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
-      <div class="run-video-live-copy">
-        <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
-        <small>${isEnglish()
-          ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
-          : `${runCameraProfile(runCamera.profileId).label}・インカメ・${runVideoAudioLabel(runCamera)}`}</small>
-      </div>
-    </div>` : ""}
-    ${stoppedRunVideoCapture && stoppedRunVideoCapture.routineId === rt.id ? `<div class="run-video-stopped" role="status">
-      <span aria-hidden="true">■</span><div><b>撮影終了・すぐ確認できます</b><small>音源の停止に合わせて終了しました。結果を記録する前でも、何度でも映像を確認できます。</small></div>
-      <button type="button" class="btn run-video-instant-preview" onclick="previewStoppedRunVideo('${rt.id}')">▶ 今撮った映像を見る</button>
-    </div>` : ""}
-    ${musicCard}
-    ${isOpen ? `<div class="openrun-note">この通しは続行中です。ミスは複数記録できます。最後までいったら「完走」、別のミスがあれば続けて該当箇所をタップしてください。</div>` : ""}
-    <div class="card">
-      <h2>${runActive ? "各シーケンスの「ミス記録」をタップ" : "スタート後、「ミス記録」をタップ"}</h2>
-      <div class="step-list">${stepBtns}</div>
-    </div>
-    <button class="clean-btn record-result-btn" onclick="${isOpen ? "finishOpenRun()" : "recordClean()"}"
-      ${runActive ? "" : "disabled aria-disabled=\"true\""}>
-      ${isOpen ? "完走" : "クリーン"}<span class="sub">${isOpen ? "失敗ありで最後まで" : runActive ? "ノーミスで完走 = 1タップ" : "通し練習のスタート後に記録できます"}</span>
-    </button>
     <div class="bottombar">
       <button class="undo" onclick="undo()">取り消し</button>
       <button onclick="endSessionAsk('${rt.id}')">セッション終了</button>
@@ -4200,8 +4218,12 @@ function renderPart() {
   return `
     <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
       <h1>${esc(routineDisplayName(rt))} パート練習</h1>${routineMenuAction(rt.id)}</div>
-    ${practiceNowDockHtml()}
-    <div class="card music-card">
+    <div class="tablet-practice-layout tablet-part-layout">
+      <aside class="tablet-practice-side" aria-label="${isEnglish() ? "Sequence preview" : "シーケンスのプレビュー"}">
+        ${practiceNowDockHtml()}
+      </aside>
+      <main class="tablet-practice-main">
+      <div class="card music-card">
       <div class="music-name">♪ ${esc(rt.music.name)}</div>
       <div class="music-time big"><span id="music-cur">${fmtTimeFine(musicCurrentTime())}</span><span class="dur"> / <span id="music-dur">${fmtTime(musicEffectiveDuration())}</span></span></div>
       <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
@@ -4274,6 +4296,8 @@ function renderPart() {
       </div>
       ${rt.partLoop ? `<button class="btn ghost" style="margin-top:10px" onclick="partClear()">区間をリセット</button>` : ""}
       </section>
+      </div>
+      </main>
     </div>`;
 }
 
@@ -4662,7 +4686,7 @@ libAudio.addEventListener("timeupdate", () => {
     return;
   }
   const el = document.getElementById("lib-pos");
-  if (el) el.textContent = fmtTimeFine(libAudioCurrentTime());
+  if (el) el.textContent = fmtTime(libAudioCurrentTime());
 });
 
 function renderAudios() {
@@ -4672,7 +4696,7 @@ function renderAudios() {
     <div class="trick-row">
       <div class="head">
         <span class="nm" data-user-text onclick="sheetRenameAudio('${a.id}')">${esc(a.name)}${a.source === "rec" ? " ●" : ""}</span>
-        <span class="kn">${audioPlayingId === a.id ? `<span id="lib-pos">${fmtTimeFine(libAudioCurrentTime())}</span> / ` : ""}${fmtTime(a.duration || 0)}${musicMetaIsTrimmed(a) ? " ✂" : ""}</span>
+        <span class="kn">${audioPlayingId === a.id ? `<span id="lib-pos">${fmtTime(libAudioCurrentTime())}</span> / ` : ""}${fmtTime(a.duration || 0)}${musicMetaIsTrimmed(a) ? " ✂" : ""}</span>
         <button class="btn small" onclick="sheetTrimAudio('${a.id}')">編集</button>
         <button class="btn small" onclick="audioPlay('${a.id}')">${audioPlayingId === a.id ? "■ 停止" : "▶"}</button>
         <button class="mini-btn del" onclick="audioDelete('${a.id}')">✕</button>
@@ -4683,7 +4707,7 @@ function renderAudios() {
     <div class="trick-row">
       <div class="head">
         <span class="nm" data-user-text>${esc(s.n)}</span>
-        <span class="kn">${audioPlayingId === "sample:" + i ? `<span id="lib-pos">${fmtTimeFine(libAudio.currentTime || 0)}</span> / 付属` : "付属"}</span>
+        <span class="kn">${audioPlayingId === "sample:" + i ? `<span id="lib-pos">${fmtTime(libAudio.currentTime || 0)}</span> / 付属` : "付属"}</span>
         <button class="btn small" onclick="playSample(${i})">${audioPlayingId === "sample:" + i ? "■ 停止" : "▶"}</button>
       </div>
     </div>`).join("");
@@ -5394,18 +5418,9 @@ window.loadSampleSet = async () => {
   toast("サンプルv1〜v3と通し40本の分析例を追加しました");
   } finally { hideLoading(); }
 };
-window.removeSampleTricks = async () => {
-  const samples = (state.tricks || []).filter((t) => t.sample);
-  if (!samples.length) return;
-  if (!appConfirm(`サンプルの技${samples.length}個をまとめて削除しますか?`)) return;
-  for (const t of samples) await blobDel(t.blobId);
-  state.tricks = state.tricks.filter((t) => !t.sample);
-  saveState(); render(); toast("サンプルを削除しました");
-};
-
 function renderTricks() {
   const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
-  const totalBytes = tricks.reduce((a, t) => a + (t.size || 0), 0);
+  const totalBytes = uniqueTrickBlobBytes(tricks);
   const rows = tricks.map((t) => `
     <div class="trick-row" data-line-color="${itemLineColor(t)}">
       ${itemLineColorButtonHtml(t, "trick")}
@@ -5422,6 +5437,7 @@ function renderTricks() {
       <button class="btn primary" style="margin-bottom:12px" onclick="go('trickrec')">● カメラで撮影</button>
       <button class="btn" onclick="document.getElementById('trick-file').click()">＋ 動画を登録</button>
     </div>
+    <button class="btn batch-import-open" onclick="go('trickbatch')">▤ 長尺動画から一括追加</button>
     <input type="file" id="trick-file" accept="video/*" class="hidden" onchange="trickImport(this)">
     <div class="card">
       <h2>登録済みのシーケンス・技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
@@ -5716,14 +5732,6 @@ window.trimSave = () => {
   trimDraft = null;
   saveState(); hideSheet(); render();
   toast(`長さを ${fmtTime(t.duration)} にしました`);
-};
-window.trickDelete = async (id) => {
-  const t = state.tricks.find((x) => x.id === id);
-  if (!t) return;
-  if (!appConfirm(`「${t.name}」を削除しますか?(元に戻せません)`)) return;
-  await blobDel(id);
-  state.tricks = state.tricks.filter((x) => x.id !== id);
-  saveState(); render(); toast("削除しました");
 };
 window.sheetRenameTrick = (id) => {
   const t = state.tricks.find((x) => x.id === id);

@@ -1,0 +1,191 @@
+/* ルーティンノート — iPad / tablet layout (768–1199px) */
+.tablet-edit-layout,
+.tablet-edit-side,
+.tablet-edit-main,
+.tablet-practice-layout,
+.tablet-practice-side,
+.tablet-practice-main,
+.tablet-edit-save-actions {
+  display: contents;
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  #app {
+    width: min(94vw, 1040px);
+    max-width: 1040px;
+    padding-inline: 24px;
+  }
+  #app:not(:has(> .home-simple-shell)) {
+    padding-inline: 24px;
+  }
+  #app:not(:has(> .home-simple-shell)) > .topbar {
+    margin-inline: -24px;
+    padding-inline: 20px;
+  }
+  .topbar:has(.back-btn) {
+    grid-template-columns: minmax(64px, auto) minmax(0, 1fr) minmax(64px, auto);
+  }
+  .topbar:has(.back-btn) h1 { font-size: 19px; }
+  .topbar .back-btn {
+    justify-self: start;
+    width: max-content;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 7px 9px;
+  }
+  .card { padding-inline: 18px; }
+  .bottombar {
+    width: min(94vw, 1040px);
+    max-width: 1040px;
+    padding-inline: 24px;
+  }
+
+  /* ホームはスマホと同じ読み順のまま、各セクションを横長に広げる。 */
+  .home-simple-shell { margin-inline: -24px; }
+  .home-binder-edge { width: 46px; }
+  .home-binder-edge::before {
+    inset-inline: 11px;
+    background-size: 22px 76px;
+  }
+  .home-paper-sheet {
+    margin-left: 39px;
+    padding-inline: 54px 34px;
+  }
+  .home-simple-head { min-height: calc(78px + var(--safe-top)); }
+  .home-title-block h1 { font-size: 24px; }
+  .home-title-block > small { font-size: 9px; }
+  .home-simple-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 26px;
+    padding-top: 36px;
+  }
+  .home-practice-button { min-height: 94px; }
+  .home-practice-copy > span { font-size: 23px; }
+  .home-recent { margin-top: 0; }
+  .home-routine-card .routine-row .actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .home-paper-space { min-height: 132px; }
+  .home-library-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .home-library-grid .home-library-videos {
+    grid-column: auto;
+    min-height: 72px;
+  }
+  .home-library-grid button { min-height: 72px; padding-inline: 14px; }
+  .home-library-copy b { font-size: 13px; }
+
+  /* 一覧は一つのルーティンを一行として扱い、iPadの横幅いっぱいに読む。 */
+  .routine-stack-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+  }
+  .routine-stack-list > h2 { grid-column: 1 / -1; margin-bottom: 0; }
+  .routine-stack-list > .empty { grid-column: 1 / -1; }
+  .routine-stack-list .routine-card {
+    width: 100%;
+    margin-block: 6px 16px;
+  }
+  .routine-stack-list .routine-row .actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* 縦向きでもプレビューを少し大きくし、左右の余白を情報に戻す。 */
+  .practice-now { --practice-preview-size: 222px; }
+  .practice-now-copy strong { font-size: 20px; }
+  .practice-now-meta { font-size: 12px; }
+  .editor-step { padding-left: 50px; }
+  .editor-step .es-lead { width: 40px; }
+  .drag-handle { width: 40px; }
+  .editor-step .es-name-field input[type=text] { font-size: 18px; }
+  .stat-overview { gap: 14px; }
+  .stat-box { min-height: 104px; }
+
+  /* 長尺動画の一括登録もカードを横幅に合わせる。 */
+  .batch-import-layout { gap: 18px; }
+  .batch-source video { max-height: 58vh; }
+  .batch-segment-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .batch-segment { grid-template-columns: 1fr; align-content: start; }
+  .batch-link-status { text-align: left; }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .tablet-edit-layout,
+  .tablet-practice-layout {
+    display: grid;
+    grid-template-columns: minmax(340px, .78fr) minmax(0, 1.22fr);
+    align-items: start;
+    gap: 26px;
+  }
+  .tablet-edit-side,
+  .tablet-edit-main,
+  .tablet-practice-side,
+  .tablet-practice-main {
+    display: block;
+    min-width: 0;
+  }
+  .tablet-edit-side,
+  .tablet-record-layout > .tablet-practice-side,
+  .tablet-part-layout > .tablet-practice-side {
+    position: sticky;
+    top: calc(84px + var(--safe-top));
+    align-self: start;
+  }
+  .tablet-edit-side .practice-now,
+  .tablet-practice-side .practice-now {
+    position: relative;
+    top: auto;
+    z-index: 1;
+  }
+  .tablet-edit-side .practice-now,
+  .tablet-practice-side .practice-now { --practice-preview-size: 190px; }
+  .tablet-edit-side .routine-name-card,
+  .tablet-edit-side .music-card,
+  .tablet-practice-side .music-card { margin-bottom: 18px; }
+  .tablet-step-card { margin-bottom: 16px; }
+  .tablet-edit-save-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .72fr);
+    gap: 10px;
+  }
+  .tablet-edit-save-actions .btn { margin: 0; }
+
+  /* 通し練習: 左で現在位置と再生、右でミスを記録する。 */
+  .tablet-record-layout .run-start-btn { min-height: 126px; }
+  .tablet-record-layout .run-start-number { font-size: 30px; }
+  .tablet-record-layout .runbar { gap: 6px; }
+  .tablet-record-layout .runbar .stat { flex: 1 1 auto; }
+  .tablet-record-layout .music-card { margin-bottom: 0; }
+  .tablet-practice-main .clean-btn { margin-top: 4px; }
+
+  /* パート練習は動画プレビューを参照ページとして固定する。 */
+  .tablet-part-layout {
+    grid-template-columns: minmax(330px, .74fr) minmax(0, 1.26fr);
+  }
+  .tablet-part-layout .tablet-practice-side .practice-now {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+    padding: 14px;
+  }
+  .tablet-part-layout .practice-now-copy {
+    min-height: 74px;
+    padding: 4px 6px 12px;
+  }
+  .tablet-part-layout .practice-now-media {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1;
+  }
+  .tablet-part-layout .tablet-practice-main > .music-card { margin-bottom: 0; }
+}
