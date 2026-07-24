@@ -23,7 +23,8 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v200"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v205"; // 要望フォーム等で自動送信するアプリ版
+const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -572,7 +573,7 @@ function enforceMusicTrimEnd() {
   if (!musicTrimMeta || musicPlayer.paused) return;
   const b = musicBounds();
   if (!b.duration || musicPlayer.currentTime < b.end - 0.04) return;
-  if (view.name === "part" && partLoopActive) return partTick();
+  if (view.name === "part" && partLoopActive && !partFullTrackActive) return partTick();
   musicPlayer.pause();
   musicSetTime(0);
 }
@@ -612,7 +613,9 @@ function updateMusicUI() {
     seek.value = rel;
   }
   const tg = document.getElementById("music-toggle-pill");
-  if (tg) tg.innerHTML = uiText(musicPlayer.paused ? "▶ 再生" : "❚❚ 一時停止");
+  if (tg) tg.innerHTML = uiText(view.name === "part"
+    ? (musicPlayer.paused || !partFullTrackActive ? "▶ 全体を再生" : "❚❚ 一時停止")
+    : (musicPlayer.paused ? "▶ 再生" : "❚❚ 一時停止"));
   const vol = document.getElementById("music-vol");
   if (vol && !vol.matches(":active")) vol.value = musicVolume;
   if (view.name === "record") recordTickUI();   // キュー指定に基づく「いまこの技」ハイライト
@@ -664,8 +667,6 @@ async function loadEditorMusic() {
   musicPlayer.src = musicObjectUrl;
   if (view.name === "edit") updateMusicUI();
 }
-// 編集/通し/パート共通: 曲位置から「いま実施予定の技」を求め、上部ドックへ表示する。
-// 明示キューが無いステップは、直前ステップの開始時刻+技の長さで補う。
 const practiceVideoUrls = new Map();
 const practiceVideoLoading = new Set();
 const practiceVideoFailed = new Set();
@@ -955,7 +956,11 @@ window.musicToggle = () => {
   }
   else musicPlayer.pause();
 };
-window.musicStop = () => { musicPlayer.pause(); musicSetTime(0); updateMusicUI(); };
+window.musicStop = () => {
+  musicPlayer.pause(); musicSetTime(0);
+  if (view.name === "part") partFullTrackActive = false;
+  updateMusicUI();
+};
 window.musicSeek = (v) => { musicSetTime(Number(v)); updateMusicUI(); };
 // 通しの記録が確定したら曲を頭に戻す(次の通しは▶を押すだけ)
 function musicResetForNextRun() {
@@ -1013,9 +1018,6 @@ async function stopRecording() {
   if (view.name === "record") render();
 }
 
-// ---------- 通し練習の映像(インカメ／保存時にアプリ音源を合成／アプリ全体で最大5本) ----------
-// カメラは開始確認でのみ準備し、カウントダウン終了と同時に録画を開始する。
-// 6本目は古い映像を勝手に消さず、保存時に利用者が入れ替え先を選ぶ。
 let runCamera = null; // { routineId, stream, rec, chunks, recording, startedAt }
 let runCameraArmed = false;
 let runCameraRequestGeneration = 0;
@@ -1701,9 +1703,9 @@ function go(name, params = {}) {
     clearPendingRunVideo();
     if (recState) stopRecording();
   }
-  // パート練習を離れるとき: ループ停止+一時停止
   if (view.name === "part" && name !== "part") stopPartLoop(true);
   if (view.name === "part" && name !== "part") setMusicPlaybackRate(1);
+  if (name === "part" && view.name !== "part") { partLoopActive = true; partFullTrackActive = false; }
   if (["record", "part", "edit"].includes(view.name) && name !== view.name) clearPracticeNowCache();
   if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); cuePlayStepId = null; }
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
@@ -1730,11 +1732,11 @@ const INFO = {
 const INFO_EN = {
   steps: { t: "Reordering, pins, and FIT", b: "Drag the ⠿ handle below the step number to change the order.<br><br>Pin a step to keep that sequence at the same music position when reordering or automatically setting cues. FIT aligns its cue with the end of the previous sequence." },
   audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is not included in JSON backups, so export any recordings you need to keep." },
-  editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two skills for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
-  videoQuality: { t: "Skill video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
+  editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
+  videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
   backup: { t: "Backup", b: "iPhone may remove browser storage after a long period of inactivity. Export a JSON backup regularly. Audio files are not included." },
   feedback: { t: "Feedback and requests", b: "Send feature requests or usability feedback directly to the developer." },
-  reset: { t: "Reset", b: "Deletes all routines, practice records, skill videos, recordings, audio, and settings on this device. This cannot be undone." },
+  reset: { t: "Reset", b: "Deletes all routines, practice records, sequence videos, recordings, audio, and settings on this device. This cannot be undone." },
 };
 const infoBtn = (key) => `<button class="info-btn" onclick="event.stopPropagation();showInfo('${key}')" aria-label="説明">?</button>`;
 window.showInfo = (key) => {
@@ -2064,7 +2066,7 @@ function renderHome() {
               <span class="home-button-arrow" aria-hidden="true">›</span>
             </button>
             <button class="home-library-tricks" onclick="go('tricks')">
-              <span class="home-library-copy"><b>技ライブラリ</b><small>${trickCount ? (isEnglish() ? `${trickCount} skills` : `${trickCount}本`) : "未登録"}</small></span>
+              <span class="home-library-copy"><b>${TRICK_LIBRARY_LABEL}</b><small>${trickCount ? (isEnglish() ? `${trickCount} sequences` : `${trickCount}本`) : "未登録"}</small></span>
               <span class="home-button-arrow" aria-hidden="true">›</span>
             </button>
             <button class="home-library-audios" onclick="go('audios')">
@@ -2511,7 +2513,7 @@ function cueIntervalWarningHtml(index) {
   const insertAt = index + 1;
   const actions = interval.kind === "gap" ? `<div class="cue-gap-actions" aria-label="${isEnglish() ? "Add a sequence in this gap" : "この空間にシーケンスを追加"}">
     <button type="button" onclick="addStep('trick',${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Sequence" : "技"}</button>
-    <button type="button" onclick="sheetPickTrick(${insertAt})" aria-label="${isEnglish() ? "Choose a skill from the library for this gap" : "空間に技リストから追加"}">＋${isEnglish() ? "Library" : "技リストから"}</button>
+    <button type="button" onclick="sheetPickTrick(${insertAt})" aria-label="${isEnglish() ? "Choose a sequence from the library for this gap" : "空間に技リストから追加"}">＋${isEnglish() ? "Library" : "技リストから"}</button>
     <button type="button" onclick="addStep('transition',${insertAt})" aria-label="${isEnglish() ? "Add a transition in this gap" : "空間に移行を追加"}">＋${isEnglish() ? "Transition" : "移行"}</button>
   </div>` : (!interval.terminal ? `<div class="cue-overlap-actions">
     <button type="button" onclick="fitCueToPrevious(${insertAt})"
@@ -2557,8 +2559,8 @@ function renderEdit() {
     const namePh = collapsedSlot ? "シーケンス名" : (isSlot(s) ? "分岐の名前(例: ラスト技)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "シーケンス名");
     const nameOninput = collapsedSlot ? `draft.steps[${i}].options[0].name=this.value` : `draft.steps[${i}].name=this.value`;
     const stepKind = isSlot(s) ? "trick" : (s.kind || "trick");
-    const kindToggleText = isEnglish() ? (stepKind === "trick" ? "Skill" : "Trans.") : (stepKind === "trick" ? "技" : "移行");
-    const kindToggleLabel = isEnglish() ? (stepKind === "trick" ? "Skill" : "Transition") : (stepKind === "trick" ? "技" : "移行");
+    const kindToggleText = isEnglish() ? (stepKind === "trick" ? "Seq." : "Trans.") : (stepKind === "trick" ? "技" : "移行");
+    const kindToggleLabel = isEnglish() ? (stepKind === "trick" ? "Sequence" : "Transition") : (stepKind === "trick" ? "技" : "移行");
     const fitLabel = isEnglish()
       ? (i === 0 ? "Fit this cue to 0:00.0" : "Fit this cue to the end of the previous sequence")
       : (i === 0 ? "先頭のキューを0:00.0に合わせる" : "前のシーケンスの終わりにキューを合わせる");
@@ -2956,7 +2958,6 @@ window.addStep = (kind, insertAt = null) => {
   render();
 };
 
-// 技ライブラリから選んでステップに追加(trickIdで動画に紐づく)
 window.sheetPickTrick = (insertAt = null) => {
   const at = insertAt == null ? NaN : Number(insertAt);
   const target = Number.isInteger(at) && at >= 0 && draft && at <= draft.steps.length ? at : null;
@@ -2964,8 +2965,8 @@ window.sheetPickTrick = (insertAt = null) => {
   if (!tricks.length) {
     return showSheet(`
       <h3>技リストから追加</h3>
-      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
-      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
   showSheet(`
@@ -3891,12 +3892,11 @@ function renderStats() {
     <button class="btn" onclick="go('record',{id:'${rt.id}'})">この構成で通し練習する</button>`;
 }
 
-// ========== パート練習(楽曲のA→Bループ) ==========
-// 通しと条件が違うため、パート練習は分析データに混ぜない(純粋な練習用ループ再生)
 let partLoopTimer = null;
 let partLoopDelayTimer = null;
 let partLoopWaitingUntil = 0;
 let partLoopActive = false;
+let partFullTrackActive = false;
 let partLoopDrag = null; // { which, pointerId }
 const PART_MIN_RANGE = 0.3;
 const PART_LOOP_DELAY_DEFAULT = 3;
@@ -4047,6 +4047,7 @@ function stopPartLoop(pauseMusic) {
   partLoopTimer = null;
   clearPartLoopDelay();
   partLoopActive = false;
+  partFullTrackActive = false;
   partLoopDrag = null;
   if (pauseMusic) musicPlayer.pause();
 }
@@ -4135,10 +4136,24 @@ window.partPlayFromA = () => {
   const rt = state.routines.find((r) => r.id === view.params.id);
   const { a } = partRange(rt);
   clearPartLoopDelay();
+  partLoopActive = true;
+  partFullTrackActive = false;
+  if (!partLoopTimer) partLoopTimer = setInterval(partTick, 80);
   ensureAudioGraph();
   musicSetTime(a);
   playMedia(musicPlayer, "楽曲を再生できませんでした");
-  if (partLoopActive && !partLoopTimer) partLoopTimer = setInterval(partTick, 80);
+  render();
+};
+window.partPlayWhole = () => {
+  if (!musicPlayer.paused && partFullTrackActive) return musicPlayer.pause();
+  clearInterval(partLoopTimer);
+  partLoopTimer = null;
+  clearPartLoopDelay();
+  partFullTrackActive = true;
+  ensureAudioGraph();
+  musicSetTime(0);
+  playMedia(musicPlayer, "楽曲を再生できませんでした");
+  render();
 };
 window.partToggleLoop = () => {
   if (!partLoopActive) {
@@ -4191,8 +4206,12 @@ function renderPart() {
       <div class="music-time big"><span id="music-cur">${fmtTimeFine(musicCurrentTime())}</span><span class="dur"> / <span id="music-dur">${fmtTime(musicEffectiveDuration())}</span></span></div>
       <input type="range" id="music-seek" min="0" max="100" step="0.1" value="0" oninput="musicSeek(this.value)">
       <div class="music-controls">
-        <button class="music-pill primary" id="music-toggle-pill" onclick="musicToggle()">▶ 再生</button>
+        <button class="music-pill primary" id="music-toggle-pill" onclick="partPlayWhole()">▶ 全体を再生</button>
         <button class="music-pill" onclick="musicStop()">■ 停止</button>
+      </div>
+      <div class="row-2 part-play-modes">
+        <button class="btn primary" style="margin:0" onclick="partPlayFromA()">▶ ループ再生</button>
+        <button class="btn ${partLoopActive ? "ok" : ""}" style="margin:0" onclick="partToggleLoop()">ループ ${partLoopActive ? "ON" : "OFF"}</button>
       </div>
       <div class="volume-row">
         <span class="vol-ico">🔈</span>
@@ -4224,8 +4243,7 @@ function renderPart() {
           <strong>スロー音質優先</strong>
           <span>iPhoneでは音量を端末側で調整</span>
         </div>` : ""}
-    </div>
-    <div class="card">
+      <section class="part-loop-section">
       <h2>ループ区間</h2>
       <div class="part-loop-track ${dur ? "" : "disabled"}" id="part-loop-track" onpointerdown="partTrackPointerDown(event)">
         <div class="part-loop-range" id="part-loop-range" style="${bandStyle}"></div>
@@ -4254,11 +4272,8 @@ function renderPart() {
             aria-label="ループの間隔を長くする" ${loopDelay >= PART_LOOP_DELAY_MAX ? "disabled" : ""}>＋</button>
         </div>
       </div>
-      <div class="row-2" style="margin-top:12px">
-        <button class="btn primary" style="margin:0" onclick="partPlayFromA()">Aから再生</button>
-        <button class="btn ${partLoopActive ? "ok" : ""}" style="margin:0" onclick="partToggleLoop()">ループ ${partLoopActive ? "ON" : "OFF"}</button>
-      </div>
       ${rt.partLoop ? `<button class="btn ghost" style="margin-top:10px" onclick="partClear()">区間をリセット</button>` : ""}
+      </section>
     </div>`;
 }
 
@@ -5001,7 +5016,7 @@ window.pickLibraryMusic = async (id, target) => {
 
 window.loadSampleTricks = async () => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
-  if (!appConfirm("サンプルの技9個(アニメーション)を技ライブラリに追加しますか?")) return;
+  if (!appConfirm(`サンプルの技9個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
   showLoading("サンプルの技を読み込み中…");
   let ok = 0;
   try {
@@ -5402,14 +5417,14 @@ function renderTricks() {
       </div>
     </div>`).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>技ライブラリ</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>${TRICK_LIBRARY_LABEL}</h1></div>
     <div class="row-2">
       <button class="btn primary" style="margin-bottom:12px" onclick="go('trickrec')">● カメラで撮影</button>
       <button class="btn" onclick="document.getElementById('trick-file').click()">＋ 動画を登録</button>
     </div>
     <input type="file" id="trick-file" accept="video/*" class="hidden" onchange="trickImport(this)">
     <div class="card">
-      <h2>登録済みの技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
+      <h2>登録済みのシーケンス・技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
       ${rows || `<div class="empty">まだ技がありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
     </div>
     ${tricks.some((t) => t.sample)
@@ -5422,7 +5437,7 @@ function renderTricks() {
 let sheetVideoUrl = null;
 window.playTrickVideo = async (trickId, ctx) => {
   const t = (state.tricks || []).find((x) => x.id === trickId);
-  if (!t) return toast("動画が見つかりません(技ライブラリから削除されています)");
+  if (!t) return toast(`動画が見つかりません(${TRICK_LIBRARY_LABEL}から削除されています)`);
   return withLoading("動画を読み込み中…", async () => {
     const blob = await blobGet(t.blobId);
     if (!blob) return toast("動画データが見つかりません");
@@ -5466,8 +5481,8 @@ window.sheetLinkTrick = (i) => {
   if (!tricks.length) {
     return showSheet(`
       <h3>動画を紐づけ</h3>
-      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
-      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
   showSheet(`
@@ -5511,8 +5526,8 @@ window.sheetLinkTrickToOption = (i, oi) => {
   if (!tricks.length) {
     return showSheet(`
       <h3>動画を紐づけ</h3>
-      <div class="empty">技ライブラリが空です。<br>先に技を撮影・登録してください。</div>
-      <button class="btn" onclick="hideSheet();go('tricks')">技ライブラリへ</button>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
   const optionLabel = optionDisplayName(option) || `選択肢${String.fromCharCode(65 + oi)}`;
@@ -5955,7 +5970,7 @@ function renderHelpEnglish() {
     <div class="topbar"><button class="back-btn" onclick="go('home')">Back</button><h1>Guide</h1></div>
     <div class="card help-guide-card"><h2>Start here</h2>
       <ol class="help-quick-steps">
-        <li><span class="help-step-no">01</span><span><b>Build the routine.</b> Choose music and arrange the sequences. Record and register reference videos for skills when useful.</span></li>
+        <li><span class="help-step-no">01</span><span><b>Build the routine.</b> Choose music and arrange the sequences. Record and register reference videos for sequences when useful.</span></li>
         <li><span class="help-step-no">02</span><span><b>Practice.</b> Try the complete routine in Full Run, or repeat a selected range in Section Practice.</span></li>
         <li><span class="help-step-no">03</span><span><b>Review and refine.</b> Use full-run analysis to find patterns, then work closely on the sections that need attention.</span></li>
         <li><span class="help-step-no">04</span><span><b>Continue to the next practice.</b> Adjust the routine if needed, then repeat the cycle to improve consistency and precision.</span></li>

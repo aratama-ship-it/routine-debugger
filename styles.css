@@ -123,7 +123,6 @@ button:active { opacity: .75; }
 .clean-btn .sub { display: block; font-size: 13px; font-weight: 500; opacity: .7; margin-top: 2px; letter-spacing: 0; }
 .clean-btn:active { opacity: 1; filter: brightness(.8); }
 
-/* ルーティン一覧(リストセル)。削除は右上の✕から安全確認シートへ進む。 */
 .routine-card { position: relative; margin: 0 -16px; }
 .routine-card:last-child .routine-row { border-bottom: none; }
 .routine-row { position: relative; z-index: 1; background: var(--card);
@@ -191,7 +190,6 @@ button:active { opacity: .75; }
 .routine-delete-open:active { opacity: 1; transform: translateY(2px); box-shadow: none; }
 .routine-delete-open:focus-visible { outline: 3px solid var(--danger); outline-offset: 2px; }
 
-/* パート練習: A/Bを直接タップ・ドラッグできる区間バー */
 .part-loop-track { position: relative; height: 48px; margin: 12px 14px 2px;
   background: var(--card2); border-radius: 13px; touch-action: none; cursor: pointer; }
 .part-loop-track.disabled { opacity: .4; pointer-events: none; }
@@ -210,6 +208,9 @@ button:active { opacity: .75; }
 .part-loop-scale { display: flex; justify-content: space-between; align-items: center; margin: 5px 0 8px;
   color: var(--muted2); font-size: 10px; font-variant-numeric: tabular-nums; }
 .part-loop-scale span:nth-child(2) { color: var(--muted); }
+.part-play-modes { margin: 10px 0 2px; }
+.part-loop-section { display: block; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--sep); }
+.part-loop-section h2 { margin-top: 0; }
 .part-point { display: flex; align-items: center; gap: 8px; padding: 8px 0;
   border-bottom: var(--hairline) solid var(--sep); }
 .part-point:last-of-type { border-bottom: none; }
@@ -232,7 +233,6 @@ button:active { opacity: .75; }
   border: 1px solid var(--sep); border-radius: 4px; background: var(--card2); color: var(--text);
   font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* 記録画面のステップリスト(結合セル) */
 .step-list { display: flex; flex-direction: column; margin: 0 -16px 6px; }
 .step-btn { display: flex; align-items: center; gap: 12px; min-height: 50px; text-align: left;
   background: none; border: none; border-bottom: var(--hairline) solid var(--sep);

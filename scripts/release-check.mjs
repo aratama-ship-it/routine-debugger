@@ -221,6 +221,14 @@ if (!/PART_LOOP_DELAY_DEFAULT\s*=\s*3/.test(app)
     || !/rt\.partLoop\.delaySeconds\s*=\s*next/.test(app)) {
   failures.push("パート練習のループ間隔が初期3秒で、0秒も明示保存できる仕様ではありません");
 }
+if (!/if \(name === "part" && view\.name !== "part"\) \{ partLoopActive = true; partFullTrackActive = false; \}/.test(app)
+    || !/window\.partPlayWhole\s*=\s*\(\)\s*=>/.test(app)
+    || !/let partFullTrackActive = false/.test(app)
+    || !/onclick="partPlayWhole\(\)">▶ 全体を再生/.test(app)
+    || !/onclick="partPlayFromA\(\)">▶ ループ再生/.test(app)
+    || !/<section class="part-loop-section">[\s\S]*?<h2>ループ区間/.test(app)) {
+  failures.push("パート練習のループ初期ON・全体再生・統合されたループ区間UIがありません");
+}
 if (!/player\.preload\s*=\s*"metadata"/.test(musicPlayback)
     || !/async function loadMusic\([\s\S]*?musicPlayer\.load\(\)/.test(app)) {
   failures.push("再生前に楽曲メタデータを読み込む設定がありません");
@@ -385,6 +393,18 @@ if (!homeHeaderRule || !/min-height:\s*calc\(66px \+ var\(--safe-top\)\)/.test(h
 }
 if (!/<svg class="head-settings-icon" viewBox="0 0 24 24" stroke-width="2" style="fill:none"/.test(app)) {
   failures.push("全体設定の歯車が選択時も中抜きになる指定がありません");
+}
+if (!/const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ"/.test(app)
+    || (app.match(/\$\{TRICK_LIBRARY_LABEL\}/g) || []).length < 8
+    || !/\["シーケンス・技ライブラリ", "Sequence Library"\]/.test(i18n)) {
+  failures.push("シーケンス・技ライブラリの名称が画面全体と英語表示に統一されていません");
+}
+if (!/登録済みのシーケンス・技 \(最大\$\{TRICK_MAX_SEC\}秒\/本/.test(app)
+    || !/Saved sequences \(max/.test(i18n)) {
+  failures.push("登録済み一覧の見出しがシーケンス・技の表記に統一されていません");
+}
+if (/\bskills?\b/i.test(app) || /\bskills?\b/i.test(i18n)) {
+  failures.push("英語表示にskill表記が残っています");
 }
 if (!/storedRunVideos\(\)\.length\s*>=\s*RUN_VIDEO_LIMIT[\s\S]*?showRunVideoReplacement/.test(app)) {
   failures.push("通し映像6本目の入れ替え確認がありません");

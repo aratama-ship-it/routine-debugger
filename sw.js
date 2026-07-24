@@ -1,16 +1,16 @@
 /* ルーティンノート Service Worker — アプリシェルをキャッシュして完全オフライン動作 */
-const CACHE = "routine-debugger-v200";
+const CACHE = "routine-debugger-v205";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=200",
-  "./i18n.js?v=200",
-  "./run-video-orientation.js?v=200",
-  "./run-video-composition.js?v=200",
-  "./run-video-sync.js?v=200",
-  "./run-video-review.js?v=200",
-  "./music-playback.js?v=200",
-  "./app.js?v=200",
+  "./styles.css?v=205",
+  "./i18n.js?v=205",
+  "./run-video-orientation.js?v=205",
+  "./run-video-composition.js?v=205",
+  "./run-video-sync.js?v=205",
+  "./run-video-review.js?v=205",
+  "./music-playback.js?v=205",
+  "./app.js?v=205",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-512.png",
