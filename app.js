@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v221"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v222"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -41,7 +41,8 @@ const ITEM_LINE_COLOR_LABELS = {
 };
 // 機能の要望・バグ報告の送信先(GASウェブアプリURL)。空のままだとメール送信にフォールバックする。
 // 設定手順は FEEDBACK_GAS_SETUP.md 参照。デプロイ後、末尾が /exec のURLをここに貼る。
-const FEEDBACK_ENDPOINT = "";
+// 要望の受け口(GAS→スプレッドシート)。手順は FEEDBACK_GAS_SETUP.md
+const FEEDBACK_ENDPOINT = "https://script.google.com/macros/s/AKfycbwk3UWvqSl2e_egKSwdOZU3HKWHriY97bBmnG_czXpYC-Q-1qayR-N4Q0D1dzn3Kkzm/exec";
 const FEEDBACK_MAILTO = "circusarata@gmail.com"; // フォールバック送信先
 
 // ---------- 状態 ----------
@@ -6201,14 +6202,11 @@ window.setLanguage = (language) => {
   toast(isEnglish() ? "Language: English" : "表示言語: 日本語");
 };
 
-// 規約・ポリシー等の静的ページを別タブで開く。
-// アプリ内で遷移すると編集中の内容や通し練習の状態が失われるため、必ず別タブにする。
-// ※この関数は renderSettings と window.setLanguage の間には置かないこと
-//   (release-check がその並びを前提に renderSettings を抽出している)。
+// 規約等は別タブで開く(アプリ内遷移だと編集中・練習中の状態を失うため)
+// ※renderSettingsとsetLanguageの間には置かないこと(release-checkの抽出が壊れる)
 window.openDocPage = (file) => {
   const url = new URL(file, location.href).href;
-  const w = window.open(url, "_blank", "noopener");
-  if (!w) location.href = url; // ポップアップが塞がれている場合のみ同一タブ
+  if (!window.open(url, "_blank", "noopener")) location.href = url;
 };
 
 window.setVideoQuality = (k) => {
