@@ -432,6 +432,9 @@ if (!/#sheet:not\(\.wide-side-sheet\)\s*\{[\s\S]*?top:\s*50%[\s\S]*?left:\s*50%[
     || !/@keyframes wideModalIn/.test(tabletCss)) {
   failures.push("PCの下部シートが、動画トリムを含む中央モーダル表示へ統一されていません");
 }
+if (!/\.tablet-edit-save-actions \.btn:only-child\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1[\s\S]*?width:\s*100%/.test(tabletCss)) {
+  failures.push("新規ルーティンの保存ボタンがPC編集領域の横幅いっぱいに広がっていません");
+}
 const homeHeaderRule = css.match(/\.home-simple-head\s*\{([^}]*)\}/);
 if (!homeHeaderRule || !/min-height:\s*calc\(66px \+ var\(--safe-top\)\)/.test(homeHeaderRule[1])) {
   failures.push("ホーム画面のヘッダー高が他画面と揃っていません");

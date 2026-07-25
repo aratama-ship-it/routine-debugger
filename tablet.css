@@ -212,6 +212,10 @@
     gap: 10px;
   }
   .tablet-edit-save-actions .btn { margin: 0; }
+  .tablet-edit-save-actions .btn:only-child {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 
   /* 通し練習: 左で現在位置と再生、右でミスを記録する。 */
   .tablet-record-layout .run-start-btn { min-height: 126px; }

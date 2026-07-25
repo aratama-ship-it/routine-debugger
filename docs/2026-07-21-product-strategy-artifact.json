@@ -1,0 +1,379 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Routine Debugger Strategy",
+    "description": "ルーティン・デバッガの価値仮説、収益化案、価値伝達策、最初の90日計画",
+    "generatedAt": "2026-07-21T12:40:00+09:00",
+    "charts": [
+      {
+        "id": "monetization-priority",
+        "title": "90日内の収益化案 優先度",
+        "subtitle": "本分析の判断スコア（1＝低、5＝高）。市場実績ではない",
+        "showDescription": true,
+        "intent": "comparison",
+        "question": "最初の90日で、どの収益化案から検証すると最も速く支払意思と利用価値を学べるか",
+        "rationale": "4案を同じ1〜5の計画スコアで比較するため、長い名称を読みやすい横棒グラフを用いる。スコアは市場観測値ではなく、学習速度、実装負荷、需要証明の直接性に基づく判断である。",
+        "comparisonContext": {
+          "baseline": "90日以内に小規模検証できること",
+          "grain": "収益化案",
+          "semanticFamily": "planning priority",
+          "unit": "判断スコア 1〜5"
+        },
+        "type": "horizontalBar",
+        "dataset": "monetization_priority",
+        "sourceId": "planning-judgment",
+        "encodings": {
+          "x": {
+            "field": "option",
+            "type": "nominal",
+            "label": "収益化案"
+          },
+          "y": {
+            "field": "priority",
+            "type": "quantitative",
+            "format": "number",
+            "label": "優先度",
+            "unit": "点"
+          },
+          "tooltip": [
+            {
+              "field": "learning_speed",
+              "type": "quantitative",
+              "label": "学習速度"
+            },
+            {
+              "field": "build_load",
+              "type": "quantitative",
+              "label": "実装負荷"
+            },
+            {
+              "field": "basis",
+              "type": "text",
+              "label": "判断根拠"
+            }
+          ]
+        },
+        "xAxisTitle": "収益化案",
+        "yAxisTitle": "優先度（1〜5）",
+        "valueFormat": "number",
+        "unit": "点",
+        "layout": "full",
+        "labels": {
+          "values": "all"
+        },
+        "palette": {
+          "kind": "sequential",
+          "name": "blue"
+        },
+        "settings": {
+          "categoryLabelPolicy": "wrap",
+          "orientation": "horizontal",
+          "showValues": true,
+          "sort": "descending"
+        },
+        "surface": {
+          "surface": "export",
+          "compact": false,
+          "interactiveLegend": false,
+          "showControls": false,
+          "viewMode": "both"
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "layout": "full",
+        "body": "# Routine Debugger Strategy"
+      },
+      {
+        "id": "executive-summary",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Executive Summary\n\n- **外向きの主語を「ループ再生アプリ」へ変えるのは勧めない。** ループ・速度変更・開始ディレイは、フィギュア向け買い切り$1.99の[SkateLoops](https://apps.apple.com/us/app/skateloops-mp3-practice-app/id6476055748)や、ダンス向け無料＋年€24.99の[BeatLoop](https://beatloop.eu/)など、すでに競争がある。ループは最初に触る機能として使い、独自価値は「通しで崩れた瞬間を記録し、そのまま次の区間練習へ移る」接続に置く。\n\n- **ターゲットは大学生対プロではなく、切迫した本番を持つかで切る。** 第一候補は「2〜8週間以内に固定音源の本番があり、週2回以上通し、常時コーチが横にいない演者」。学生でも強く該当し、プロでも完成済み演目なら弱い。\n\n- **最初の収益はアプリ単体より、4週間の有料デバッグ・スプリントで検証する。** アプリ＋導入支援＋週次振り返りを一つの成果物として売れば、利用実績、支払意思、事例を同時に得られる。その後、個人向け買い切りProか、コーチ課金・選手無料のどちらへ進むかを実データで決める。\n\n- **90日の最優先は価格実装ではなく、初回練習で一つの意思決定を返すこと。** 「曲を選ぶ→通す→崩れた瞬間をタップ→最頻区間をその場でループ」までを、ルーティン作成なし・10分以内で完了させる。履歴閲覧や書き出しを人質にせず、高度な比較・共同作業・同期へ課金する。"
+      },
+      {
+        "id": "claude-critique",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Claude案は方向がよいが、三つの飛躍がある\n\n### 1. 履歴深度課金は成立例があるが、現状では時期尚早\n\n音楽練習アプリ[Modacity](https://www.modacity.co/subscriptions)は、無料版を項目数・録音数・練習サイクル等で制限し、有料版で全履歴、無制限録音、クラウド同期を提供している。したがって、Claude案1は荒唐無稽ではない。\n\nただし本製品では、失敗率の信頼性が履歴量に依存する。生の履歴を見えなくすると「払わないと自分の記録や、より正しい判断へ届かない」と受け取られやすい。さらに現行PWAはローカル保存が中心で、完全なメディアバックアップとクラウド同期が未完成である。WebKitも既定ストレージをbest-effortとし、容量圧迫等によるevictionがあり得ると説明している。まず全履歴の保持・閲覧・書き出しを守り、課金対象はバージョン差分、条件別比較、コーチ共有、自動要約、同期に寄せる方が信頼を作りやすい。\n\n### 2. 「練習プレイヤー」は入口であって、カテゴリー名ではない\n\n入口を軽くする考えは正しい。しかし、一般的なループ・速度変更として売ると、安価な専用品や無料アプリと比較される。ループを入口にするなら、訴求は「ループできます」ではなく「崩れた地点から、1タップで練習区間ができる」にする。獲得機能と定着機能を二段に分けるだけでなく、その間の遷移自体を製品の発明にする必要がある。\n\n### 3. 無料事例収集からB2B2Cへ移る案は、買い手と製品を同一視している\n\nコーチ課金・選手無料は実在する。[Onform](https://onform.com/pricing/)はコーチ向け月$19.99以上と個人向けプランを分け、Standard以上のコーチにつながる選手には個人機能を無償提供する。[CoachNow](https://help.coachnow.io/en/articles/361978-what-is-a-space)も、コーチが作る個別Spaceへ招待された選手は無料で参加できる。\n\nしかし、コーチ製品には選手一覧、権限、レビュー待ち、コメント、同意、保護者、組織管理が必要になる。個人用PWAの横展開ではない。フィギュア・新体操へ機能開発を広げる前に、ジャグリングのコーチ2〜3人へ「選手の何を、いつ、どう見たいか」を観察し、有料の手作業パイロットで需要を確認すべきである。\n\n### 4. コミュニティ配布は強いが、創業者の信用と製品価値を分けて測る\n\nIJA、EJC、Instagram、既存の知人網は初期獲得に向く。一方、顔が利く人の依頼では、好意による登録や丁寧な感想が増えやすい。招待数ではなく、本人がいない練習で再度使ったか、失敗記録から区間練習へ移ったか、他者へ自発的に送ったかを測る。\n\n### 5. 記録済みサンプルは完成像を見せるが、本人の価値と設定負荷を証明しない\n\nサンプルはUI理解には効くが、「自分の曲を入れ、自分の失敗を残す」最初の摩擦を解決しない。デモと本人の統計が混ざらないサンドボックスにし、主導線は本人の1回目の通しへ置く。\n\n### 見落とされている論点\n\n- **統計の独立性:** 疲労、床、道具、ルーティン版が変われば、単純なk/nは同じ条件の試行ではない。原因断定ではなく、条件付きの観察として扱う。\n- **データ信頼:** 動画・録音・履歴を価値の核にするほど、バックアップ、復元、容量表示、削除方針が課金より先になる。\n- **未成年・チーム利用:** 新体操や学生チームでは映像、音声、保護者、コーチ権限、保持期間が製品要件になる。\n- **名称と約束:** 現行公開名は「ルーティンノート」。内向きの方法論「Routine Debugger」と、外向きの穏やかな名前を併用するなら、1本の説明文で関係を固定する。"
+      },
+      {
+        "id": "positioning",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## 勝ち筋は「通しから次の15分を決める」こと\n\n推奨する一文は次である。\n\n> **通しを3本。次に直す場所が決まる。** 音楽に合わせて演じ、崩れた瞬間をタップ。繰り返し起きる場所を、そのまま区間ループへ。\n\nこの約束なら、ループ再生、失敗記録、統計、A/B、録音を機能一覧ではなく一つの因果の鎖として説明できる。公開名を維持する場合は「ルーティンノート — a routine debugger for performers」のように、ノートを名称、debuggerを方法論として使う。\n\n最初の対象は、競技名より次の条件で募集する。\n\n1. 2〜8週間以内に本番・大会・撮影がある。\n2. 固定音源と順番のある演目を持つ。\n3. 週2回以上、通しまたは部分通しを行う。\n4. 常時コーチが横におらず、次に何を直すか自分で決める時間がある。\n5. 練習時にスマートフォンを手元へ置ける。\n\nこの条件に当てはまる大学生は「マス層」ではなく高意図ユーザーであり、当てはまらないプロは初期顧客ではない。"
+      },
+      {
+        "id": "monetization",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## 売り方は四つ。最初に売るのはソフトではなく成果期間\n\n### A. 4週間の「Routine Debug Sprint」— 最優先\n\nアプリ、初期設定会、週1回の短い振り返り、最終レポートをまとめて販売する。仮の実験価格は個人¥3,000、クラブ10人まで¥30,000／4週間。これは相場の断定ではなく、無料アンケートでは得られない支払行動を見るための初回テスト価格である。\n\n**強み:** 収益、継続利用、オンボーディング障害、事例を同じ4週間で得られる。**弱み:** 人手がかかり、そのままでは拡張しない。90日では弱みより学習速度を優先する。\n\n### B. 個人向け「買い切りLocal Pro＋任意のSync」— 次点\n\n基本の通し、全履歴閲覧、CSV/JSON書き出しは無料で残す。買い切りProの仮説価格は¥1,500〜3,000で、ルーティン版比較、A/B実験、詳細な条件タグ、録音整理、上級プリセットを解放する。将来、クラウド同期・完全バックアップ・複数端末を月¥300〜600の任意サービスに分ける。\n\n買い切りの近接例として、[Anytune](https://anytune.zendesk.com/hc/en-us/articles/360025169131-Anytune-across-devices-iOS-and-MacOS)は同じApple IDのiOS端末で一度の購入を利用できる。一方、継続費用を伴う全履歴・録音・同期はModacityが月額で提供している。ローカル機能と運用費のある機能を分ける考え方と相性がよい。\n\n### C. コーチ課金・選手無料 — 検証後の本命候補\n\n選手は記録・共有を無料、コーチはレビュー受信箱、選手別の変化、コメント、テンプレート配布へ月額を払う。仮の探索価格は1コーチ月¥2,000〜5,000、または4週間の有料クラブパイロットから始める。\n\n[TrainingPeaks](https://www.trainingpeaks.com/pricing/for-coaches/)はコーチ版を月$21.99から提供し、Premium選手を人数に応じて追加する。Onformも選手とコーチの支払構造を分けている。実例が示すのは価格そのものではなく、「選手の記録がコーチの業務を短縮するなら、支払主体を変えられる」こと。ただし共同作業機能を作る前に、週何分を節約できるかを手作業で確かめる。\n\n### D. 専門家の練習パック／マーケットプレイス — 後半戦\n\n将軍氏や世界のジャグラーが、オリジナルの練習プロトコル、ルーティン雛形、ウォームアップ、失敗分類を買い切りで販売し、プラットフォームが手数料を取る。[Soundslice](https://www.soundslice.com/help/en/store-selling/money/147/getting-paid/)は講座販売後の決済手数料を差し引いた上で15%を受け取る。\n\nこれはネットワークを収益資産に変えられる一方、供給審査、返金、権利処理が必要になる。特に商用楽曲を同梱せず、権利を持つ映像・音源・一般技法だけから始める。90日内は1本の手動販売で需要を確かめ、マーケットプレイスを実装しない。"
+      },
+      {
+        "id": "priority-chart-explainer",
+        "type": "markdown",
+        "layout": "full",
+        "body": "### 90日内の優先順位は、学習速度で決める\n\n下図は売上予測ではない。限られた90日で、実際の支払、利用継続、オンボーディング障害をどれだけ直接観測できるかを1〜5で評価した計画スコアである。Debug Sprintは新しい課金基盤を先に作らず三つを同時に検証できるため最上位、マーケットプレイスは需要側と供給側を同時に作る必要があるため最後とした。"
+      },
+      {
+        "id": "priority-chart-block",
+        "type": "chart",
+        "layout": "full",
+        "chartId": "monetization-priority"
+      },
+      {
+        "id": "first-value",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## 「使い込まないと伝わらない」は、初回の意思決定へ圧縮する\n\nClaude案4のサンプル以外に、次の六つを組み合わせる。\n\n1. **Quick Debug:** ルーティン編集を飛ばし、曲と開始ディレイだけで通しを始める。失敗タップは時刻マーカーとして残し、後から必要な地点だけ名前を付ける。\n2. **失敗から1タップで区間化:** 終了画面のマーカーを押すと、前後数秒を含むA/Bループが即座に開く。記録とプレイヤーを別機能にしない。\n3. **同じ練習内の3本チャレンジ:** 長期履歴を待たず、3本の重ね合わせで「3回中2回ここで崩れた」を返す。1回では観察点、3回では反復候補、十分な回数で初めて率と信頼区間を見せる。\n4. **実ユーザーのBefore→Decision→After動画:** 開発者本人が自分のルーティンを5本通し、どの表示を見て何を変えたかを見せる。機能紹介ではなく、判断が変わった瞬間を30〜45秒にする。\n5. **コンシェルジュ導入:** 最初の10〜15人は、曲・技順・本番日を一緒に10分で登録する。観察した詰まりを次のオンボーディング設計へ戻す。\n6. **1回で共有できるカード:** 「今日3本／反復した崩れ1箇所／次回試すこと1つ」を画像または限定リンクにし、本人がコーチや仲間へ送れるようにする。共有は本人操作のみ、映像・音声は初期状態で含めない。\n\n最初の成功指標は「統計画面を見た」ではない。**初回練習から10分以内に、記録した崩れから区間ループを1回開始した**をActivationとする。定着の核は、14日以内に3日以上使ったこと、または次回メモから再開したことに置く。"
+      },
+      {
+        "id": "ninety-days",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## 最初の90日 — 安全、価値、支払、拡張の順に進める\n\n### 1〜14日: テスト可能な土台と対象条件を固定\n\n1. 公開版のiPhone実機P0、保存・復元説明、フィードバック集約先を完了する。一般広告はまだ行わない。\n2. 第一対象を「2〜8週間以内に本番がある固定音源の演者」と定義し、ジャグラー8〜10人、コーチ2〜3人を募集する。隣接競技は要件探索として各1〜2人に留める。\n3. 同意を得て、Activation、失敗→ループ遷移、14日内の練習日数、次回メモ再開を計測する。映像・音声本文は分析基盤へ送らない。\n4. 既存手段（標準プレイヤー＋メモ、口頭、動画見返し）で同じ練習を行った場合の所要時間と困り方を聞く。\n\n### 15〜30日: 本人データで10分以内のAhaを作る\n\n1. Quick Debugと失敗地点からの即時A/Bループを、最小のプロトタイプで試す。\n2. 「ループ再生・時間調整」対「通し3本で次の練習が決まる」の2メッセージを、同じ対象条件の面談・LPで比較する。小標本なのでクリック率だけで決めず、内容を正しく説明できたかを見る。\n3. 開発者本人の実ルーティン動画を1本制作し、CTAを14日テストではなく「今日3本チャレンジ」にする。\n\n### 31〜60日: 有料の4週間スプリントを1回売る\n\n1. 5〜10人の個人コホート、または1クラブへRoutine Debug Sprintを有料で提供する。無料クーポンではなく、少額でも実際の決済を取る。\n2. 毎週、どの判断が変わったか、記録負担、使わなかった理由、代替手段をレビューする。\n3. 継続利用に必要だったものだけを実装し、AI、マーケットプレイス、複数競技専用UIは保留する。\n4. 公開許可を個別に取り、数値を誇張しない事例を2本作る。\n\n### 61〜90日: 支払主体を一つ選び、最小の有料境界だけ作る\n\n- 個人が自発的に反復し、買い切り希望が出たらLocal Proの価格テストへ進む。\n- コーチ経由の継続が明確なら、レビュー受信箱の手作業版をもう1件有料販売し、業務時間短縮を測る。\n- アプリだけでは払わないが伴走には払うなら、当面はDebug Sprintを商品として磨く。これは失敗ではなく、ニッチ市場に合ったサービス主導SaaSの入口である。\n\n90日終了時まで、アプリストア移行、フィギュア・新体操専用機能、AI分析、マーケットプレイス構築を主要ロードマップへ入れない。実際の使用と支払が、そのいずれかを必要とした場合だけ昇格させる。"
+      },
+      {
+        "id": "decision-gates",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## 90日後の判断ゲート\n\n以下は予測値ではなく、少人数検証を止めずに判断するための暫定基準である。\n\n- 招待された対象者の60%以上が、自分の曲で初回通しを完了する。\n- Activationした人の50%以上が、記録地点から区間ループを開始する。\n- Activationした人の40%以上が、14日以内に3日以上使う。\n- 10人中5人以上が、促されずに「次に練習する場所や方法が変わった」と具体例を話す。\n- 少なくとも個人3人、またはクラブ／コーチ2件が、実際に支払う。\n\n達しない場合、値下げより先に、対象条件、初回設定、記録負担、失敗→ループ接続のどこで止まったかを確認する。サンプル数が小さいため、市場全体の比率として一般化しない。"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Further Questions\n\n1. 現在の実利用者は、1回の練習で何本通し、失敗タップを何回まで負担に感じないか。\n2. 最も価値が出るのは、技そのもの、技間の移行、音楽との同期、体力による後半崩れのどれか。\n3. コーチは生の失敗率、選手のコメント、動画、次回課題のうち何を最初に見るか。\n4. 将軍氏と開発者の名前を、商品保証、教育コンテンツ、販売チャネルのどこへ置くと最も信頼が増えるか。\n5. 公開名「ルーティンノート」と方法論「Routine Debugger」を、国内と海外でどう使い分けるか。"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Caveats and Assumptions\n\n- 2026年7月21日時点で、公開URLのHTTP 200応答とリポジトリの現行資料を確認したが、利用者数、継続率、練習イベント、売上の実測データは提供されていない。提案は市場予測ではなく、検証優先順位である。\n- 競合価格は各社公式ページで確認した現在値で、地域、税、ストア、今後の改定により変わる。ここから日本での最適価格を直接推定していない。\n- 現行PWAは公開されている一方、プロジェクト監査では不特定多数への公開をNO-GOとし、完全バックアップ、実機メディア検証、フィードバック集約を残課題としている。公開済みと一般展開可能は別の状態として扱った。\n- 失敗率k/nと信頼区間は観測の不確実性を示すが、失敗原因や改善効果を自動的に証明しない。ルーティン版、日、疲労、環境を分けない比較には注意が必要である。"
+      }
+    ],
+    "sources": [
+      {
+        "id": "project-monetization",
+        "label": "Routine Debugger monetization and data retention memo",
+        "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-18-monetization-data-retention.md"
+      },
+      {
+        "id": "project-release-audit",
+        "label": "Routine Debugger release readiness audit",
+        "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-20-release-readiness-audit.md"
+      },
+      {
+        "id": "project-video-plan",
+        "label": "Routine Debugger one-minute video plan",
+        "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-20-one-minute-howto-video-plan.md"
+      },
+      {
+        "id": "public-app",
+        "label": "Routine Note public PWA",
+        "href": "https://aratama-ship-it.github.io/routine-debugger/"
+      },
+      {
+        "id": "webkit-storage",
+        "label": "WebKit Updates to Storage Policy",
+        "href": "https://webkit.org/blog/14403/updates-to-storage-policy/"
+      },
+      {
+        "id": "skateloops",
+        "label": "SkateLoops App Store page",
+        "href": "https://apps.apple.com/us/app/skateloops-mp3-practice-app/id6476055748"
+      },
+      {
+        "id": "beatloop",
+        "label": "BeatLoop pricing and features",
+        "href": "https://beatloop.eu/"
+      },
+      {
+        "id": "modacity",
+        "label": "Modacity subscriptions",
+        "href": "https://www.modacity.co/subscriptions"
+      },
+      {
+        "id": "anytune",
+        "label": "Anytune purchase across devices",
+        "href": "https://anytune.zendesk.com/hc/en-us/articles/360025169131-Anytune-across-devices-iOS-and-MacOS"
+      },
+      {
+        "id": "onform",
+        "label": "Onform pricing",
+        "href": "https://onform.com/pricing/"
+      },
+      {
+        "id": "coachnow",
+        "label": "CoachNow Spaces and athlete access",
+        "href": "https://help.coachnow.io/en/articles/361978-what-is-a-space"
+      },
+      {
+        "id": "trainingpeaks",
+        "label": "TrainingPeaks pricing for coaches",
+        "href": "https://www.trainingpeaks.com/pricing/for-coaches/"
+      },
+      {
+        "id": "soundslice",
+        "label": "Soundslice course-sale payouts",
+        "href": "https://www.soundslice.com/help/en/store-selling/money/147/getting-paid/"
+      },
+      {
+        "id": "planning-judgment",
+        "label": "Strategy planning judgment for this report",
+        "query": {
+          "engine": "SQLite",
+          "sql": "WITH planning_scores(option, priority, learning_speed, build_load, basis) AS (VALUES ('4週間 Debug Sprint', 5, 5, 1, '支払・継続・導入障害を同時に観測'), ('買い切りLocal Pro＋任意Sync', 3, 3, 3, '個人の支払意思を検証できるが課金・権利実装が必要'), ('コーチ課金・選手無料', 2, 3, 4, '単価余地はあるが共同作業・権限要件が未検証'), ('練習パック市場', 1, 2, 5, '供給・需要・審査・権利処理を同時に作る必要')) SELECT option, priority, learning_speed, build_load, basis FROM planning_scores ORDER BY priority DESC;",
+          "description": "本レポートで定義した4案の計画スコアを再現する。市場観測値ではない。",
+          "executed_at": "2026-07-21T12:40:00+09:00",
+          "language": "sql",
+          "filters": [
+            "評価対象は最初の90日で検証する4案",
+            "スコアは1から5。高いほど90日内の優先度または学習速度が高い",
+            "実装負荷は1が低く5が高い"
+          ],
+          "metric_definitions": [
+            "priority: 学習速度、実装負荷、支払証明の直接性を総合した分析者判断スコア",
+            "learning_speed: 実利用と支払に関する反証を得る速さの判断スコア",
+            "build_load: 本格検証までに必要な新規実装量の判断スコア"
+          ],
+          "tables_used": [
+            "inline planning_scores values"
+          ]
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-21T12:40:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "monetization_priority": [
+        {
+          "option": "4週間 Debug Sprint",
+          "priority": 5,
+          "learning_speed": 5,
+          "build_load": 1,
+          "basis": "支払・継続・導入障害を同時に観測"
+        },
+        {
+          "option": "買い切りLocal Pro＋任意Sync",
+          "priority": 3,
+          "learning_speed": 3,
+          "build_load": 3,
+          "basis": "個人の支払意思を検証できるが課金・権利実装が必要"
+        },
+        {
+          "option": "コーチ課金・選手無料",
+          "priority": 2,
+          "learning_speed": 3,
+          "build_load": 4,
+          "basis": "単価余地はあるが共同作業・権限要件が未検証"
+        },
+        {
+          "option": "練習パック市場",
+          "priority": 1,
+          "learning_speed": 2,
+          "build_load": 5,
+          "basis": "供給・需要・審査・権利処理を同時に作る必要"
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "project-monetization",
+      "label": "Routine Debugger monetization and data retention memo",
+      "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-18-monetization-data-retention.md"
+    },
+    {
+      "id": "project-release-audit",
+      "label": "Routine Debugger release readiness audit",
+      "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-20-release-readiness-audit.md"
+    },
+    {
+      "id": "project-video-plan",
+      "label": "Routine Debugger one-minute video plan",
+      "href": "https://github.com/aratama-ship-it/routine-debugger/blob/main/docs/2026-07-20-one-minute-howto-video-plan.md"
+    },
+    {
+      "id": "public-app",
+      "label": "Routine Note public PWA",
+      "href": "https://aratama-ship-it.github.io/routine-debugger/"
+    },
+    {
+      "id": "webkit-storage",
+      "label": "WebKit Updates to Storage Policy",
+      "href": "https://webkit.org/blog/14403/updates-to-storage-policy/"
+    },
+    {
+      "id": "skateloops",
+      "label": "SkateLoops App Store page",
+      "href": "https://apps.apple.com/us/app/skateloops-mp3-practice-app/id6476055748"
+    },
+    {
+      "id": "beatloop",
+      "label": "BeatLoop pricing and features",
+      "href": "https://beatloop.eu/"
+    },
+    {
+      "id": "modacity",
+      "label": "Modacity subscriptions",
+      "href": "https://www.modacity.co/subscriptions"
+    },
+    {
+      "id": "anytune",
+      "label": "Anytune purchase across devices",
+      "href": "https://anytune.zendesk.com/hc/en-us/articles/360025169131-Anytune-across-devices-iOS-and-MacOS"
+    },
+    {
+      "id": "onform",
+      "label": "Onform pricing",
+      "href": "https://onform.com/pricing/"
+    },
+    {
+      "id": "coachnow",
+      "label": "CoachNow Spaces and athlete access",
+      "href": "https://help.coachnow.io/en/articles/361978-what-is-a-space"
+    },
+    {
+      "id": "trainingpeaks",
+      "label": "TrainingPeaks pricing for coaches",
+      "href": "https://www.trainingpeaks.com/pricing/for-coaches/"
+    },
+    {
+      "id": "soundslice",
+      "label": "Soundslice course-sale payouts",
+      "href": "https://www.soundslice.com/help/en/store-selling/money/147/getting-paid/"
+    },
+    {
+      "id": "planning-judgment",
+      "label": "Strategy planning judgment for this report",
+      "query": {
+        "engine": "SQLite",
+        "sql": "WITH planning_scores(option, priority, learning_speed, build_load, basis) AS (VALUES ('4週間 Debug Sprint', 5, 5, 1, '支払・継続・導入障害を同時に観測'), ('買い切りLocal Pro＋任意Sync', 3, 3, 3, '個人の支払意思を検証できるが課金・権利実装が必要'), ('コーチ課金・選手無料', 2, 3, 4, '単価余地はあるが共同作業・権限要件が未検証'), ('練習パック市場', 1, 2, 5, '供給・需要・審査・権利処理を同時に作る必要')) SELECT option, priority, learning_speed, build_load, basis FROM planning_scores ORDER BY priority DESC;",
+        "description": "本レポートで定義した4案の計画スコアを再現する。市場観測値ではない。",
+        "executed_at": "2026-07-21T12:40:00+09:00",
+        "language": "sql",
+        "filters": [
+          "評価対象は最初の90日で検証する4案",
+          "スコアは1から5。高いほど90日内の優先度または学習速度が高い",
+          "実装負荷は1が低く5が高い"
+        ],
+        "metric_definitions": [
+          "priority: 学習速度、実装負荷、支払証明の直接性を総合した分析者判断スコア",
+          "learning_speed: 実利用と支払に関する反証を得る速さの判断スコア",
+          "build_load: 本格検証までに必要な新規実装量の判断スコア"
+        ],
+        "tables_used": [
+          "inline planning_scores values"
+        ]
+      }
+    }
+  ]
+}

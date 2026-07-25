@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v217"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v220"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1753,7 +1753,8 @@ const INFO = {
   audioLib: { t: "音源ライブラリ", b: "ここの音源は、ルーティン編集/タイムラインの「♪ ライブラリから」で選んで使えます。付属サンプルは最初から使えます。音源はこの端末内に保存され、JSONバックアップには含まれません(残したい録音は書き出しを)。" },
   editorFeatures: { t: "ルーティンで使う機能", b: "人によっては使わない機能を、初期状態では隠しています。<br><br><b>リスク度</b> = 各技に危険度(1〜5)を付けて、分析で失敗率とのズレを見る機能。<br><b>A/B分岐</b> = 本番でどちらの技をやるか選べるステップを作る機能。<br><br>ルーティン画面右上の<b>個別</b>から、そのルーティンだけ切り替えられます。OFFにしても、設定済みのデータは消えません。" },
   videoQuality: { t: "技の動画の画質", b: "技の動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。" },
-  backup: { t: "バックアップ", b: "iPhoneは長期間使わないと保存データを消すことがあります。定期的にJSONを書き出してください(音声は含まれません)。" },
+  fullBackup: { t: "完全バックアップ(ZIP)", b: "ルーティン・記録・設定に加えて、<b>技の動画・通し映像・音源・録音までまとめて1つのZIPファイル</b>に書き出します。機種変更や、端末のデータが消えたときの復旧はこちらを使ってください。<br><br>ZIPの中には各ファイルの照合値(SHA-256)を記録しているので、復元時に壊れていないか自動で検証します。1件でも壊れていれば復元を中止し、いまのデータは変更しません。<br><br><b>ZIPを検証する</b>は、復元せずに中身が無事かどうかだけを確かめます。バックアップが本当に使えるか、ときどき確認してください。<br><br>動画を含むためファイルは大きくなります。書き出したZIPは、iCloudやPCなど<b>この端末の外</b>に保存してください。" },
+  backup: { t: "軽量バックアップ(記録のみ)", b: "ルーティン・練習記録・設定だけをJSONで書き出します。<b>動画・音源・録音は含まれません</b>。<br><br>ファイルが小さく手軽ですが、これだけでは動画は戻せません。動画も残すなら「完全バックアップ(ZIP)」を使ってください。<br><br>CSVエクスポートは、記録を表計算ソフトで分析したいとき用です(復元には使えません)。" },
   feedback: { t: "ご意見・機能の要望", b: "「こんな機能がほしい」「ここが使いにくい」などを開発者に直接送れます。いただいた要望は今後の改善に使わせてもらいます。" },
   reset: { t: "初期化", b: "まっさらな状態から試し直したいとき・サンプル一式を入れ直したいときに。ルーティン・記録・技と通しの動画・録音・楽曲・設定がすべて消えます(元に戻せません)。" },
 };
@@ -1762,7 +1763,8 @@ const INFO_EN = {
   audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is not included in JSON backups, so export any recordings you need to keep." },
   editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
   videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
-  backup: { t: "Backup", b: "iPhone may remove browser storage after a long period of inactivity. Export a JSON backup regularly. Audio files are not included." },
+  fullBackup: { t: "Full backup (ZIP)", b: "Exports everything — routines, records, settings, <b>plus sequence videos, run videos, audio, and recordings</b> — as a single ZIP file. Use this when changing devices or recovering lost data.<br><br>The ZIP stores a SHA-256 checksum for every file, so a restore verifies the contents automatically. If even one file is damaged, the restore stops and your current data is left untouched.<br><br><b>Verify a ZIP</b> checks the contents without restoring. Check your backups this way from time to time.<br><br>Files are large because video is included. Store the exported ZIP <b>off this device</b>, for example in iCloud or on a computer." },
+  backup: { t: "Light backup (records only)", b: "Exports routines, practice records, and settings as JSON. <b>Videos, audio, and recordings are not included</b>.<br><br>The file is small and convenient, but it cannot restore your videos. Use Full backup (ZIP) to keep those.<br><br>CSV export is for analysing records in a spreadsheet; it cannot be used to restore." },
   feedback: { t: "Feedback and requests", b: "Send feature requests or usability feedback directly to the developer." },
   reset: { t: "Reset", b: "Deletes all routines, practice records, sequence videos, recordings, audio, and settings on this device. This cannot be undone." },
 };
@@ -6132,6 +6134,7 @@ function renderHelp() {
 function renderSettings() {
   const runTotal = state.sessions.reduce((a, s) => a + s.runs.length, 0);
   const runVideoBytes = runVideoStorageBytes();
+  setTimeout(refreshStorageInfo, 0); // 容量・永続化の取得は非同期なので描画後に埋める
   return `
     <div class="topbar"><button class="back-btn" onclick="returnFromGlobalSettings()">戻る</button><h1>グローバル設定</h1></div>
     <div class="card">
@@ -6148,6 +6151,8 @@ function renderSettings() {
       <div class="bd-row"><span class="k">通し合計</span><span class="v">${runTotal}本</span></div>
       <div class="bd-row"><span class="k">通し映像</span><span class="v">${storedRunVideos().length}/${RUN_VIDEO_LIMIT}本</span></div>
       <div class="bd-row"><span class="k">映像の使用容量</span><span class="v">${fmtBytes(runVideoBytes)}</span></div>
+      <div class="bd-row"><span class="k">端末全体の使用容量</span><span class="v" id="storage-est">…</span></div>
+      <div class="bd-row"><span class="k">データの保護</span><span class="v" id="storage-persist">…</span></div>
       <button class="btn storage-manage-btn" onclick="go('runvideos')">演技映像の保存を管理</button>
     </div>
     <div class="card">
@@ -6158,7 +6163,15 @@ function renderSettings() {
       </div>
     </div>
     <div class="card">
-      <h2>バックアップ${infoBtn("backup")}</h2>
+      <h2>完全バックアップ(動画・音源を含む)${infoBtn("fullBackup")}</h2>
+      <button class="btn primary" onclick="exportFullBackup()">ZIPで書き出す</button>
+      <button class="btn" onclick="document.getElementById('zip-import-file').click()">ZIPから復元する</button>
+      <input type="file" id="zip-import-file" accept=".zip,application/zip" class="hidden" onchange="importFullBackup(this)">
+      <button class="btn ghost" onclick="document.getElementById('zip-verify-file').click()">ZIPを検証する(復元しない)</button>
+      <input type="file" id="zip-verify-file" accept=".zip,application/zip" class="hidden" onchange="verifyFullBackup(this)">
+    </div>
+    <div class="card">
+      <h2>軽量バックアップ(記録のみ)${infoBtn("backup")}</h2>
       <button class="btn" onclick="exportJson()">JSONバックアップを書き出す</button>
       <button class="btn" onclick="document.getElementById('import-file').click()">JSONから復元する</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJson(this)">
@@ -6320,6 +6333,7 @@ window.exportJson = () => {
   download(`routine-debugger-backup-${today()}.json`, JSON.stringify(state, null, 2), "application/json");
   toast("JSONを書き出しました");
 };
+
 function validBackupId(value) {
   return typeof value === "string" && /^[A-Za-z0-9:_-]{1,100}$/.test(value);
 }
