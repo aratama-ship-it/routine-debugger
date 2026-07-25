@@ -1,0 +1,15 @@
+/* 新しい版のお知らせ(画面下に控えめに出す。操作を塞がない) */
+#update-banner { position: fixed; left: 12px; right: 12px; z-index: 60;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px 11px 15px; border-radius: 12px;
+  background: var(--ink, #2b2a26); color: #F4EFE2;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  transform: translateY(14px); opacity: 0; transition: transform .22s ease, opacity .22s ease; }
+#update-banner.in { transform: translateY(0); opacity: 1; }
+#update-banner .ub-text { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; }
+#update-banner .ub-apply { flex: 0 0 auto; min-height: 36px; padding: 0 16px; border: none;
+  border-radius: 8px; background: var(--accent, #b5651d); color: #fff; font-size: 14px; font-weight: 700; }
+#update-banner .ub-later { flex: 0 0 auto; width: 34px; height: 34px; border: none; border-radius: 17px;
+  background: rgba(255, 255, 255, .14); color: #F4EFE2; font-size: 14px; }
+@media (min-width: 768px) { #update-banner { left: auto; right: 20px; width: 380px; } }

@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v223"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v225"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -6155,6 +6155,7 @@ function renderSettings() {
       <div class="bd-row"><span class="k">映像の使用容量</span><span class="v">${fmtBytes(runVideoBytes)}</span></div>
       <div class="bd-row"><span class="k">端末全体の使用容量</span><span class="v" id="storage-est">…</span></div>
       <div class="bd-row"><span class="k">データの保護</span><span class="v" id="storage-persist">…</span></div>
+      <div class="bd-row"><span class="k">未使用データ</span><span class="v" id="storage-orphan">…</span></div>
       <button class="btn storage-manage-btn" onclick="go('runvideos')">演技映像の保存を管理</button>
     </div>
     <div class="card">

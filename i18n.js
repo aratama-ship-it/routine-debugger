@@ -207,6 +207,7 @@
     ["通し映像", "Full-run videos"], ["映像の使用容量", "Video storage used"],
     ["端末全体の使用容量", "Total storage used"], ["データの保護", "Storage protection"],
     ["保護を有効にする", "Turn on protection"], ["保護中", "Protected"],
+    ["未使用データ", "Unused data"],
     ["演技映像の保存を管理", "Manage performance video storage"],
     ["演技映像をまとめて削除", "Delete all performance videos"],
     ["iPhoneの容量を空ける", "Free storage on this iPhone"],

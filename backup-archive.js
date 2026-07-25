@@ -456,13 +456,16 @@ async function refreshStorageInfo() {
         : "—";
     } catch (_) { usageEl.textContent = "—"; }
   }
+  // ※描画後に差し込む要素は i18n の一括置換を通らないので、ここで言語を出し分ける
   if (persistEl) {
     let persisted = false;
     try { persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false; } catch (_) {}
     persistEl.innerHTML = persisted
-      ? `<span style="color:var(--ok)">保護中</span>`
-      : `<button class="btn small" style="margin:0" onclick="requestPersistentStorage()">保護を有効にする</button>`;
+      ? `<span style="color:var(--ok)">${isEnglish() ? "Protected" : "保護中"}</span>`
+      : `<button class="btn small" style="margin:0" onclick="requestPersistentStorage()">${
+          isEnglish() ? "Turn on protection" : "保護を有効にする"}</button>`;
   }
+  refreshOrphanInfo();
 }
 window.requestPersistentStorage = async () => {
   if (!navigator.storage || !navigator.storage.persist) return toast("この端末では設定できません");
@@ -525,3 +528,135 @@ async function performResetAll() {
   try { localStorage.removeItem("rd_state"); localStorage.removeItem("rd_volume"); } catch (_) {}
   location.reload();
 }
+
+// ========== 未使用(孤立)データの掃除 ==========
+// 保存が途中で中断した等の理由で、どこからも参照されていないBlobがIndexedDBに残ることがある。
+// 容量を圧迫し、使用量の見え方も狂うので、確認したうえでまとめて消せるようにする。
+function blobKeysAll() {
+  return new Promise((resolve) => {
+    if (!db) return resolve([]);
+    try {
+      const rq = db.transaction("blobs", "readonly").objectStore("blobs").getAllKeys();
+      rq.onsuccess = () => resolve(rq.result || []);
+      rq.onerror = () => resolve([]);
+    } catch (_) { resolve([]); }
+  });
+}
+
+// 参照されていないBlobを洗い出す。安全のため、stateが読めていない疑いがあるときは何も返さない。
+async function findOrphanBlobs() {
+  const keys = await blobKeysAll();
+  if (!keys.length) return { orphans: [], bytes: 0, unsafe: false };
+  const used = new Set(collectBackupBlobRefs().map((r) => String(r.blobId)));
+  // ★重要な安全弁: stateの読み込みに失敗している場合、全Blobが「未使用」に見えてしまう。
+  //   参照が1件も無いのにBlobだけ大量にある状況は異常とみなし、掃除を止める。
+  if (!used.size) return { orphans: [], bytes: 0, unsafe: true };
+  const orphans = [];
+  let bytes = 0;
+  for (const key of keys) {
+    if (used.has(String(key))) continue;
+    const blob = await blobGet(key);
+    orphans.push({ key, size: blob ? blob.size : 0 });
+    bytes += blob ? blob.size : 0;
+  }
+  return { orphans, bytes, unsafe: false };
+}
+
+window.cleanupOrphanBlobs = async () => {
+  showLoading(isEnglish() ? "Checking…" : "確認しています…");
+  let found;
+  try { found = await findOrphanBlobs(); } finally { hideLoading(); }
+  if (found.unsafe) return toast(isEnglish()
+    ? "Could not verify your data. Cleanup was cancelled."
+    : "データを確認できなかったため中止しました");
+  if (!found.orphans.length) return toast(isEnglish() ? "Nothing to clean up" : "未使用データはありません");
+  const msg = isEnglish()
+    ? `Delete ${found.orphans.length} unused files (${fmtBytes(found.bytes)})?\nFiles still used by your routines are not affected.`
+    : `使われていないデータ${found.orphans.length}件(${fmtBytes(found.bytes)})を削除します。\nルーティンで使用中のものは消えません。よいですか?`;
+  if (!appConfirm(msg)) return;
+  showLoading(isEnglish() ? "Cleaning up…" : "削除しています…");
+  let done = 0;
+  try {
+    for (const item of found.orphans) if (await blobDel(item.key)) done++;
+  } finally { hideLoading(); }
+  toast(isEnglish() ? `Removed ${done} files (${fmtBytes(found.bytes)})` : `${done}件(${fmtBytes(found.bytes)})を削除しました`);
+  refreshStorageInfo();
+};
+
+async function refreshOrphanInfo() {
+  const el = document.getElementById("storage-orphan");
+  if (!el) return;
+  try {
+    const found = await findOrphanBlobs();
+    if (found.unsafe) { el.textContent = "—"; return; }
+    const label = isEnglish()
+      ? `${found.orphans.length} files · ${fmtBytes(found.bytes)}`
+      : `${found.orphans.length}件 ${fmtBytes(found.bytes)}`;
+    el.innerHTML = found.orphans.length
+      ? `${label}
+         <button class="btn small" style="margin:0 0 0 8px" onclick="cleanupOrphanBlobs()">${isEnglish() ? "Clean up" : "掃除する"}</button>`
+      : `<span style="color:var(--muted)">${isEnglish() ? "None" : "なし"}</span>`;
+  } catch (_) { el.textContent = "—"; }
+}
+
+// ========== 新しい版のお知らせ ==========
+// βは更新が頻繁なうえ、ホーム画面から起動したPWAは開きっぱなしになりやすい。
+// 古い版のまま使い続けて「直したはずの不具合」を報告させないよう、更新に気づける導線を出す。
+// 自動では再読み込みしない(練習中に画面が飛ぶと記録が失われるため)。
+let updateBannerShown = false;
+let lastUpdateCheck = 0;
+
+function showUpdateBanner() {
+  if (updateBannerShown || document.getElementById("update-banner")) return;
+  updateBannerShown = true;
+  const english = isEnglish();
+  const el = document.createElement("div");
+  el.id = "update-banner";
+  el.setAttribute("role", "status");
+  el.innerHTML = `
+    <span class="ub-text">${english ? "A new version is available" : "新しい版があります"}</span>
+    <button class="ub-apply" onclick="applyAppUpdate()">${english ? "Update" : "更新する"}</button>
+    <button class="ub-later" onclick="dismissUpdateBanner()" aria-label="${english ? "Later" : "あとで"}">✕</button>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("in"));
+}
+window.dismissUpdateBanner = () => {
+  const el = document.getElementById("update-banner");
+  if (el) el.remove();
+  // 閉じても次回の起動時や次の更新検知でまた出る(見逃しっぱなしにしない)
+};
+window.applyAppUpdate = () => {
+  // 通し練習の途中なら、記録が失われることを伝えてから
+  if (typeof openRun !== "undefined" && openRun && !appConfirm(isEnglish()
+    ? "A run is in progress. Updating now will discard it. Continue?"
+    : "通しの記録中です。更新すると記録中の通しは失われます。よいですか?")) return;
+  location.reload();
+};
+
+function watchForAppUpdate() {
+  if (!("serviceWorker" in navigator) || !location.protocol.startsWith("http")) return;
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (!reg) return;
+    // すでに新しい版が控えている場合
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+    reg.addEventListener("updatefound", () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener("statechange", () => {
+        // controllerが居る = 初回インストールではなく「更新」
+        if (sw.state === "installed" && navigator.serviceWorker.controller) showUpdateBanner();
+      });
+    });
+    // 開きっぱなしのPWA向け: 画面に戻ってきたタイミングで更新を確認する(30分に1回まで)
+    const check = () => {
+      if (document.hidden) return;
+      const now = Date.now();
+      if (now - lastUpdateCheck < 1800000) return;
+      lastUpdateCheck = now;
+      reg.update().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", check);
+    setTimeout(check, 5000);
+  }).catch(() => {});
+}
+watchForAppUpdate();
