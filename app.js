@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v222"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v223"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2425,6 +2425,7 @@ window.runVideoBulkDeleteKey = (event) => deleteSlideKey(event, "", "run-videos"
 
 function performDeleteSlideAction(d) {
   if (d.action === "run-videos") return performRunVideoBulkDelete();
+  if (d.action === "reset-all") return performResetAll(); // backup-archive.js
   return performRoutineDelete(d.id);
 }
 
@@ -6183,16 +6184,16 @@ function renderSettings() {
       <button class="btn" onclick="openFeedback()">機能の要望・バグ報告を送る</button>
     </div>
     <div class="card">
-      <h2>初期化${infoBtn("reset")}</h2>
-      <button class="btn danger-ghost" style="width:100%" onclick="resetAllData()">この端末のデータを全て削除</button>
-    </div>
-    <div class="card">
       <h2>ベータ版について</h2>
       <button class="btn" onclick="openDocPage('beta.html')">テスターの方へ(使い方と注意)</button>
       <button class="btn ghost" onclick="openDocPage('privacy.html')">プライバシーポリシー</button>
       <button class="btn ghost" onclick="openDocPage('terms.html')">利用規約</button>
     </div>
-    <button class="btn" onclick="openHelp()">使い方を見る</button>`;
+    <button class="btn" onclick="openHelp()">使い方を見る</button>
+    <div class="card">
+      <h2>初期化${infoBtn("reset")}</h2>
+      <button class="btn danger-ghost" style="width:100%" onclick="resetAllData()">この端末のデータを全て削除</button>
+    </div>`;
 }
 
 window.setLanguage = (language) => {
@@ -6321,20 +6322,6 @@ window.submitFeedback = async () => {
   location.href = mailto;
 };
 // この端末のデータを全消去して初期状態へ(IndexedDB削除+localStorage掃除+リロード)
-window.resetAllData = async () => {
-  if (!appConfirm("この端末のデータを全て削除して初期状態に戻します。\nルーティン・記録・技と通しの動画・録音・楽曲・設定が消えます。よいですか?")) return;
-  if (!appConfirm("本当に初期化しますか? 元に戻せません。\n(残したいデータがあれば先にJSONバックアップを)")) return;
-  try { musicPlayer.pause(); } catch (_) {}
-  try { if (db) db.close(); } catch (_) {}
-  await new Promise((resolve) => {
-    const req = indexedDB.deleteDatabase(DB_NAME);
-    req.onsuccess = req.onerror = req.onblocked = () => resolve();
-    setTimeout(resolve, 3000); // onblocked等で固まらない保険
-  });
-  try { localStorage.removeItem("rd_state"); localStorage.removeItem("rd_volume"); } catch (_) {}
-  location.reload();
-};
-
 function download(filename, text, mime) {
   const blob = new Blob([text], { type: mime });
   const a = document.createElement("a");

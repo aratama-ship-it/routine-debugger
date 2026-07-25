@@ -472,3 +472,56 @@ window.requestPersistentStorage = async () => {
   } catch (_) { toast("設定できませんでした"); }
   refreshStorageInfo();
 };
+
+// ========== この端末のデータを全て削除(初期化) ==========
+// 誤操作で全消失すると取り返しがつかないため、ルーティン削除と同じ「右へスライド」方式で確定させる。
+// スライドの仕組み(startDeleteSlide / deleteSlideKey / performDeleteSlideAction)は app.js 側。
+window.startResetAllSlide = (event) => startDeleteSlide(event, "", "reset-all");
+window.resetAllDeleteKey = (event) => deleteSlideKey(event, "", "reset-all");
+
+window.resetAllData = () => {
+  const english = isEnglish();
+  const runs = state.sessions.reduce((a, s) => a + (s.runs || []).length, 0);
+  const media = collectBackupBlobRefs().length;
+  const count = english
+    ? `${state.routines.length} routines · ${runs} runs · ${media} media files`
+    : `ルーティン${state.routines.length}件・通し${runs}本・メディア${media}件`;
+  showSheet(`
+    <h3>${english ? "Delete all data on this device" : "この端末のデータを全て削除"}</h3>
+    <div class="delete-routine-warning">
+      <strong>${english ? "This cannot be undone" : "この操作は元に戻せません"}</strong>
+      <span>${count}</span>
+      <p>${english
+        ? "Routines, practice records, sequence and full-run videos, recordings, audio, and settings will all be erased."
+        : "ルーティン、練習記録、技と通しの動画、録音、楽曲、設定がすべて消えます。"}</p>
+      <p>${english
+        ? "Export a full backup (ZIP) first if you want to keep anything."
+        : "残したいものがあれば、先に「完全バックアップ」からZIPを書き出してください。"}</p>
+    </div>
+    <div class="delete-slide-wrap">
+      <div class="delete-slide-track" id="delete-slide-track" role="slider" tabindex="0"
+        aria-label="右端までスライドして削除" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+        onkeydown="resetAllDeleteKey(event)">
+        <div class="delete-slide-fill"></div>
+        <span class="delete-slide-copy">右へスライドして削除</span>
+        <button class="delete-slide-handle" type="button" aria-label="削除スライダー"
+          onpointerdown="startResetAllSlide(event)">✕</button>
+      </div>
+      <div class="delete-slide-help">右端まで動かして指を離すと削除されます</div>
+    </div>
+    <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`);
+};
+
+async function performResetAll() {
+  hideSheet();
+  showLoading(isEnglish() ? "Deleting…" : "削除しています…");
+  try { musicPlayer.pause(); } catch (_) {}
+  try { if (db) db.close(); } catch (_) {}
+  await new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+    setTimeout(resolve, 3000); // onblocked等で固まらない保険
+  });
+  try { localStorage.removeItem("rd_state"); localStorage.removeItem("rd_volume"); } catch (_) {}
+  location.reload();
+}
