@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ベータ版ガイド — ルーティンノート</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --ok:#3F7A4A; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .lead { font-size:16px; color:var(--ink); }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  h3 { font-size:16px; margin:22px 0 6px; }
+  p, li { font-size:15.5px; }
+  ul, ol { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.strong { border-left:5px solid var(--accent); }
+  .card.warn { border-left:5px solid var(--warn); }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps li { counter-increment:step; position:relative; padding:12px 12px 12px 52px; margin:10px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .steps li::before { content:counter(step); position:absolute; left:14px; top:12px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .steps b { display:block; margin-bottom:2px; }
+  .steps .why { font-size:13.5px; color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    padding:13px 26px; border-radius:8px; font-weight:700; margin:8px 0; }
+  a { color:var(--accent); }
+  code { background:#E3DAC2; padding:2px 6px; border-radius:4px; font-size:14px; }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">ROUTINE NOTE — BETA</div>
+  <h1>テストへのご協力ありがとうございます</h1>
+  <p class="lead">ルーティンノートは、<b>演技を通すたびに「次に練習する場所」が決まる</b>ノートです。
+  まずは15分だけ、下の流れを試してみてください。</p>
+  <div class="meta">最終更新: 2026年7月25日 ／ ベータ版</div>
+</header>
+
+<p><a class="btn" href="./">アプリを開く</a></p>
+
+<div class="card warn">
+  <b>最初にお願い（大切です）</b><br>
+  データは<b>お使いの端末の中だけ</b>に保存されます。開発者側には残りません。
+  ブラウザの状態によっては消えてしまうことがあるため、
+  <b>練習の記録が貯まってきたら「設定 → 完全バックアップ → ZIPで書き出す」</b>を実行し、
+  ファイルをiCloudやパソコンなど端末の外に保存してください。<br>
+  あわせて「設定 → データの保護 → 保護を有効にする」も押しておくと、消えにくくなります。
+</div>
+
+<h2>15分ミッション</h2>
+<p>この順に触っていただけると、確認したいところがひと通りカバーできます。</p>
+
+<ol class="steps">
+  <li><b>ホーム画面に追加する</b>
+    <span class="why">Safariの共有ボタン →「ホーム画面に追加」。そこから起動すると、アプリのように全画面で動きます。</span></li>
+  <li><b>サンプルを読み込んで、一周ながめる</b>
+    <span class="why">ルーティン一覧の「サンプル一式を読み込む」。技9本・楽曲・40通し分の記録が入るので、完成形のイメージがつかめます。</span></li>
+  <li><b>自分の曲でルーティンを1本つくる</b>
+    <span class="why">「＋新規ルーティン」→ 技名を並べる → 音源を添付。ここが一番の山場です。<b>迷った場所を覚えておいてください。</b></span></li>
+  <li><b>通し練習を2本記録する（クリーン1本・ミス1本）</b>
+    <span class="why">「練習」→ セッションを準備 → スタート。崩れたら、その技の「ミス記録」をタップ。うまく通せたら「完走」。</span></li>
+  <li><b>分析を見る</b>
+    <span class="why">「分析」で、どの技が何回・何％崩れたかを確認。<b>見て意味が分かるか</b>を教えてください。</span></li>
+  <li><b>パート練習で気になる部分を繰り返す</b>
+    <span class="why">A/B区間をドラッグして指定 → ループ再生。再生速度も変えられます。</span></li>
+  <li><b>完全バックアップZIPを書き出して、検証する</b>
+    <span class="why">「設定 → 完全バックアップ」で書き出し →「ZIPを検証する」で中身が無事か確認。<b>ここは特に重点的に見ています。</b></span></li>
+  <li><b>アプリを完全に閉じて、開き直す</b>
+    <span class="why">記録が残っているか確認してください。消えていたら、それが一番知りたい不具合です。</span></li>
+</ol>
+
+<h2>特に教えてほしいこと</h2>
+<ul>
+  <li><b>止まった場所</b> … 「どうすればいいか分からなくなった」画面はどこですか</li>
+  <li><b>面倒だった場所</b> … 準備に時間がかかった、タップの回数が多いと感じた場所</li>
+  <li><b>壊れた場所</b> … 記録が消えた、動画が再生できない、固まった、など</li>
+  <li>自分の曲で最初の1本を通せるまで、<b>どれくらい時間がかかったか</b></li>
+  <li>分析画面を見て、<b>次に練習する場所が決まったかどうか</b></li>
+</ul>
+<p>うまく言葉にできなくても大丈夫です。「なんとなく使いにくい」だけでも十分助かります。</p>
+
+<h2>いま分かっている制約</h2>
+<ul>
+  <li><b>JSONバックアップには動画・音源が含まれません。</b>動画も残したい場合は「完全バックアップ（ZIP）」を使ってください。</li>
+  <li>通しの演技映像は<b>最大5本</b>まで保存できます（6本目を撮ると古いものと入れ替わります）。</li>
+  <li>iPhoneは、長期間アプリを使わないとブラウザの保存データを消すことがあります。「データの保護」を有効にしてください。</li>
+  <li>初回はオンラインで開いてください。一度読み込めば、その後はオフラインでも動きます。</li>
+  <li>サブスク（Apple Music / Spotify 等）の曲は使えません。手元の音源ファイルをご利用ください。</li>
+  <li>ベータ版のため、<b>予告なく画面や機能が変わることがあります</b>。</li>
+</ul>
+
+<h2>フィードバックの送り方</h2>
+<p>アプリ内の <b>「設定（右上の歯車） → ご意見・機能の要望 → 機能の要望・バグ報告を送る」</b> から送れます。
+種類（要望／バグ報告／その他）を選んで、気づいたことを書いてください。お名前は任意です。</p>
+<div class="card">
+  送信時には、内容のほかに<b>アプリのバージョンと端末の種類</b>が一緒に送られます（不具合の再現に使います）。<br>
+  ルーティンの内容・動画・音源が送られることはありません。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。
+</div>
+<p>直接のご連絡でも構いません: <a href="mailto:circusarata@gmail.com">circusarata@gmail.com</a></p>
+
+<h2>困ったとき</h2>
+<ul>
+  <li><b>動きが変になった</b> … 一度アプリを閉じて開き直してください。直らなければ、その状況を教えてください。</li>
+  <li><b>最初からやり直したい</b> … 「設定 → 初期化」で全て消せます（<b>元に戻せません</b>。必要ならバックアップを先に）。</li>
+  <li><b>データを消してほしい</b> … 端末内のデータは上記の初期化で消えます。送信済みのご意見の削除は、上記メールへご連絡ください。</li>
+</ul>
+
+<h2>ご利用にあたって</h2>
+<p>ベータ版は<b>18歳以上の方、または保護者の同意を得た方</b>を対象としています。
+音源・映像は、ご自身が権利を持つもの、または許諾を得たものをご利用ください。
+詳しくは<a href="terms.html">利用規約</a>と<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+
+<footer>
+  <div class="nav">
+    <a href="./">アプリを開く</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+    <a href="terms.html">利用規約</a>
+  </div>
+</footer>
+</div>
+</body>
+</html>

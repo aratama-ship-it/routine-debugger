@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v220"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v221"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -6185,6 +6185,12 @@ function renderSettings() {
       <h2>初期化${infoBtn("reset")}</h2>
       <button class="btn danger-ghost" style="width:100%" onclick="resetAllData()">この端末のデータを全て削除</button>
     </div>
+    <div class="card">
+      <h2>ベータ版について</h2>
+      <button class="btn" onclick="openDocPage('beta.html')">テスターの方へ(使い方と注意)</button>
+      <button class="btn ghost" onclick="openDocPage('privacy.html')">プライバシーポリシー</button>
+      <button class="btn ghost" onclick="openDocPage('terms.html')">利用規約</button>
+    </div>
     <button class="btn" onclick="openHelp()">使い方を見る</button>`;
 }
 
@@ -6193,6 +6199,16 @@ window.setLanguage = (language) => {
   saveState(); render();
   refreshWideSidePanel();
   toast(isEnglish() ? "Language: English" : "表示言語: 日本語");
+};
+
+// 規約・ポリシー等の静的ページを別タブで開く。
+// アプリ内で遷移すると編集中の内容や通し練習の状態が失われるため、必ず別タブにする。
+// ※この関数は renderSettings と window.setLanguage の間には置かないこと
+//   (release-check がその並びを前提に renderSettings を抽出している)。
+window.openDocPage = (file) => {
+  const url = new URL(file, location.href).href;
+  const w = window.open(url, "_blank", "noopener");
+  if (!w) location.href = url; // ポップアップが塞がれている場合のみ同一タブ
 };
 
 window.setVideoQuality = (k) => {

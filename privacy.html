@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>プライバシーポリシー — ルーティンノート</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    line-height:1.85; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:26px; margin:6px 0 4px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h2 { font-size:18px; margin:32px 0 10px; padding-left:12px; border-left:5px solid var(--accent); }
+  p, li { font-size:15.5px; }
+  ul { padding-left:22px; }
+  li { margin:6px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.strong { border-left:5px solid var(--accent); }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14.5px; }
+  th, td { border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top; }
+  th { background:var(--card); width:34%; }
+  a { color:var(--accent); }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav { margin-top:10px; font-size:14px; }
+  .nav a { margin-right:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">ROUTINE NOTE</div>
+  <h1>プライバシーポリシー</h1>
+  <div class="meta">最終更新: 2026年7月25日 ／ 本サービスは現在ベータ版です</div>
+</header>
+
+<p>「ルーティンノート」（以下「本アプリ」）は、演技の通し練習を記録・分析するためのウェブアプリです。
+本アプリにおける利用者情報の取り扱いについて、以下のとおり定めます。</p>
+
+<div class="card strong">
+  <b>まずお伝えしたいこと</b><br>
+  本アプリで作成したルーティン・練習記録・動画・音源は、<b>すべてお使いの端末（ブラウザ）の中だけに保存されます</b>。
+  開発者のサーバーへ自動的に送信されることはなく、開発者がその内容を見ることもできません。
+  外部へ情報が送信されるのは、利用者ご自身が<b>「ご意見・機能の要望」を送信したときだけ</b>です。
+</div>
+
+<h2>1. 端末内にのみ保存される情報</h2>
+<p>以下は、お使いのブラウザの保存領域（IndexedDB・localStorage）に保存されます。外部へは送信されません。</p>
+<ul>
+  <li>ルーティンの構成（シーケンス名、順番、曲の位置、リスク度、A/B分岐など）</li>
+  <li>練習の記録（通しの成否、崩れた箇所、原因の仮説タグ、メモ、体調などの記録）</li>
+  <li>技の動画、通しの演技映像、音源、録音</li>
+  <li>アプリの設定（表示言語、動画の画質など）</li>
+</ul>
+<p>これらは端末の中にあるため、ブラウザのデータを削除したり、端末を初期化したりすると失われます。
+大切な記録は、アプリの「設定 → 完全バックアップ」からZIPファイルとして書き出し、端末の外（パソコンやクラウドなど）に保管してください。</p>
+
+<h2>2. 外部へ送信される情報</h2>
+<p>アプリ内の「設定 → ご意見・機能の要望 → 機能の要望・バグ報告を送る」から送信したときに限り、以下が開発者へ送信されます。</p>
+<table>
+  <tr><th>送信される内容</th><td>種類（要望／バグ報告／その他）、入力された本文、お名前（任意・空欄可）、アプリのバージョン、ご利用のブラウザ・端末の情報（User-Agent）、送信日時</td></tr>
+  <tr><th>送信されないもの</th><td>ルーティンの内容、練習記録、動画、音源、録音、メモ本文（フォームに書いた場合を除く）</td></tr>
+  <tr><th>利用目的</th><td>不具合の再現と修正、機能改善の検討、必要な場合のご連絡</td></tr>
+  <tr><th>送信先</th><td>Google Apps Script を経由し、開発者が管理する Google スプレッドシートに記録されます。送信先が未設定の期間は、お使いのメールアプリが起動し、開発者宛のメールとして送信されます。</td></tr>
+</table>
+<p>フォームには、ご本人や第三者を特定できる情報（本名、連絡先、所属など）を必要以上に入力しないようお願いします。</p>
+
+<h2>3. Cookie・アクセス解析</h2>
+<p>本アプリは Cookie を使用しておらず、アクセス解析ツールや広告配信タグも導入していません。
+ただし、本アプリを配信しているホスティング事業者（GitHub Pages / GitHub, Inc.）において、
+接続元IPアドレスなどの接続記録が事業者側で記録される場合があります。</p>
+
+<h2>4. 第三者提供と委託</h2>
+<p>取得した情報を、法令に基づく場合を除き、第三者へ提供することはありません。
+運営のために以下の外部サービスを利用しています。</p>
+<ul>
+  <li><b>GitHub, Inc.</b> — 本アプリの配信（GitHub Pages）</li>
+  <li><b>Google LLC</b> — ご意見・要望フォームの受け取りと保管（Apps Script / スプレッドシート / Gmail）</li>
+</ul>
+
+<h2>5. 国外での取り扱い</h2>
+<p>上記の各サービスのサーバーは、日本国外（米国など）に所在する場合があります。
+フォームから送信された情報は、これらの国において保管・処理されることがあります。</p>
+
+<h2>6. 保存期間</h2>
+<ul>
+  <li><b>端末内のデータ</b> … 利用者ご自身が管理します。アプリの「設定 → 初期化」からいつでも全て削除できます。</li>
+  <li><b>フォームから送信された内容</b> … 改善の参考として保管し、不要になった時点で削除します。削除のご依頼があった場合は、速やかに削除します。</li>
+</ul>
+
+<h2>7. データの削除方法</h2>
+<ul>
+  <li>端末内のデータ … アプリの「設定 → 初期化 → この端末のデータを全て削除」</li>
+  <li>送信済みのご意見・要望 … 下記の問い合わせ先へご連絡ください</li>
+</ul>
+
+<h2>8. 未成年の方の利用</h2>
+<p>本アプリのベータ版は、18歳以上の方、または保護者の同意を得た方を対象としています。
+18歳未満の方は、必ず保護者の同意を得たうえでご利用ください。</p>
+
+<h2>9. 動画・音源について</h2>
+<p>撮影・登録された動画や音源は端末内にのみ保存され、開発者へ送信されることはありません。
+第三者が映り込む映像を扱う場合は、その方（未成年の場合は保護者）の同意を得たうえでご利用ください。
+権利に関するご相談・削除のご依頼は、下記の問い合わせ先で承ります。</p>
+
+<h2>10. 本ポリシーの変更</h2>
+<p>本アプリはベータ版であり、機能の追加・変更に伴って本ポリシーを改定する場合があります。
+重要な変更を行う場合は、本ページ上でお知らせします。</p>
+
+<h2>11. 問い合わせ先</h2>
+<p>本ポリシーおよび個人情報の取り扱いに関するお問い合わせ・削除のご依頼は、以下までご連絡ください。</p>
+<div class="card">
+  ルーティンノート 開発者<br>
+  メール: <a href="mailto:circusarata@gmail.com">circusarata@gmail.com</a>
+</div>
+
+<footer>
+  <div class="nav">
+    <a href="./">アプリに戻る</a>
+    <a href="terms.html">利用規約</a>
+    <a href="beta.html">ベータ版ガイド</a>
+  </div>
+</footer>
+</div>
+</body>
+</html>
