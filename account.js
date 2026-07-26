@@ -181,6 +181,8 @@
     saveSession(sessionFromTokens(res.data));
     hideSheet();
     renderAccountCard();
+    renderHomeAccount();
+    if (typeof onAccountChanged === "function") onAccountChanged(true);
     toast(t("ログインしました", "Signed in"));
   };
 
@@ -204,6 +206,8 @@
     const token = session && session.access_token;
     saveSession(null);
     renderAccountCard();
+    renderHomeAccount();
+    if (typeof onAccountChanged === "function") onAccountChanged(false);
     toast(t("ログアウトしました", "Signed out"));
     if (token) authPost("/logout", {}, { Authorization: `Bearer ${token}` }).catch(() => {});
   };
@@ -285,9 +289,12 @@
          <div class="account-name" data-user-text>${esc(name || t("(名前は未設定)", "(no name set)"))}</div>
          <div class="account-mail" data-user-text>${esc(user.email || "")}</div>
        </div>
-       <div class="help-body" style="margin:10px 0">${t(
-         "端末間の同期は次の更新で有効になります。いまはログイン状態の確認のみです。",
-         "Syncing across devices will be enabled in a future update. For now this only confirms sign-in.")}</div>
+       <div class="bd-row" style="margin-top:10px"><span class="k">${t("同期", "Sync")}</span>
+         <span class="v" id="sync-status">${typeof syncStatusText === "function" ? esc(syncStatusText()) : "…"}</span></div>
+       <div class="help-body" style="margin:8px 0 10px">${t(
+         "ルーティンと練習の記録が、ログインした端末どうしで同期されます。動画・音源はこの端末の中だけです。",
+         "Routines and practice records sync between your signed-in devices. Videos and audio stay on this device.")}</div>
+       <button class="btn" onclick="runSyncNow()">${t("今すぐ同期する", "Sync now")}</button>
        <button class="btn" onclick="sheetAccountName()">${name ? t("お名前を変える", "Change name") : t("お名前を登録する", "Set your name")}</button>
        <button class="btn ghost" onclick="accountSignOut()">${t("ログアウト", "Sign out")}</button>`;
   }
@@ -350,6 +357,8 @@
         if (res.ok) saveSession(Object.assign({}, next, { user: await res.json() }));
       } catch (_) {}
       renderAccountCard();
+      renderHomeAccount();
+      if (typeof onAccountChanged === "function") onAccountChanged(true);
       if (type === "recovery") window.sheetAccountNewPassword();
       else toast(t("メールを確認しました。ログイン済みです。", "Email confirmed. You are signed in."));
     }, 600);
