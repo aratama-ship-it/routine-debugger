@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v228"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v230"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -6137,6 +6137,7 @@ function renderSettings() {
   const runTotal = state.sessions.reduce((a, s) => a + s.runs.length, 0);
   const runVideoBytes = runVideoStorageBytes();
   setTimeout(refreshStorageInfo, 0); // 容量・永続化の取得は非同期なので描画後に埋める
+  setTimeout(renderAccountCard, 0);  // アカウント欄は account.js が埋める
   return `
     <div class="topbar"><button class="back-btn" onclick="returnFromGlobalSettings()">戻る</button><h1>グローバル設定</h1></div>
     <div class="card">
@@ -6184,6 +6185,7 @@ function renderSettings() {
       <h2>ご意見・機能の要望${infoBtn("feedback")}</h2>
       <button class="btn" onclick="openFeedback()">機能の要望・バグ報告を送る</button>
     </div>
+    <div class="card" id="account-card"></div>
     <div class="card">
       <h2>ベータ版について</h2>
       <button class="btn" onclick="openDocPage('beta.html')">テスターの方へ(使い方と注意)</button>
