@@ -28,7 +28,7 @@
 
 ## ライセンス
 
-**© 2026 ARATA URAWA. All rights reserved.**
+**© 2026 PYGMIX. All rights reserved.**
 
 本リポジトリはオープンソースではありません。GitHub Pages でウェブ配信するために
 公開しているものであり、**利用許諾は付与していません**。
