@@ -1,6 +1,16 @@
-# 独自ドメインへの移行手順
+# 独自ドメインへの移行手順（実施済みの記録）
 
 作成日: 2026-07-26 / 対象: ルーティンノート（GitHub Pages → 独自ドメイン）
+
+> ## ✅ 2026-07-26 に移行完了
+> **現在の公開URL: https://routine-note.pygmix.com/**
+> - ドメイン `pygmix.com` を取得（DNS管理は Cloudflare）
+> - `routine-note` のCNAMEを `aratama-ship-it.github.io` へ（プロキシOFF＝DNS only）
+> - リポジトリに `CNAME` ファイル、GitHub PagesのカスタムドメインとHTTPSを設定
+> - Let's Encrypt証明書の発行を確認、Supabase の Site URL / Redirect URLs も新URLへ変更済み
+> - 旧 `aratama-ship-it.github.io/routine-debugger/` は新URLへリダイレクトされる
+>
+> 以下は当時の手順。**別アプリを同様に移行するときの参考**として残す。
 
 **ドメインの取得とDNS設定はあなたの手作業が必要。** 取得してドメイン名を教えてくれれば、
 Claudeがリポジトリ側（CNAMEファイル・アプリ内URL）とSupabaseの設定変更を行う。
