@@ -48,6 +48,11 @@
   }
   window.accountUser = () => (session && session.user) || null;
   window.accountEmail = () => (session && session.user && session.user.email) || "";
+  // 表示名。メールアドレスは長くて自分のものか判別しづらいので、名前があればそちらを主に見せる
+  window.accountName = () => {
+    const u = window.accountUser();
+    return (u && u.user_metadata && u.user_metadata.display_name) || "";
+  };
 
   // ---------- 通信 ----------
   async function authPost(path, body, extraHeaders) {
@@ -112,6 +117,8 @@
       <div class="help-body" style="margin-bottom:10px">${t(
         "端末間で記録を同期したい場合に作ります。作らなくても、これまでどおり全ての機能が使えます。",
         "Create an account if you want to sync your records across devices. Everything works without one.")}</div>
+      <label class="fld">${t("お名前(表示用・任意)", "Name (shown in the app, optional)")}</label>
+      <input type="text" id="ac-name" autocomplete="nickname" placeholder="${t("例: あらた", "e.g. Alex")}">
       ${emailField("ac-email")}
       ${passField("ac-pass", t("パスワード(6文字以上)", "Password (6+ characters)"), "new-password")}
       <div style="height:14px"></div>
@@ -145,8 +152,12 @@
     const email = readField("ac-email").trim();
     const password = readField("ac-pass");
     if (!email || !password) return toast(t("メールアドレスとパスワードを入れてください", "Enter your email and password"));
+    const name = readField("ac-name").trim();
     busy(true, t("登録中…", "Signing up…"));
-    const res = await authPost("/signup", { email, password });
+    // data は user_metadata として保存される
+    const res = await authPost("/signup", name
+      ? { email, password, data: { display_name: name } }
+      : { email, password });
     busy(false, t("登録する", "Sign up"));
     if (!res.ok) return toast(authErrorText(res));
     // メール確認が有効なので、この時点ではまだログインできない
@@ -223,24 +234,62 @@
     toast(t("パスワードを変更しました", "Password updated"));
   };
 
+  // 名前の変更(登録後でもいつでも)
+  window.sheetAccountName = () => {
+    showSheet(`<h3>${t("お名前", "Your name")}</h3>
+      <div class="help-body" style="margin-bottom:10px">${t(
+        "アプリの中での表示に使います。いつでも変えられます。",
+        "Used for display inside the app. You can change it any time.")}</div>
+      <label class="fld">${t("お名前", "Name")}</label>
+      <input type="text" id="ac-name" autocomplete="nickname" value="${esc(window.accountName())}">
+      <div style="height:14px"></div>
+      <button class="btn primary" onclick="accountSaveName()">${t("保存", "Save")}</button>
+      <button class="btn ghost" onclick="hideSheet()">${t("キャンセル", "Cancel")}</button>`);
+  };
+  window.accountSaveName = async () => {
+    const name = readField("ac-name").trim();
+    const token = await window.accountAccessToken();
+    if (!token) return toast(t("ログインし直してください", "Please sign in again"));
+    busy(true, t("保存中…", "Saving…"));
+    const res = await fetch(`${AUTH}/user`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ data: { display_name: name } }),
+    });
+    busy(false, t("保存", "Save"));
+    if (!res.ok) { let d = null; try { d = await res.json(); } catch (_) {} return toast(authErrorText({ status: res.status, data: d })); }
+    try { saveSession(Object.assign({}, session, { user: await res.json() })); } catch (_) {}
+    hideSheet();
+    renderAccountCard();
+    toast(t("お名前を保存しました", "Name saved"));
+  };
+
   // 設定画面のアカウント欄。app.js からは空の <div id="account-card"> だけ置いてもらう。
   function renderAccountCard() {
     const el = document.getElementById("account-card");
     if (!el) return;
     const user = window.accountUser();
-    el.innerHTML = user
-      ? `<h2>${t("アカウント", "Account")}</h2>
-         <div class="bd-row"><span class="k">${t("ログイン中", "Signed in")}</span>
-           <span class="v" data-user-text>${esc(user.email || "")}</span></div>
-         <div class="help-body" style="margin:8px 0 10px">${t(
-           "端末間の同期は次の更新で有効になります。いまはログイン状態の確認のみです。",
-           "Syncing across devices will be enabled in a future update. For now this only confirms sign-in.")}</div>
-         <button class="btn" onclick="accountSignOut()">${t("ログアウト", "Sign out")}</button>`
-      : `<h2>${t("アカウント(任意)", "Account (optional)")}</h2>
+    if (!user) {
+      el.innerHTML = `<h2>${t("アカウント(任意)", "Account (optional)")}</h2>
+         <div class="account-state out">${t("ログインしていません", "Not signed in")}</div>
          <div class="help-body" style="margin-bottom:10px">${t(
            "複数の端末で同じ記録を見たい場合に使います。<b>作らなくても全ての機能が無料で使えます。</b>",
            "Use an account to see the same records on more than one device. <b>Everything is free to use without one.</b>")}</div>
          <button class="btn" onclick="sheetAccountSignIn()">${t("ログイン / アカウントを作る", "Sign in / Create account")}</button>`;
+      return;
+    }
+    const name = window.accountName();
+    el.innerHTML = `<h2>${t("アカウント", "Account")}</h2>
+       <div class="account-state in">${t("ログイン中", "Signed in")}</div>
+       <div class="account-who">
+         <div class="account-name" data-user-text>${esc(name || t("(名前は未設定)", "(no name set)"))}</div>
+         <div class="account-mail" data-user-text>${esc(user.email || "")}</div>
+       </div>
+       <div class="help-body" style="margin:10px 0">${t(
+         "端末間の同期は次の更新で有効になります。いまはログイン状態の確認のみです。",
+         "Syncing across devices will be enabled in a future update. For now this only confirms sign-in.")}</div>
+       <button class="btn" onclick="sheetAccountName()">${name ? t("お名前を変える", "Change name") : t("お名前を登録する", "Set your name")}</button>
+       <button class="btn ghost" onclick="accountSignOut()">${t("ログアウト", "Sign out")}</button>`;
   }
   window.renderAccountCard = renderAccountCard;
 
