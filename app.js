@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v234"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v235"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2091,6 +2091,7 @@ function renderHome() {
             ${globalSettingsAction()}
           </div>
         </header>
+        <div id="home-account"></div>
         <main class="home-simple-main">
           <button class="home-practice-button" onclick="go('routines')">
             <span class="home-practice-copy"><small>ROUTINES</small><span>ルーティン一覧</span></span>

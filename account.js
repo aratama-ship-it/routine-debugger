@@ -293,6 +293,33 @@
   }
   window.renderAccountCard = renderAccountCard;
 
+  // ホームのログイン状態。「いま自分のアカウントで開けているか」を毎回開くたびに確かめられるようにする。
+  // 未ログインのときは何も出さない(アカウントは任意なので、作っていない人に見せる必要がない)。
+  function renderHomeAccount() {
+    const el = document.getElementById("home-account");
+    if (!el) return;
+    const user = window.accountUser();
+    if (!user) { el.innerHTML = ""; return; }
+    const label = window.accountName() || user.email || "";
+    const html = `<button class="home-account-chip" onclick="go('settings')"
+      aria-label="${t("アカウント設定を開く", "Open account settings")}">
+      <span class="hac-dot" aria-hidden="true"></span>
+      <span class="hac-name" data-user-text>${esc(label)}</span>
+      <span class="hac-state">${t("でログイン中", "signed in")}</span>
+    </button>`;
+    if (el.innerHTML !== html) el.innerHTML = html;   // 同じ内容なら書き換えない(監視の再発火を避ける)
+  }
+  window.renderHomeAccount = renderHomeAccount;
+
+  // render() から呼んでもらう口が無いので、画面が差し替わったら埋める。
+  // #app の直下だけを見る(subtreeまで見ると自分の書き換えで再発火し、無限ループになる)。
+  const appEl = document.getElementById("app");
+  if (appEl) {
+    new MutationObserver(() => {
+      if (document.getElementById("home-account")) renderHomeAccount();
+    }).observe(appEl, { childList: true });
+  }
+
   // ---------- 起動時 ----------
   loadSession();
 
