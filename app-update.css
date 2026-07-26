@@ -16,3 +16,7 @@
 
 /* シートにフォーカスを移したときに枠が出ないように(見た目のため。トラップ自体は a11y-sheet.js) */
 #sheet[tabindex="-1"]:focus { outline: none; }
+
+/* 設定画面の著作権表示 */
+.app-copyright { text-align: center; font-size: 12px; color: var(--muted);
+  margin: 18px 0 8px; letter-spacing: .02em; }
