@@ -1,6 +1,6 @@
 {
-  "name": "ルーティンノート",
-  "short_name": "ルーティンノート",
+  "name": "ルーティンノート ベータ",
+  "short_name": "ルーティンノートβ",
   "description": "パフォーマー向けルーティン練習ノート",
   "start_url": "./index.html",
   "scope": "./",

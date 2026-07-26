@@ -6,6 +6,7 @@
   "use strict";
 
   const exact = new Map([
+    ["ルーティンノート ベータ", "Routine Note Beta"], ["ベータ", "Beta"],
     ["ルーティンノート", "Routine Note"],
     ["使い方", "Guide"], ["使い方を見る", "View guide"], ["設定", "Settings"],
     ["戻る", "Back"], ["閉じる", "Close"], ["やめる", "Cancel"], ["キャンセル", "Cancel"],

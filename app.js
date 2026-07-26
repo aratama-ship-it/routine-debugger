@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v237"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v239"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -82,7 +82,7 @@ const appAlert = (message) => window.alert(uiText(message));
 function applyUiLanguage(root = document) {
   const language = isEnglish() ? "en" : "ja";
   document.documentElement.lang = language;
-  document.title = language === "en" ? "Routine Note" : "ルーティンノート";
+  document.title = language === "en" ? "Routine Note Beta" : "ルーティンノート ベータ";
   if (language === "en" && window.RoutineI18n) window.RoutineI18n.apply(root);
 }
 
@@ -2083,7 +2083,7 @@ function renderHome() {
       <div class="home-paper-sheet">
         <header class="home-simple-head">
           <div class="home-title-block">
-            <small>SHEET 00 / HOME · ${APP_VERSION}</small>
+            <small>SHEET 00 / HOME · ${APP_VERSION}<span class="beta-tag">ベータ</span></small>
             <h1>ルーティンノート</h1>
           </div>
           <div class="home-head-buttons">
@@ -4634,7 +4634,7 @@ let loadingShownAt = 0;
 let loadingHideTimer = null;
 function loadingMarkup(msg) {
   return `<div class="loading-sheet">
-    <span class="loading-kicker">ROUTINE NOTE</span>
+    <span class="loading-kicker">ROUTINE NOTE — BETA</span>
     <div class="loading-motion" aria-hidden="true"><i></i><i></i><i></i></div>
     <strong class="msg">${esc(uiText(msg || "読み込み中…"))}</strong>
     <span class="loading-sub">${uiText("処理が終わるまで、この画面のままお待ちください")}</span>
