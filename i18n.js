@@ -404,7 +404,7 @@
     ["この端末のデータを全て削除して初期状態に戻します。\nルーティン・記録・技と通しの動画・録音・楽曲・設定が消えます。よいですか?", "Delete all data on this device and reset the app? Routines, records, sequence and full-run videos, recordings, music, and settings will be removed."],
     ["本当に初期化しますか? 元に戻せません。\n(残したいデータがあれば先にJSONバックアップを)", "Reset now? This cannot be undone. Export a JSON backup first if needed."],
     ["現在のデータをバックアップの内容で置き換えます。よいですか?", "Replace the current data with this backup?"],
-    ["ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://aratama-ship-it.github.io/routine-debugger/", "Samples cannot be loaded when the app is opened directly as a file. Open the published app instead:\nhttps://aratama-ship-it.github.io/routine-debugger/"],
+    ["ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://routine-note.pygmix.com/", "Samples cannot be loaded when the app is opened directly as a file. Open the published app instead:\nhttps://routine-note.pygmix.com/"],
   ]);
 
   const rules = [

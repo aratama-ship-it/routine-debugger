@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v232"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v233"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -4589,7 +4589,7 @@ async function fetchSampleMusicFile(idx) {
     return new File([blob], `${s.n}.mp3`, { type: blob.type || "audio/mpeg" });
   } catch (_) { return null; }
 }
-const FILE_OPEN_ALERT = "ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://aratama-ship-it.github.io/routine-debugger/";
+const FILE_OPEN_ALERT = "ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://routine-note.pygmix.com/";
 // サンプル曲の選択シート(target: 'edit'=ルーティン編集)
 window.sheetSampleMusic = (target) => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);

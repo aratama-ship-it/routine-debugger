@@ -3,8 +3,8 @@
 演技の通し練習を記録し、次に練習する場所を決めるためのウェブアプリ。
 ジャグリング・ディアボロ・新体操・ダンスなど、音楽に合わせた演目を練習する人向け。
 
-**公開版: https://aratama-ship-it.github.io/routine-debugger/**
-（現在ベータ版です。テスターの方は [ベータ版ガイド](https://aratama-ship-it.github.io/routine-debugger/beta.html) をご覧ください）
+**公開版: https://routine-note.pygmix.com/**
+（現在ベータ版です。テスターの方は [ベータ版ガイド](https://routine-note.pygmix.com/beta.html) をご覧ください）
 
 ---
 
@@ -19,7 +19,7 @@
 - 日本語 / English、iPhone・iPad・PCブラウザ対応、オフライン動作（PWA）
 
 データは利用者の端末内に保存されます。詳しくは
-[プライバシーポリシー](https://aratama-ship-it.github.io/routine-debugger/privacy.html) を参照してください。
+[プライバシーポリシー](https://routine-note.pygmix.com/privacy.html) を参照してください。
 
 ## 技術構成
 

@@ -181,7 +181,7 @@ create policy mutations_own on public.applied_mutations
 2. **Confirm email**（メール確認）を **ON** にする
    → 設計上「確認済みメール＋PW」が前提。パスワード再発行の経路を確保するため
 3. **Authentication → URL Configuration** で以下を設定
-   - **Site URL**: `https://aratama-ship-it.github.io/routine-debugger/`
+   - **Site URL**: `https://routine-note.pygmix.com/`
    - **Redirect URLs** に同じURLを追加
    → これを設定しないと、確認メールやパスワード再設定のリンクから戻ってこられない
 

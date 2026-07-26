@@ -83,7 +83,7 @@ Supabaseダッシュボード → **Authentication → Emails → SMTP Settings*
 | 「試行が多すぎます」が続く | まだ組み込みメーラーのまま。Custom SMTPが有効になっているか確認。有効化直後は1時間の枠がリセットされるまで残っている場合がある |
 | メールが全く届かない | Usernameとアプリパスワードの誤り。Sender emailがUsernameと違うとGmailは拒否する |
 | 迷惑メールに入る | Gmail送信では起こりやすい。テスターに「迷惑メールを確認して」と伝える。独自ドメイン＋Resendに移行すると改善する |
-| リンクを開いてもアプリに戻らない | **Authentication → URL Configuration** の Site URL / Redirect URLs に<br>`https://aratama-ship-it.github.io/routine-debugger/` が入っているか確認 |
+| リンクを開いてもアプリに戻らない | **Authentication → URL Configuration** の Site URL / Redirect URLs に<br>`https://routine-note.pygmix.com/` が入っているか確認 |
 
 ---
 
