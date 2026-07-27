@@ -8,3 +8,7 @@ HANDOFF_CODEX.md
 # アイコン制作の作業物(検討案・旧アイコンの退避)。配信には不要なのでローカルのみ
 icons/candidates/
 icons/_old/
+
+# 利用状況の見かた。テスターのメールアドレスを引く手順を含むので、
+# docs/ の公開範囲を決めるまではローカルのみに置く
+ANALYTICS_SETUP.md
