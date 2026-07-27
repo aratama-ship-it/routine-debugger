@@ -409,7 +409,12 @@ window.importFullBackup = async (input) => {
   hideLoading();
   const c = ctx.manifest.counts || {};
   const when = String(ctx.manifest.exportedAt || "").replace("T", " ").slice(0, 16);
-  if (!appConfirm(`このバックアップで置き換えます。\n\n書き出し日時: ${when}\nルーティン ${c.routines == null ? "?" : c.routines} / セッション ${c.sessions == null ? "?" : c.sessions}\nメディア ${(ctx.manifest.blobs || []).length}件\n\nいまの端末のデータは失われます。よいですか?`)) return;
+  // ログイン中の復元は他の端末にも波及する。黙って消えるのが一番まずいので、必ず伝えてから実行する。
+  const signedIn = !!(window.accountUser && window.accountUser());
+  const syncWarn = signedIn
+    ? `\n\n【ログイン中です】\nこの内容が他の端末にも同期されます。\nバックアップに含まれていないルーティンや記録は、他の端末からも消えます。\nこの端末だけに戻したい場合は、先にログアウトしてください。`
+    : "";
+  if (!appConfirm(`このバックアップで置き換えます。\n\n書き出し日時: ${when}\nルーティン ${c.routines == null ? "?" : c.routines} / セッション ${c.sessions == null ? "?" : c.sessions}\nメディア ${(ctx.manifest.blobs || []).length}件\n\nいまの端末のデータは失われます。${syncWarn}\n\nよいですか?`)) return;
   showLoading("メディアを検証・復元中…");
   try {
     const res = await processBackupBlobs(ctx.zip, ctx.manifest, true, (i, n) => updateLoading(`メディアを検証・復元中… ${i}/${n}`));
