@@ -306,14 +306,21 @@
     const el = document.getElementById("home-account");
     if (!el) return;
     const user = window.accountUser();
-    if (!user) { el.innerHTML = ""; return; }
-    const label = window.accountName() || user.email || "";
-    const html = `<button class="home-account-chip" onclick="go('settings')"
-      aria-label="${t("アカウント設定を開く", "Open account settings")}">
-      <span class="hac-dot" aria-hidden="true"></span>
-      <span class="hac-name" data-user-text>${esc(label)}</span>
-      <span class="hac-state">${t("でログイン中", "signed in")}</span>
-    </button>`;
+    // 未ログインでも導線は出す(設定の中だけだと見つけられないため)。
+    // ただし作成を促す見た目にはせず、控えめな一行に留める。アカウントはあくまで任意。
+    const html = user
+      ? `<button class="home-account-chip" onclick="go('settings')"
+          aria-label="${t("アカウント設定を開く", "Open account settings")}">
+          <span class="hac-dot" aria-hidden="true"></span>
+          <span class="hac-name" data-user-text>${esc(window.accountName() || user.email || "")}</span>
+          <span class="hac-state">${t("でログイン中", "signed in")}</span>
+        </button>`
+      : `<button class="home-account-chip out" onclick="sheetAccountSignIn()"
+          aria-label="${t("ログインする", "Sign in")}">
+          <span class="hac-dot" aria-hidden="true"></span>
+          <span class="hac-name">${t("ログイン", "Sign in")}</span>
+          <span class="hac-state">${t("端末間で同期したい方は", "to sync across devices")}</span>
+        </button>`;
     if (el.innerHTML !== html) el.innerHTML = html;   // 同じ内容なら書き換えない(監視の再発火を避ける)
   }
   window.renderHomeAccount = renderHomeAccount;
