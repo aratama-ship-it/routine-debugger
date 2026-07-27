@@ -6,7 +6,8 @@
   "use strict";
 
   const exact = new Map([
-    ["ルーティンノート ベータ", "Routine Note Beta"], ["ベータ", "Beta"],
+    ["ルーティンノート ベータ", "Routine Note Beta"],
+    ["墨の呼吸", "Breath of Ink"],   // 付属サンプル音源の原題 ["ベータ", "Beta"],
     ["ルーティンノート", "Routine Note"],
     ["使い方", "Guide"], ["使い方を見る", "View guide"], ["設定", "Settings"],
     ["戻る", "Back"], ["閉じる", "Close"], ["やめる", "Cancel"], ["キャンセル", "Cancel"],

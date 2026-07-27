@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">簡略案B 崩れの一段</title>
+  <desc id="desc">三つの技を並べたステップ列と、見直す一段の朱色の印。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="64" y="48" width="400" height="416" fill="#f8f4e9"/>
+  <rect x="64" y="48" width="80" height="416" fill="#282b27"/>
+  <rect x="144" y="48" width="10" height="416" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#e9e3d3" stroke-width="8">
+    <circle cx="104" cy="136" r="18"/>
+    <circle cx="104" cy="256" r="18"/>
+    <circle cx="104" cy="376" r="18"/>
+  </g>
+
+  <path d="M198 148V364" fill="none" stroke="#39495b" stroke-width="14"/>
+  <g fill="#39495b">
+    <circle cx="198" cy="148" r="22"/>
+    <circle cx="198" cy="256" r="22"/>
+    <circle cx="198" cy="364" r="22"/>
+    <rect x="198" y="133" width="214" height="30"/>
+    <rect x="198" y="241" width="214" height="30"/>
+    <rect x="198" y="349" width="214" height="30"/>
+  </g>
+  <circle cx="336" cy="256" r="43" fill="#a75c24"/>
+  <circle cx="336" cy="256" r="15" fill="#f8f4e9"/>
+</svg>

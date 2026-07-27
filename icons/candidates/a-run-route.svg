@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">案A 通しの軌道</title>
+  <desc id="desc">ルーズリーフ上を一本の線で巡る演目の順序と、朱色で記録した崩れの位置。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="56" y="40" width="416" height="432" fill="#f8f4e9"/>
+  <rect x="56" y="40" width="80" height="432" fill="#282b27"/>
+  <rect x="136" y="40" width="10" height="432" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#e9e3d3" stroke-width="8">
+    <circle cx="96" cy="126" r="18"/>
+    <circle cx="96" cy="256" r="18"/>
+    <circle cx="96" cy="386" r="18"/>
+  </g>
+
+  <g stroke="#e9e3d3" stroke-width="6">
+    <path d="M160 126H444"/>
+    <path d="M160 256H444"/>
+    <path d="M160 386H444"/>
+  </g>
+
+  <path d="M182 126H314V212H226V300H350V386H430"
+        fill="none" stroke="#39495b" stroke-width="28"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+
+  <g fill="#f8f4e9" stroke="#39495b" stroke-width="14">
+    <circle cx="182" cy="126" r="22"/>
+    <circle cx="314" cy="212" r="22"/>
+    <circle cx="226" cy="300" r="22"/>
+    <circle cx="430" cy="386" r="22"/>
+  </g>
+
+  <circle cx="350" cy="300" r="39" fill="#a75c24"/>
+  <path d="M332 282l36 36M368 282l-36 36"
+        fill="none" stroke="#f8f4e9" stroke-width="12" stroke-linecap="square"/>
+</svg>

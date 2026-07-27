@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">簡略案A 通しの軌道</title>
+  <desc id="desc">ルーズリーフ上を巡る一本の演目と、一か所の崩れの印。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="64" y="48" width="400" height="416" fill="#f8f4e9"/>
+  <rect x="64" y="48" width="80" height="416" fill="#282b27"/>
+  <rect x="144" y="48" width="10" height="416" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#e9e3d3" stroke-width="8">
+    <circle cx="104" cy="136" r="18"/>
+    <circle cx="104" cy="256" r="18"/>
+    <circle cx="104" cy="376" r="18"/>
+  </g>
+
+  <path d="M190 146H354V256H238V366H418"
+        fill="none" stroke="#39495b" stroke-width="30"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+  <g fill="#f8f4e9" stroke="#39495b" stroke-width="14">
+    <circle cx="190" cy="146" r="23"/>
+    <circle cx="418" cy="366" r="23"/>
+  </g>
+  <circle cx="238" cy="256" r="42" fill="#a75c24"/>
+  <circle cx="238" cy="256" r="15" fill="#f8f4e9"/>
+</svg>

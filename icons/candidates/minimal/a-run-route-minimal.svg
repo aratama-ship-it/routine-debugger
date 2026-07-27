@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">最小案A 通しの軌道</title>
+  <desc id="desc">ルーズリーフ上を進む一本の演目と、一か所の崩れの印。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="96" width="416" height="512" fill="#f8f4e9"/>
+  <rect x="96" width="12" height="512" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#f8f4e9" stroke-width="8">
+    <circle cx="48" cy="128" r="18"/>
+    <circle cx="48" cy="256" r="18"/>
+    <circle cx="48" cy="384" r="18"/>
+  </g>
+
+  <path d="M164 164H350V348H410"
+        fill="none" stroke="#39495b" stroke-width="32"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+  <circle cx="350" cy="256" r="38" fill="#a75c24"/>
+</svg>

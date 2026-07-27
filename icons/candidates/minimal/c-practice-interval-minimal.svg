@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">最小案C 練習区間</title>
+  <desc id="desc">曲のタイムラインと、次に練習する区間。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="96" width="416" height="512" fill="#f8f4e9"/>
+  <rect x="96" width="12" height="512" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#f8f4e9" stroke-width="8">
+    <circle cx="48" cy="128" r="18"/>
+    <circle cx="48" cy="256" r="18"/>
+    <circle cx="48" cy="384" r="18"/>
+  </g>
+
+  <path d="M164 256H436" fill="none" stroke="#39495b" stroke-width="32" stroke-linecap="square"/>
+  <path d="M272 256H372" fill="none" stroke="#a75c24" stroke-width="32" stroke-linecap="square"/>
+  <g fill="#a75c24">
+    <rect x="262" y="190" width="20" height="132"/>
+    <rect x="362" y="190" width="20" height="132"/>
+  </g>
+</svg>

@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v241"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v242"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -4576,10 +4576,7 @@ const SAMPLE_TRICKS = [
 ];
 // サンプル楽曲(開発者本人の楽曲)。ルーティン編集/タイムラインの「サンプル曲から」でも使う
 // ★曲を追加する手順: samples/ にmp3を置き、ここに1行足すだけ(リリース時に複数追加予定)
-const SAMPLE_MUSIC = [
-  { f: "samples/challie-lav.mp3", n: "challie lav" },
-  { f: "samples/verse1.mp3", n: "Verse 1" },
-];
+// 付属サンプル音源の一覧は sample-music.js にある(app.jsのサイズ上限のため分離)
 async function fetchSampleMusicFile(idx) {
   const s = SAMPLE_MUSIC[idx];
   if (!s) return null;

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1744" height="1744" viewBox="0 0 1744 1744">
+  <style>
+    .label { fill: #23262c; font: 700 22px -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+    .caption { fill: #39495b; font: 700 16px -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+  </style>
+  <rect width="1744" height="784" fill="#e9e3d3"/>
+  
+    <g>
+      <text x="40" y="34" class="label">A  通しの軌道</text>
+      <image href="rendered/a-512.png" x="48" y="56" width="512" height="512"/>
+      <text x="40" y="612" class="caption">60px 実寸</text>
+      <rect x="40" y="632" width="246" height="116" rx="12" fill="#f8f4e9"/>
+      <rect x="302" y="632" width="246" height="116" rx="12" fill="#282b27"/>
+      <defs>
+        <clipPath id="clip-a-light">
+          <rect x="132" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+        <clipPath id="clip-a-dark">
+          <rect x="394" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+      </defs>
+      <image href="rendered/a-60.png" x="132" y="660" width="60" height="60"
+             clip-path="url(#clip-a-light)"/>
+      <image href="rendered/a-60.png" x="394" y="660" width="60" height="60"
+             clip-path="url(#clip-a-dark)"/>
+    </g>
+    <g>
+      <text x="608" y="34" class="label">B  崩れの朱印</text>
+      <image href="rendered/b-512.png" x="616" y="56" width="512" height="512"/>
+      <text x="608" y="612" class="caption">60px 実寸</text>
+      <rect x="608" y="632" width="246" height="116" rx="12" fill="#f8f4e9"/>
+      <rect x="870" y="632" width="246" height="116" rx="12" fill="#282b27"/>
+      <defs>
+        <clipPath id="clip-b-light">
+          <rect x="700" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+        <clipPath id="clip-b-dark">
+          <rect x="962" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+      </defs>
+      <image href="rendered/b-60.png" x="700" y="660" width="60" height="60"
+             clip-path="url(#clip-b-light)"/>
+      <image href="rendered/b-60.png" x="962" y="660" width="60" height="60"
+             clip-path="url(#clip-b-dark)"/>
+    </g>
+    <g>
+      <text x="1176" y="34" class="label">C  次の練習区間</text>
+      <image href="rendered/c-512.png" x="1184" y="56" width="512" height="512"/>
+      <text x="1176" y="612" class="caption">60px 実寸</text>
+      <rect x="1176" y="632" width="246" height="116" rx="12" fill="#f8f4e9"/>
+      <rect x="1438" y="632" width="246" height="116" rx="12" fill="#282b27"/>
+      <defs>
+        <clipPath id="clip-c-light">
+          <rect x="1268" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+        <clipPath id="clip-c-dark">
+          <rect x="1530" y="660" width="60" height="60" rx="13"/>
+        </clipPath>
+      </defs>
+      <image href="rendered/c-60.png" x="1268" y="660" width="60" height="60"
+             clip-path="url(#clip-c-light)"/>
+      <image href="rendered/c-60.png" x="1530" y="660" width="60" height="60"
+             clip-path="url(#clip-c-dark)"/>
+    </g>
+</svg>

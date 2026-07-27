@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">最小案B 三つのステップ</title>
+  <desc id="desc">三つの技の順序と、見直す一段の朱色の印。</desc>
+
+  <rect width="512" height="512" fill="#282b27"/>
+  <rect x="96" width="416" height="512" fill="#f8f4e9"/>
+  <rect x="96" width="12" height="512" fill="#e9e3d3"/>
+
+  <g fill="#282b27" stroke="#f8f4e9" stroke-width="8">
+    <circle cx="48" cy="128" r="18"/>
+    <circle cx="48" cy="256" r="18"/>
+    <circle cx="48" cy="384" r="18"/>
+  </g>
+
+  <g fill="#39495b">
+    <rect x="164" y="144" width="264" height="32"/>
+    <rect x="164" y="240" width="264" height="32"/>
+    <rect x="164" y="336" width="264" height="32"/>
+  </g>
+  <circle cx="332" cy="256" r="38" fill="#a75c24"/>
+</svg>
