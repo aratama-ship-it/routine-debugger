@@ -3,10 +3,9 @@
  * 1) 曲位置の数字入力
  *    スマホでは inputmode=numeric のキーボードに「:」も「.」も無く、
  *    表示形式(0:00.0)どおりに打てなかった。
- *    そこで、打った数字を右から M:SS.t へ流し込む方式にする。
- *    35 → 0:03.5 ／ 305 → 0:30.5 ／ 1234 → 1:23.4
+ *    そこで「:」と「.」は常に入ったままにし、打った数字を右から M:SS.t へ流し込む。
+ *    1 → 0:00.1 ／ 11 → 0:01.1 ／ 1111 → 1:11.1
  *    打ちながら整形後の姿がそのまま欄に出るので、規則は説明しなくても分かる。
- *    「:」や「.」を打てる環境(パソコン)では、従来どおり直接書ける。
  *
  * 2) ステップの長さ
  *    動画を紐づけていない技・移行は長さが既定値のままで、変える手段が無かった。
@@ -111,6 +110,27 @@
     toast(t("動画の長さに戻しました", "Using the video's length again"));
   };
 
+  // ---------- スライド中は縦の操作を止める ----------
+  // 少しでも縦に動くとブラウザが縦スクロールを始め、こちらへは pointercancel が飛ぶ。
+  // 後始末が走らないまま拡大表示が残り、固まったように見えていた。
+  // 値を合わせている間は、そもそも縦へ動かせないようにする。
+  let slideLock = 0;
+  window.beginValueSlide = (el, pointerId) => {
+    slideLock++;
+    document.body.classList.add("value-sliding");
+    // 以降のポインタ操作をこの要素へ固定する(指が要素から外れても追従させる)
+    try { el.setPointerCapture(pointerId); } catch (_) {}
+  };
+  window.endValueSlide = (el, pointerId) => {
+    slideLock = Math.max(0, slideLock - 1);
+    if (!slideLock) document.body.classList.remove("value-sliding");
+    try { el.releasePointerCapture(pointerId); } catch (_) {}
+  };
+  // touch-action だけでは、動き出したスクロールを止められない。ここで実際に止める
+  document.addEventListener("touchmove", (e) => {
+    if (slideLock && e.cancelable) e.preventDefault();
+  }, { passive: false });
+
   // ---------- 長さを横スライドで変える ----------
   // 曲位置と同じ操作で長さも変えられるようにする。数値を合わせる動作が2種類あると、
   // どちらがどちらだったか毎回思い出すことになる。
@@ -124,7 +144,7 @@
     const targets = durationTargets(i);
     // A/Bを表示中で長さが2つある行は、どちらを動かすのか決まらないのでシートに任せる
     if (targets.length !== 1) return;
-    durDrag = { btn, i, target: targets[0], startX: e.clientX, startY: e.clientY,
+    durDrag = { btn, i, target: targets[0], startX: e.clientX, startY: e.clientY, pointerId: e.pointerId,
       base: editorDurationSource(targets[0]), moved: false, cur: null };
   }, true);
 
@@ -136,6 +156,7 @@
       if (Math.abs(dy) > Math.abs(dx)) { durDrag = null; return; } // 縦スクロール優先
       durDrag.moved = true;
       durDrag.btn.classList.add("sliding");
+      beginValueSlide(durDrag.btn, durDrag.pointerId); // 合わせている間は縦へ動かせなくする
     }
     durDrag.cur = Math.min(600, Math.max(0, Math.round((durDrag.base + dx * 0.05) * 10) / 10));
     // 値を実際に入れてからラベルを作り直す。表示の作り方を二重に持つと、
@@ -146,13 +167,18 @@
     durDrag.btn.textContent = editorDurationLabel(s, routineFeatureEnabled(rt, "showSlots", draft.featureSettings));
   });
 
-  document.addEventListener("pointerup", () => {
+  // 中断(pointercancel)でも必ず後始末する。欠くと拡大表示が出たまま固まる。
+  function endDurDrag(commit) {
     if (!durDrag) return;
     const d = durDrag; durDrag = null;
     d.btn.classList.remove("sliding");
-    if (!d.moved || d.cur == null) return;
+    if (!d.moved) return;
+    endValueSlide(d.btn, d.pointerId);
+    if (d.cur == null) return;
     swipeSuppressClick = true; // 指を離した拍子にシートが開かないようにする
     setTimeout(() => { swipeSuppressClick = false; }, 80);
     render();
-  });
+  }
+  document.addEventListener("pointerup", () => endDurDrag(true));
+  document.addEventListener("pointercancel", () => endDurDrag(false), true);
 })();

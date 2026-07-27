@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v249"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v250"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2838,7 +2838,7 @@ document.addEventListener("pointerdown", (e) => {
   if (!inp || view.name !== "edit" || !draft) return;
   const i = Number(inp.dataset.i);
   if (draft.steps[i] && draft.steps[i].cueLocked) return;
-  cueDrag = { inp, i, startX: e.clientX, startY: e.clientY,
+  cueDrag = { inp, i, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId,
     base: draft.steps[i] && draft.steps[i].cue != null ? draft.steps[i].cue : 0, moved: false, cur: null };
 }, true);
 document.addEventListener("pointermove", (e) => {
@@ -2850,20 +2850,27 @@ document.addEventListener("pointermove", (e) => {
     cueDrag.moved = true;
     cueDrag.inp.blur(); // ドラッグ中はキーボードを出さない
     cueDrag.inp.classList.add("sliding"); // 指で隠れないよう、この間だけ数字を大きくする
+    beginValueSlide(cueDrag.inp, cueDrag.pointerId); // 合わせている間は縦へ動かせなくする
   }
   cueDrag.cur = Math.max(0, round1(cueDrag.base + dx * 0.05));
   cueDrag.inp.value = fmtCue(cueDrag.cur);
 });
-document.addEventListener("pointerup", () => {
+// 指を離したときだけでなく、途中で中断された場合(pointercancel)も必ず後始末する。
+// これを欠くと、拡大表示が出たまま固まる。
+function endCueDrag(commit) {
   if (!cueDrag) return;
   const d = cueDrag; cueDrag = null;
   d.inp.classList.remove("sliding");
-  if (!d.moved || d.cur == null || !draft || !draft.steps[d.i]) return;
+  if (!d.moved) return;
+  endValueSlide(d.inp, d.pointerId);
+  if (!commit || d.cur == null || !draft || !draft.steps[d.i]) return;
   draft.steps[d.i].cue = d.cur;
   swipeSuppressClick = true;
   setTimeout(() => { swipeSuppressClick = false; }, 80);
   render();
-});
+}
+document.addEventListener("pointerup", () => endCueDrag(true));
+document.addEventListener("pointercancel", () => endCueDrag(false), true);
 
 let stepDrag = null;
 function applyDragShift(d) {

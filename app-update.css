@@ -207,3 +207,16 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
 .dur-row input { flex: 1; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .dur-row .dur-unit { flex: 0 0 auto; color: var(--muted, #6b675c); }
 .sheet-note { font-size: 12.5px; line-height: 1.6; color: var(--muted, #6b675c); margin: 4px 0 14px; }
+
+/* ===== 値を横スライドで合わせている間 ===== */
+/* 少しでも縦に動くとブラウザがスクロールを始め、こちらへ pointercancel が飛んで
+   後始末が走らず固まっていた。合わせている間は縦の操作そのものを止める。
+   実際に止めているのは editor-time.js の touchmove。ここは補助 */
+body.value-sliding { touch-action: none; overscroll-behavior: none; }
+
+/* ===== ピンチでの拡大を止める ===== */
+/* 練習中は片手で操作するので、意図しない拡大が起きると立て直しに手間がかかる。
+   iOSは viewport の user-scalable=no を無視することがあるため、
+   ダブルタップ拡大はここで、ピンチは gesturestart の抑止で止める */
+html.no-pinch { touch-action: pan-x pan-y; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

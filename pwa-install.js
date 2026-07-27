@@ -154,6 +154,19 @@
     renderInstallHint();
   });
 
+  // ---------- ホーム画面から開いたときはピンチ拡大を止める ----------
+  // 練習中は片手で操作するため、意図しない拡大が起きると立て直しに手間がかかる。
+  // ただしブラウザのタブで開いている人の拡大までは奪わない。文字を大きくして
+  // 読みたい人がいるので、アプリとして開いた場合だけに絞る。
+  // (viewportの user-scalable=no は使わない。iOSは無視することがあるうえ、
+  //  ブラウザで開いた場合まで一律に拡大を禁じてしまうため)
+  if (isInstalled()) {
+    for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+      document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+    }
+    document.documentElement.classList.add("no-pinch");
+  }
+
   // render() から呼んでもらう口が無いので、画面が差し替わったら埋める。
   // #app の直下だけを見る(subtreeまで見ると自分の書き換えで再発火し、無限ループになる)。
   const appEl = document.getElementById("app");
