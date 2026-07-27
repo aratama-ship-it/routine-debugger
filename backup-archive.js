@@ -638,6 +638,31 @@ window.applyAppUpdate = () => {
   location.reload();
 };
 
+// ========== 起動時に「データの保護」を自動で申請する ==========
+// 設定画面まで辿り着かない利用者のデータが、容量不足でブラウザに消されるのを防ぐ。
+// persist() は断られても false が返るだけで、何も壊れない。
+// ただし無条件には申請しない。ブラウザによっては確認ダイアログが出るため、
+// 「まだ何も作っていない人」に尋ねても意味が伝わらない。守るものができてから申請する。
+const PERSIST_TRY_KEY = "rd_persist_try";
+async function autoRequestPersist() {
+  const s = navigator.storage;
+  if (!s || !s.persist || !s.persisted) return;
+  try {
+    if (await s.persisted()) return; // すでに保護済み
+    // state はこの時点で読み込み済みのはず。未了なら hasData が false になり、次回起動でやり直す
+    const st = typeof state === "object" && state ? state : null;
+    const hasData = !!st && ((st.routines || []).length > 0 || (st.sessions || []).length > 0);
+    if (!hasData) return;
+    // 断られた直後に何度も申請しない(1日1回まで)。使い込むと通るブラウザがあるので諦めはしない
+    const last = Number(localStorage.getItem(PERSIST_TRY_KEY) || 0);
+    if (last && Date.now() - last < 86400000) return;
+    localStorage.setItem(PERSIST_TRY_KEY, String(Date.now()));
+    await s.persist(); // 成否は問わない。結果は設定画面の「データの保護」に出る
+  } catch (_) {}
+}
+// 起動直後は loadState() と描画で忙しいので、落ち着いてから申請する
+setTimeout(autoRequestPersist, 12000);
+
 function watchForAppUpdate() {
   if (!("serviceWorker" in navigator) || !location.protocol.startsWith("http")) return;
   navigator.serviceWorker.getRegistration().then((reg) => {

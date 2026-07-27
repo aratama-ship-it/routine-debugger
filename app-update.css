@@ -67,3 +67,53 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
 .home-account-chip.out:active { background: var(--card3); }
 .home-account-chip.out .hac-dot { background: var(--muted2); }
 .home-account-chip.out .hac-name { color: var(--accent); }
+
+/* ===== ホーム: ホーム画面への追加をすすめる案内 ===== */
+/* 本題(ルーティン一覧)より前に置くが、主役を食わないよう紙に貼った付箋くらいの重さに留める */
+.home-install {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule, #c9c2ae);
+  border-left: 4px solid var(--accent, #a75c24);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent, #a75c24) 5%, var(--paper, #f8f4e9));
+}
+.home-install .hi-body { flex: 1 1 220px; min-width: 0; }
+.home-install .hi-body small {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--accent, #a75c24);
+  margin-bottom: 2px;
+}
+.home-install .hi-body b { display: block; font-size: 14px; line-height: 1.4; }
+.home-install .hi-body span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft, #5b5f66);
+}
+.home-install .hi-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.home-install .hi-actions .btn { margin: 0; white-space: nowrap; }
+.home-install .hi-actions .btn { padding: 7px 12px; font-size: 13px; }
+/* 「あとで」は主役ではないので、影も枠も落として文字だけにする */
+.home-install .btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+  opacity: .7;
+}
+
+/* 手順 */
+.install-steps { margin: 0 0 14px; }
+.install-steps > b { display: block; margin-bottom: 6px; }
+.install-steps > .muted { font-size: 12.5px; line-height: 1.6; margin: 0 0 4px; }
+.install-steps ol { margin: 8px 0 0; padding-left: 1.3em; font-size: 14px; }
+.install-steps li { margin-bottom: 10px; line-height: 1.65; }
+.install-steps li b { color: var(--accent, #a75c24); }
