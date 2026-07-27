@@ -70,24 +70,42 @@
 
 <p class="meta">動画のクラウド保存は、ベータ版のあとの段階で対応する予定です。</p>
 
-<h2>2. データが消えるのはどんなときか</h2>
+<h2>2. ログインしない場合のリスク</h2>
 
-<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:15px">
+<div class="card warn">
+  <b>非ログイン状態では、データが失われる可能性が高くなります。</b>
+  <p style="margin:8px 0 0">作ったものの控えが、このブラウザの中にしか無いためです。
+  下のどれか一つが起きただけで、組んだ構成も練習の記録も戻せなくなります。</p>
+</div>
+
+<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px">
   <tr>
-    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink)">起きること</th>
-    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink);width:34%">防げるか</th>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink)">起きること</th>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink);width:26%;white-space:nowrap">非ログイン</th>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink);width:30%;white-space:nowrap">ログイン中</th>
   </tr>
-  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">ブラウザの「履歴とWebサイトデータを消去」を実行した</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">防げません</td></tr>
-  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">端末の空き容量が減り、ブラウザが自動で消した</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">「データの保護」で防げます</td></tr>
-  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">iPhoneで長期間ひらかず、保存データが消えた</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">ホーム画面に追加すれば、ほぼ防げます</td></tr>
-  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">プライベートブラウズで使っていた</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">タブを閉じると消えます</td></tr>
-  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">端末を失くした・壊れた・機種変更した</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">ログインなら構成と記録は戻ります<br>映像はバックアップが必要です</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">ブラウザの「履歴とWebサイトデータを消去」を実行した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">すべて失われます</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">構成と記録は戻ります</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">端末の空き容量が減り、ブラウザが自動で消した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">すべて失われます</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">構成と記録は戻ります</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">iPhoneで長期間ひらかず、保存データが消えた</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">すべて失われます</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">構成と記録は戻ります</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">プライベートブラウズで使っていた</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">タブを閉じると<br>消えます</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">構成と記録は戻ります</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">端末を失くした・壊れた・機種変更した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">すべて失われます</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">構成と記録は戻ります</td></tr>
 </table>
+
+<p>ログインしておけば、少なくとも<b>構成と練習の記録</b>は別のデバイスから戻せます。
+ただし<b>動画・音源はログインしていても戻りません</b>。そこまで守るには完全バックアップZIPが必要です。</p>
+
+<p class="meta">なお、2番目は自動で有効になる「データの保護」で起きにくくなります。
+3番目はホーム画面に追加しておけば、ほぼ避けられます。</p>
 
 <h2>3. 完全バックアップの取り方</h2>
 
