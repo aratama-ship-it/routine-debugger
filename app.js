@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v246"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v247"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1748,7 +1748,7 @@ const INFO = {
   editorFeatures: { t: "ルーティンで使う機能", b: "人によっては使わない機能を、初期状態では隠しています。<br><br><b>リスク度</b> = 各技に危険度(1〜5)を付けて、分析で失敗率とのズレを見る機能。<br><b>A/B分岐</b> = 本番でどちらの技をやるか選べるステップを作る機能。<br><br>ルーティン画面右上の<b>個別</b>から、そのルーティンだけ切り替えられます。OFFにしても、設定済みのデータは消えません。" },
   videoQuality: { t: "技の動画の画質", b: "技の動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。" },
   fullBackup: { t: "完全バックアップ(ZIP)", b: "<b>ログイン中に復元すると、その内容が他の端末にも同期されます</b>(バックアップに無いものは他の端末からも消えます)。この端末だけに戻したいときは、先にログアウトしてください。<br><br>ルーティン・記録・設定に加えて、<b>技の動画・通し映像・音源・録音までまとめて1つのZIPファイル</b>に書き出します。機種変更や、端末のデータが消えたときの復旧はこちらを使ってください。<br><br>ZIPの中には各ファイルの照合値(SHA-256)を記録しているので、復元時に壊れていないか自動で検証します。1件でも壊れていれば復元を中止し、いまのデータは変更しません。<br><br><b>ZIPを検証する</b>は、復元せずに中身が無事かどうかだけを確かめます。バックアップが本当に使えるか、ときどき確認してください。<br><br>動画を含むためファイルは大きくなります。書き出したZIPは、iCloudやPCなど<b>この端末の外</b>に保存してください。" },
-  backup: { t: "軽量バックアップ(記録のみ)", b: "ルーティン・練習記録・設定だけをJSONで書き出します。<b>動画・音源・録音は含まれません</b>。<br><br>ファイルが小さく手軽ですが、これだけでは動画は戻せません。動画も残すなら「完全バックアップ(ZIP)」を使ってください。<br><br>CSVエクスポートは、記録を表計算ソフトで分析したいとき用です(復元には使えません)。" },
+  csv: { t: "記録の書き出し(表計算用)", b: "練習の記録をCSVで書き出します。表計算ソフトで自分なりに集計したいとき用です。<br><br><b>これはバックアップではありません。</b>CSVからアプリへ戻すことはできません。残しておきたい場合は「完全バックアップ(ZIP)」を使ってください。" },
   feedback: { t: "ご意見・機能の要望", b: "「こんな機能がほしい」「ここが使いにくい」などを開発者に直接送れます。いただいた要望は今後の改善に使わせてもらいます。" },
   reset: { t: "初期化", b: "まっさらな状態から試し直したいとき・サンプル一式を入れ直したいときに。ルーティン・記録・技と通しの動画・録音・楽曲・設定がすべて消えます(元に戻せません)。" },
 };
@@ -1758,7 +1758,7 @@ const INFO_EN = {
   editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
   videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
   fullBackup: { t: "Full backup (ZIP)", b: "Exports everything — routines, records, settings, <b>plus sequence videos, run videos, audio, and recordings</b> — as a single ZIP file. Use this when changing devices or recovering lost data.<br><br>The ZIP stores a SHA-256 checksum for every file, so a restore verifies the contents automatically. If even one file is damaged, the restore stops and your current data is left untouched.<br><br><b>Verify a ZIP</b> checks the contents without restoring. Check your backups this way from time to time.<br><br>Files are large because video is included. Store the exported ZIP <b>off this device</b>, for example in iCloud or on a computer." },
-  backup: { t: "Light backup (records only)", b: "Exports routines, practice records, and settings as JSON. <b>Videos, audio, and recordings are not included</b>.<br><br>The file is small and convenient, but it cannot restore your videos. Use Full backup (ZIP) to keep those.<br><br>CSV export is for analysing records in a spreadsheet; it cannot be used to restore." },
+  csv: { t: "Export records (for spreadsheets)", b: "Exports your practice records as CSV, for your own analysis in a spreadsheet.<br><br><b>This is not a backup.</b> CSV cannot be loaded back into the app. Use Full backup (ZIP) to keep your data." },
   feedback: { t: "Feedback and requests", b: "Send feature requests or usability feedback directly to the developer." },
   reset: { t: "Reset", b: "Deletes all routines, practice records, sequence videos, recordings, audio, and settings on this device. This cannot be undone." },
 };
@@ -6173,11 +6173,8 @@ function renderSettings() {
       <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button>
     </div>
     <div class="card">
-      <h2>軽量バックアップ(記録のみ)${infoBtn("backup")}</h2>
-      <button class="btn" onclick="exportJson()">JSONバックアップを書き出す</button>
-      <button class="btn" onclick="document.getElementById('import-file').click()">JSONから復元する</button>
-      <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJson(this)">
-      <button class="btn ghost" onclick="exportCsv()">CSVエクスポート(表計算用)</button>
+      <h2>記録の書き出し(表計算用)${infoBtn("csv")}</h2>
+      <button class="btn ghost" onclick="exportCsv()">CSVエクスポート</button>
     </div>
     <div class="card">
       <h2>ご意見・機能の要望${infoBtn("feedback")}</h2>
@@ -6331,11 +6328,6 @@ function download(filename, text, mime) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-window.exportJson = () => {
-  download(`routine-debugger-backup-${today()}.json`, JSON.stringify(state, null, 2), "application/json");
-  toast("JSONを書き出しました");
-};
-
 function validBackupId(value) {
   return typeof value === "string" && /^[A-Za-z0-9:_-]{1,100}$/.test(value);
 }
@@ -6355,24 +6347,6 @@ function validateBackupShape(data) {
     && sess.runs.every((run) => (!run.id || validBackupId(run.id)) && Array.isArray(run.events)));
   return routinesOk && sessionsOk;
 }
-window.importJson = (input) => {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 20 * 1024 * 1024) { input.value = ""; return toast("20MB以下のバックアップを選んでください"); }
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (!validateBackupShape(data)) throw new Error("bad format");
-      if (!appConfirm("現在のデータをバックアップの内容で置き換えます。よいですか?")) return;
-      state = data;
-      migrateState();
-      saveState(); render(); toast("復元しました");
-    } catch (_) { toast("読み込めませんでした(形式が違います)"); }
-  };
-  reader.readAsText(file);
-  input.value = "";
-};
 window.exportCsv = () => {
   const rows = [["date", "routine", "version", "feeling", "session_note", "run_no", "outcome", "reached_step", "excluded", "run_choices", "step_no", "step_name", "step_risk", "event_type", "hypothesis_tags", "event_note", "music_time_sec", "rec_time_sec", "video_time_sec"]];
   const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
