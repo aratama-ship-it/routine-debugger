@@ -4,3 +4,7 @@ HANDOFF_CODEX.md
 
 # iCloudの同期競合コピー(「app 2.js」等)は追跡しない
 * [0-9].*
+
+# アイコン制作の作業物(検討案・旧アイコンの退避)。配信には不要なのでローカルのみ
+icons/candidates/
+icons/_old/
