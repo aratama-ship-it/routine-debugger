@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"),
+const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -117,17 +117,20 @@ if (!/\["練習", "Run"\]/.test(i18n)
     || !/routine-quick-note-label">簡易メモ <span aria-hidden="true">✎<\/span>/.test(app)) {
   failures.push("英語のRun・Sequence表記、またはQuick memoの編集マークが揃っていません");
 }
-// 長さはシーケンス名の右側に置き、名前と重なるときだけ隠す。
-// v248から表示専用ではなく、押すと長さを変えられるボタンになっている
-// (動画を紐づけていない技・移行の長さを変える手段が他に無いため)。
-if (!/<div class="es-name-field">[\s\S]*?<button type="button" class="es-duration" onclick="sheetStepDuration\(\$\{i\}\)"[\s\S]*?>\$\{editorDurationLabel\(s, showSlots\)\}<\/button>/.test(app)
+// 長さはシーケンス名の右側に置く。v248から表示専用ではなく、押すと変更でき、
+// 横スライドでも変えられる操作になっている(動画を紐づけていない技・移行の
+// 長さを変える手段が他に無いため)。
+// v249から、名前が長くても隠さない。隠すと操作そのものへ辿り着けなくなる。
+if (!/<div class="es-name-field">[\s\S]*?<button type="button" class="es-duration" onclick="sheetStepDuration\(\$\{i\}\)" data-i="\$\{i\}"[\s\S]*?>\$\{editorDurationLabel\(s, showSlots\)\}<\/button>/.test(app)
     || !/oninput="\$\{nameOninput\};updateEditorSequenceDuration\(this\)"/.test(app)
     || !/function updateEditorSequenceDuration\(input\)/.test(app)
-    || !/context\.measureText\(label\)\.width/.test(app)
-    || !/nameWidth \+ durationWidth \+ 18 <= available/.test(app)
+    || !/field\.classList\.add\("duration-visible"\)/.test(app)
+    || /classList\.toggle\("duration-visible"/.test(app)
     || !/\.es-name-field\.duration-visible input\[type=text\]/.test(css)
-    || !/\.es-name-field\.duration-visible \.es-duration/.test(css)) {
-  failures.push("編集行の長さが、シーケンス名右側に出て重なる場合だけ隠れ、押すと変更できる仕様ではありません");
+    || !/\.es-name-field\.duration-visible \.es-duration/.test(css)
+    || !/button\.es-duration\.sliding/.test(updateCss)
+    || !/window\.sheetStepDuration/.test(editorTime)) {
+  failures.push("編集行の長さが、シーケンス名右側に常に出て、押す・横スライドで変更できる仕様ではありません");
 }
 if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
     || !/function cueIntervalAt\(index\)[\s\S]*?nextCue - currentCue - duration/.test(app)

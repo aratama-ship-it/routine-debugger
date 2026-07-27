@@ -153,7 +153,8 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
 /* 指が数字に重なって読めなかった。この間だけ持ち上げて大きく見せる。
    transform なので周りのレイアウトは動かない(行が揺れると狙いが定まらない) */
 .editor-step .cue-input.sliding {
-  transform: scale(1.9);
+  /* その場で拡大すると指の下に入る。行の上へ持ち上げてから拡大する */
+  transform: translateY(-78px) scale(1.9);
   transform-origin: left center;
   position: relative;
   z-index: 40;
@@ -178,6 +179,21 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
   text-underline-offset: 2px;
 }
 .editor-step button.es-duration:hover { color: var(--accent, #a75c24); }
+/* 長さも横スライドで変えられる。縦スクロールは通す */
+.editor-step button.es-duration { touch-action: pan-y; }
+/* スライド中。曲位置と同じく、指の上へ持ち上げて大きく見せる。
+   右端に置かれているので、左へ広がるよう起点を右にする(画面外へ出さない) */
+.editor-step button.es-duration.sliding {
+  transform: translateY(-78px) scale(2.6);
+  transform-origin: right center;
+  z-index: 40;
+  color: var(--accent, #a75c24);
+  text-decoration: none;
+  background: var(--card2, #f4efe2);
+  border-radius: 4px;
+  padding: 5px 7px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
 
 /* 長さを変えるシート */
 .dur-rows { margin: 6px 0 4px; }

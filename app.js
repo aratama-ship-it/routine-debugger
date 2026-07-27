@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v248"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v249"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2490,24 +2490,17 @@ function editorDurationLabel(s, showSlots) {
   }
   return `${prefix} ${editorDurationSource(s).toFixed(1)}${suffix}`;
 }
-let editorSequenceMeasureCanvas = null;
+// 長さは「押す・横スライドで変える」操作なので、名前が長くても隠さない。
+// (以前は名前と重なるときだけ隠していたが、それだと「5ボールカスケード」程度の
+//  シーケンス名でスマホでは消えてしまい、長さを変える手段そのものが無くなる)
+// 名前欄には常に長さの分の余白を空け、名前はその手前までを表示する。
 function updateEditorSequenceDuration(input) {
   const field = input && input.closest ? input.closest(".es-name-field") : null;
   const duration = field && field.querySelector(".es-duration");
   if (!field || !duration || !input.clientWidth) return;
-  if (!editorSequenceMeasureCanvas) editorSequenceMeasureCanvas = document.createElement("canvas");
-  const context = editorSequenceMeasureCanvas.getContext("2d");
-  if (!context) return;
-  const style = getComputedStyle(input);
-  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-  const label = input.value || input.placeholder || "";
-  const nameWidth = context.measureText(label).width;
   const durationWidth = duration.getBoundingClientRect().width;
-  const leftPadding = parseFloat(style.paddingLeft) || 0;
-  const available = input.clientWidth - leftPadding - 12;
-  const visible = nameWidth + durationWidth + 18 <= available;
   field.style.setProperty("--es-duration-width", `${Math.ceil(durationWidth)}px`);
-  field.classList.toggle("duration-visible", visible);
+  field.classList.add("duration-visible");
 }
 function syncEditorSequenceDurations() {
   document.querySelectorAll(".es-name-field input[type=text]").forEach(updateEditorSequenceDuration);
@@ -2627,7 +2620,7 @@ function renderEdit() {
         <div class="es-name-field">
           <input type="text" value="${esc(nameVal)}" placeholder="${namePh}"
             oninput="${nameOninput};updateEditorSequenceDuration(this)">
-          <button type="button" class="es-duration" onclick="sheetStepDuration(${i})"
+          <button type="button" class="es-duration" onclick="sheetStepDuration(${i})" data-i="${i}"
             aria-label="長さを変える">${editorDurationLabel(s, showSlots)}</button>
         </div>
         <button class="mini-btn del es-delete-top" onclick="delStep(${i})" aria-label="ステップを削除">✕</button>

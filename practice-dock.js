@@ -28,7 +28,7 @@
     return { ...active, next, gap };
   };
 
-  // 空間のあいだのドック表示。技名も動画も出さず、次に来る技だけを予告する。
+  // 空間のあいだのドック表示。シーケンス名も動画も出さず、次に来る技だけを予告する。
   window.renderPracticeGap = function renderPracticeGap(current, rt) {
     const dock = document.getElementById("practice-now");
     if (!dock) return;
