@@ -148,3 +148,46 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
   cursor: pointer;
 }
 .home-beta-strip button:hover { color: var(--accent, #a75c24); }
+
+/* ===== 編集画面: 曲位置を指でスライドしている間 ===== */
+/* 指が数字に重なって読めなかった。この間だけ持ち上げて大きく見せる。
+   transform なので周りのレイアウトは動かない(行が揺れると狙いが定まらない) */
+.editor-step .cue-input.sliding {
+  transform: scale(1.9);
+  transform-origin: left center;
+  position: relative;
+  z-index: 40;
+  font-weight: 700;
+  background: var(--card2, #f4efe2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22), inset 3px 0 0 var(--sheet-tab-rust, #a75c24);
+  /* transitionは付けない。指の動きに一拍遅れると、狙った値で止めにくくなる */
+}
+
+/* ===== 編集画面: 長さ(押すと変えられる) ===== */
+/* もとは表示だけの小さなラベルだった。押せることが分かるよう下線を引き、
+   9pxのままでは指が届かないので、見た目を変えずに当たり判定だけ広げる */
+.editor-step button.es-duration {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  padding: 7px 2px 7px 8px;
+  font-size: 10px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.editor-step button.es-duration:hover { color: var(--accent, #a75c24); }
+
+/* 長さを変えるシート */
+.dur-rows { margin: 6px 0 4px; }
+.dur-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+.dur-row > span:first-child { flex: 0 0 62px; font-weight: 650; }
+.dur-row input { flex: 1; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.dur-row .dur-unit { flex: 0 0 auto; color: var(--muted, #6b675c); }
+.sheet-note { font-size: 12.5px; line-height: 1.6; color: var(--muted, #6b675c); margin: 4px 0 14px; }

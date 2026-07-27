@@ -117,14 +117,17 @@ if (!/\["練習", "Run"\]/.test(i18n)
     || !/routine-quick-note-label">簡易メモ <span aria-hidden="true">✎<\/span>/.test(app)) {
   failures.push("英語のRun・Sequence表記、またはQuick memoの編集マークが揃っていません");
 }
-if (!/<div class="es-name-field">[\s\S]*?<span class="es-duration">\$\{editorDurationLabel\(s, showSlots\)\}<\/span>/.test(app)
+// 長さはシーケンス名の右側に置き、名前と重なるときだけ隠す。
+// v248から表示専用ではなく、押すと長さを変えられるボタンになっている
+// (動画を紐づけていない技・移行の長さを変える手段が他に無いため)。
+if (!/<div class="es-name-field">[\s\S]*?<button type="button" class="es-duration" onclick="sheetStepDuration\(\$\{i\}\)"[\s\S]*?>\$\{editorDurationLabel\(s, showSlots\)\}<\/button>/.test(app)
     || !/oninput="\$\{nameOninput\};updateEditorSequenceDuration\(this\)"/.test(app)
     || !/function updateEditorSequenceDuration\(input\)/.test(app)
     || !/context\.measureText\(label\)\.width/.test(app)
     || !/nameWidth \+ durationWidth \+ 18 <= available/.test(app)
     || !/\.es-name-field\.duration-visible input\[type=text\]/.test(css)
     || !/\.es-name-field\.duration-visible \.es-duration/.test(css)) {
-  failures.push("編集行の長さがシーケンス名右側に表示され、重なる場合だけ隠れる仕様ではありません");
+  failures.push("編集行の長さが、シーケンス名右側に出て重なる場合だけ隠れ、押すと変更できる仕様ではありません");
 }
 if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
     || !/function cueIntervalAt\(index\)[\s\S]*?nextCue - currentCue - duration/.test(app)

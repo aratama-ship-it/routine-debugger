@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v247"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v248"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2627,7 +2627,8 @@ function renderEdit() {
         <div class="es-name-field">
           <input type="text" value="${esc(nameVal)}" placeholder="${namePh}"
             oninput="${nameOninput};updateEditorSequenceDuration(this)">
-          <span class="es-duration">${editorDurationLabel(s, showSlots)}</span>
+          <button type="button" class="es-duration" onclick="sheetStepDuration(${i})"
+            aria-label="長さを変える">${editorDurationLabel(s, showSlots)}</button>
         </div>
         <button class="mini-btn del es-delete-top" onclick="delStep(${i})" aria-label="ステップを削除">✕</button>
       </div>
@@ -2636,6 +2637,7 @@ function renderEdit() {
           <div class="es-time-stack">
             <input type="text" class="cue-input ${s.cueLocked ? "locked" : ""}" inputmode="numeric" data-i="${i}"
               value="${s.cue != null ? fmtCue(s.cue) : ""}" placeholder="♪秒" onchange="setCue(${i},this.value)"
+              onfocus="this.select()" oninput="cueDigits(this)"
               ${s.cueLocked ? `readonly aria-label="ポジションロック中の曲位置" title="ピンを外すと曲位置を変更できます"` : `aria-label="曲位置"`}>
           </div>
           <span class="cue-position-actions">
@@ -2854,6 +2856,7 @@ document.addEventListener("pointermove", (e) => {
     if (Math.abs(dy) > Math.abs(dx)) { cueDrag = null; return; } // 縦スクロール優先
     cueDrag.moved = true;
     cueDrag.inp.blur(); // ドラッグ中はキーボードを出さない
+    cueDrag.inp.classList.add("sliding"); // 指で隠れないよう、この間だけ数字を大きくする
   }
   cueDrag.cur = Math.max(0, round1(cueDrag.base + dx * 0.05));
   cueDrag.inp.value = fmtCue(cueDrag.cur);
@@ -2861,6 +2864,7 @@ document.addEventListener("pointermove", (e) => {
 document.addEventListener("pointerup", () => {
   if (!cueDrag) return;
   const d = cueDrag; cueDrag = null;
+  d.inp.classList.remove("sliding");
   if (!d.moved || d.cur == null || !draft || !draft.steps[d.i]) return;
   draft.steps[d.i].cue = d.cur;
   swipeSuppressClick = true;
