@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v245"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v246"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -715,16 +715,7 @@ function practiceSchedule(steps) {
     return { step, index, start };
   });
 }
-function plannedPracticeStep(steps, cur) {
-  if (!steps.length) return null;
-  const schedule = practiceSchedule(steps);
-  let active = schedule[0];
-  for (const item of schedule) {
-    if (item.start <= cur + 0.02) active = item;
-    else break;
-  }
-  return { ...active, next: schedule[active.index + 1] || null };
-}
+// plannedPracticeStep(現在ステップの判定)と空間表示は practice-dock.js にある
 function practiceStepName(rt, step) {
   if (!isSlot(step)) return stepDisplayName(step) || "名称未設定";
   // A/Bを使わない間は、どの画面の現在技表示でも選択肢Aを通常の技として扱う。
@@ -847,6 +838,7 @@ async function updatePracticeNowUI() {
     editPreviewStepId = current.step.id;
     editPreviewManual = false;
   }
+  if (current.gap) return renderPracticeGap(current, rt);
   const paused = isEdit ? (musicPlayer.paused && !editPreviewManual) : (musicPlayer.paused || musicMissing);
   practiceDockStepId = current.step.id;
   dock.classList.toggle("paused", paused);
@@ -904,7 +896,8 @@ function recordTickUI() {
   const steps = latestVersion(rt).steps;
   const cur = musicCurrentTime();
   const planned = plannedPracticeStep(steps, cur);
-  const ai = (!musicPlayer.paused || cur > 0.05) && planned ? planned.index : -1;
+  // 空間のあいだは、どの行も「いまこの技」にしない
+  const ai = (!musicPlayer.paused || cur > 0.05) && planned && !planned.gap ? planned.index : -1;
   rows.forEach((el, i) => el.classList.toggle("now", i === ai));
   updatePracticeNowUI();
 }
@@ -2129,6 +2122,10 @@ function renderHome() {
             </button>
           </div>
         </footer>
+        <div class="home-beta-strip">
+          <button onclick="openFeedback()">要望・バグ報告を送る</button>
+          <button onclick="openDocPage('backup.html')">データの守り方</button>
+        </div>
       </div>
     </div>`;
 }
@@ -6173,6 +6170,7 @@ function renderSettings() {
       <input type="file" id="zip-import-file" accept=".zip,application/zip" class="hidden" onchange="importFullBackup(this)">
       <button class="btn ghost" onclick="document.getElementById('zip-verify-file').click()">ZIPを検証する(復元しない)</button>
       <input type="file" id="zip-verify-file" accept=".zip,application/zip" class="hidden" onchange="verifyFullBackup(this)">
+      <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button>
     </div>
     <div class="card">
       <h2>軽量バックアップ(記録のみ)${infoBtn("backup")}</h2>

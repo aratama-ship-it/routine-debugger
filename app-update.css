@@ -117,3 +117,34 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
 .install-steps ol { margin: 8px 0 0; padding-left: 1.3em; font-size: 14px; }
 .install-steps li { margin-bottom: 10px; line-height: 1.65; }
 .install-steps li b { color: var(--accent, #a75c24); }
+
+/* 空間(技と技のあいだ)の表示。技が流れていないことが一目で分かるよう、静かに沈める */
+.practice-video-empty.practice-gap {
+  letter-spacing: .3em;
+  opacity: .55;
+}
+
+/* ===== ホーム最下部のベータ用リンク ===== */
+/* ノートの裏表紙に書き添えたメモのように。本題を邪魔せず、しかし探さなくても目に入る位置に */
+.home-beta-strip {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 22px 0 6px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--rule, #c9c2ae);
+}
+.home-beta-strip button {
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-soft, #5b5f66);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--rule, #c9c2ae);
+  cursor: pointer;
+}
+.home-beta-strip button:hover { color: var(--accent, #a75c24); }

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>データの守り方 — ルーティンノート ベータ</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --ok:#3F7A4A; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .lead { font-size:16px; color:var(--ink); }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  h3 { font-size:16px; margin:22px 0 6px; }
+  p, li { font-size:15.5px; }
+  ul, ol { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.strong { border-left:5px solid var(--accent); }
+  .card.warn { border-left:5px solid var(--warn); }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps li { counter-increment:step; position:relative; padding:12px 12px 12px 52px; margin:10px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .steps li::before { content:counter(step); position:absolute; left:14px; top:12px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .steps b { display:block; margin-bottom:2px; }
+  .steps .why { font-size:13.5px; color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    padding:13px 26px; border-radius:8px; font-weight:700; margin:8px 0; }
+  .feature { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--ink);
+    border-radius:10px; padding:13px 17px; margin:12px 0; font-size:15.5px; }
+  /* 見出しだけをブロックにする。li内の<b>まで対象にすると本文が改行されてしまう */
+  .feature > b:first-child { display:block; font-size:16.5px; margin-bottom:6px; }
+  .feature ul { margin:0; padding-left:20px; }
+  .feature li { margin:5px 0; font-size:15px; }
+  a { color:var(--accent); }
+  code { background:#E3DAC2; padding:2px 6px; border-radius:4px; font-size:14px; }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">ROUTINE NOTE — DATA</div>
+  <h1>データの守り方</h1>
+  <p class="lead">組んだ構成も、通しの記録も、撮った映像も、<b>消したくないから作っている</b>ものです。
+  このページは、それがどこに保存されていて、どうすれば失わずに済むかをまとめたものです。</p>
+  <div class="meta">最終更新: 2026年7月27日 ／ ベータ版</div>
+</header>
+
+<div class="card strong">
+  <b>先に結論だけ</b>
+  <p style="margin:8px 0 0">練習の記録がたまってきたら、<b>「設定 → 完全バックアップ → ZIPで書き出す」</b>を実行して、
+  そのファイルをiCloudやパソコンなど<b>端末の外</b>へ置いてください。<br>
+  <b>映像まで含めて丸ごと残せるのは、この方法だけです。</b></p>
+</div>
+
+<h2>1. どこに保存されているか</h2>
+
+<p>ルーティンノートは、あなたが作ったものを<b>お使いの端末のブラウザの中</b>に保存します。
+開発者のサーバーへ勝手に送ることはありません。</p>
+
+<p>ログインすると、そこに<b>同期</b>が加わります。同期されるものとされないものは、はっきり分かれています。</p>
+
+<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:15px">
+  <tr>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink);width:50%">ログインすると同期されるもの</th>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink)">この端末だけに残るもの</th>
+  </tr>
+  <tr>
+    <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">
+      ルーティンの構成（技・移行の並び、キュー、長さ）<br>
+      通しの記録（崩れた場所、日付、メモ）<br>
+      技と音源の見出し情報（名前など）
+    </td>
+    <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">
+      <b>技の動画ファイル</b><br>
+      <b>音源ファイル</b><br>
+      <b>通しの演技映像</b><br>
+      アプリの設定（言語・画質など）
+    </td>
+  </tr>
+</table>
+
+<p>つまり<b>ログインしていても、映像と音源は守られません</b>。ここが誤解されやすいところです。
+映像まで残したい場合は、あとで説明する完全バックアップが必要です。</p>
+
+<p class="meta">映像の同期（クラウド保存）は、ベータ版のあとの段階で対応する予定です。</p>
+
+<h2>2. データが消えるのはどんなときか</h2>
+
+<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:15px">
+  <tr>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink)">起きること</th>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink);width:34%">防げるか</th>
+  </tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">ブラウザの「履歴とWebサイトデータを消去」を実行した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">防げません</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">端末の空き容量が減り、ブラウザが自動で消した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">「データの保護」で防げます</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">iPhoneで長期間ひらかず、保存データが消えた</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">ホーム画面に追加すれば、ほぼ防げます</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">プライベートブラウズで使っていた</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">タブを閉じると消えます</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">端末を失くした・壊れた・機種変更した</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">ログインなら構成と記録は戻ります<br>映像はバックアップが必要です</td></tr>
+</table>
+
+<h2>3. 三重に守る</h2>
+
+<p>ひとつの方法ですべては守れません。役割の違う3つを重ねます。</p>
+
+<ol class="steps">
+  <li><b>データの保護（自動）</b>
+    <span class="why">容量不足でブラウザに勝手に消されないようにする仕組みです。
+    記録ができた時点で<b>アプリが自動で有効にします</b>ので、操作は要りません。
+    状態は「設定 → データ → データの保護」で確認できます。<br>
+    ただし、<b>ご自身でブラウザのデータを消した場合は防げません。</b></span></li>
+  <li><b>ログイン（端末をまたぐ保険）</b>
+    <span class="why">構成と練習の記録が、ログインした端末どうしで同期されます。
+    端末が壊れても、別の端末でログインすれば戻ってきます。<br>
+    <b>映像・音源は同期されません。</b></span></li>
+  <li><b>完全バックアップZIP（唯一の完全な保険）</b>
+    <span class="why">動画・音源・演技映像まで含めて、1つのファイルに書き出します。
+    <b>丸ごと残せるのはこれだけです。</b>書き出したファイルは、必ず端末の外へ置いてください。</span></li>
+</ol>
+
+<h2>4. 完全バックアップの取り方</h2>
+
+<ol class="steps">
+  <li><b>設定 → 完全バックアップ → 「ZIPで書き出す」</b>
+    <span class="why">映像の量によっては数分かかります。画面はそのままにしておいてください。</span></li>
+  <li><b>できたファイルを端末の外へ移す</b>
+    <span class="why">iCloud Drive、Googleドライブ、パソコンなど。
+    同じ端末の中に置いたままでは、端末を失くしたときに一緒に失われます。</span></li>
+  <li><b>「ZIPを検証する（復元しない）」で中身を確かめる</b>
+    <span class="why">書き出したファイルが壊れていないかを、復元せずに調べられます。
+    ファイル1つずつの中身を照合するので、<b>いざというとき本当に戻せるかがここで分かります。</b>
+    取ったつもりのバックアップが壊れていた、という事故を防ぐための手順です。</span></li>
+</ol>
+
+<p>目安として、<b>大きな構成変更のあと</b>と、<b>大事な通しを撮ったあと</b>に取っておくと安心です。</p>
+
+<h2>5. 復元するとき</h2>
+
+<div class="card warn">
+  <b>ログイン中の復元にはご注意ください</b>
+  <p style="margin:8px 0 0">ログインした状態でZIPから復元すると、<b>その内容が他の端末にも同期されます</b>。
+  バックアップに入っていないルーティンや記録は、<b>他の端末からも消えます</b>。<br>
+  この端末だけを戻したいときは、<b>先にログアウトしてから</b>復元してください。</p>
+</div>
+
+<p>復元は「設定 → 完全バックアップ → ZIPから復元する」です。
+復元の前にファイルの中身をすべて照合し、<b>ひとつでも壊れていれば、途中で止めて何も置き換えません</b>。
+中途半端に一部だけ書き換わることはありません。</p>
+
+<h2>6. 軽量バックアップ（JSON）との違い</h2>
+
+<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:15px">
+  <tr>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink);width:34%">　</th>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink)">完全バックアップ（ZIP）</th>
+    <th style="text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink)">軽量バックアップ（JSON）</th>
+  </tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">構成・記録</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">入ります</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">入ります</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)"><b>動画・音源・演技映像</b></td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)"><b>入ります</b></td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)"><b>入りません</b></td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">ファイルの大きさ</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">大きい</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">とても小さい</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line)">向いている用途</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">本命の保険。機種変更</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line)">こまめな控え</td></tr>
+</table>
+
+<h2>7. 機種変更するとき</h2>
+
+<ol>
+  <li>古い端末で<b>完全バックアップZIP</b>を書き出し、端末の外へ置く</li>
+  <li>新しい端末でこのページを開き、<b>ホーム画面に追加</b>する</li>
+  <li>ログインしている場合は、まず<b>ログイン</b>する（構成と記録が戻ります）</li>
+  <li>映像も戻したい場合は、<b>ログアウトしてからZIPを復元</b>し、そのあと改めてログインする</li>
+</ol>
+
+<div class="card">
+  <b>覚えておいてほしいこと</b>
+  <p style="margin:8px 0 0">保存先はブラウザごと・サイトごとに分かれています。
+  別のブラウザで開くと、同じ端末でも中身は空です。<b>いつも同じ入り口から開いてください。</b>
+  ホーム画面に追加しておくと、これを間違えずに済みます。</p>
+</div>
+
+<h2>8. うまくいかないとき</h2>
+
+<ul>
+  <li><b>書き出しが終わらない</b> … 映像が多いと時間がかかります。画面を切り替えずにお待ちください</li>
+  <li><b>復元で「壊れています」と出た</b> … 転送の途中でファイルが欠けた可能性があります。書き出しからやり直してください</li>
+  <li><b>記録が消えていた</b> … <b>これが一番知りたい不具合です。</b>下のボタンからご連絡ください</li>
+</ul>
+
+<p style="margin-top:22px"><a class="btn" href="./">アプリに戻る</a></p>
+
+<footer>
+  <div class="nav">
+    <a href="./">アプリを開く</a>
+    <a href="beta.html">ベータ版ガイド</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+    <a href="terms.html">利用規約</a>
+  </div>
+  <div style="margin-top:12px">© 2026 PYGMIX. 無断複製・再配布を禁じます。</div>
+</footer>
+</div>
+</body>
+</html>
