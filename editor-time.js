@@ -110,6 +110,54 @@
     toast(t("動画の長さに戻しました", "Using the video's length again"));
   };
 
+  // ---------- マイナス区間の直し方を2つ出す ----------
+  // 前のシーケンスが次のキューへ食い込んだとき、直し方は2通りある。
+  //   ・次をずらす(構成の間合いを保ちたいとき)
+  //   ・前を短くする(曲の位置を動かしたくないとき)
+  // どちらが正しいかは本人にしか決められないので、両方を並べて選ばせる。
+  //
+  // app.js が容量上限に近く、警告の組み立てもそちらにあるため、
+  // 描画後にもう1つのボタンを差し込む形にしている。
+  // 押す対象の番号は、既にある「次をずらす」ボタンから読み取る
+  // (この書式は release-check が固定しているので、勝手に変わることはない)。
+  function addShrinkButtons() {
+    if (view.name !== "edit" || !draft) return;
+    for (const box of document.querySelectorAll(".cue-overlap-actions")) {
+      if (box.querySelector(".cue-shrink")) continue;
+      const fit = box.querySelector('button[onclick^="fitCueToPrevious"]');
+      const m = fit && /fitCueToPrevious\((\d+)\)/.exec(fit.getAttribute("onclick") || "");
+      if (!m) continue;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "cue-shrink";
+      b.setAttribute("onclick", `shrinkPreviousToFit(${m[1]})`);
+      b.textContent = t("前のシーケンスを短くしてFIT", "Shorten previous & FIT");
+      box.appendChild(b);
+    }
+  }
+
+  // i は「次」のシーケンスの番号。その手前のシーケンスを、食い込みが消える長さまで縮める。
+  window.shrinkPreviousToFit = (i) => {
+    const next = draft && draft.steps[i];
+    const prev = draft && draft.steps[i - 1];
+    if (!next || !prev) return;
+    const prevCue = Number(prev.cue), nextCue = Number(next.cue);
+    if (!Number.isFinite(prevCue) || !Number.isFinite(nextCue)) {
+      return toast(t("両方のキューを先に決めてください", "Set both cues first"));
+    }
+    const target = Math.round((nextCue - prevCue) * 10) / 10;
+    if (target < 0) {
+      // 前のキューが後ろにある。長さの問題ではないので、縮めても直らない
+      return toast(t("前のシーケンスの方が後ろにあります", "The previous cue comes after this one"));
+    }
+    // A/Bは選択肢ごとに長さを持つ。はみ出しているものだけ縮める
+    const targets = isSlot(prev) ? prev.options : [prev];
+    for (const o of targets) if (editorDurationSource(o) > target) o.dur = target;
+    render();
+    toast(t(`前のシーケンスを ${target.toFixed(1)}秒 にしました`,
+            `Previous sequence set to ${target.toFixed(1)}s`));
+  };
+
   // ---------- スライド中は縦の操作を止める ----------
   // 少しでも縦に動くとブラウザが縦スクロールを始め、こちらへは pointercancel が飛ぶ。
   // 後始末が走らないまま拡大表示が残り、固まったように見えていた。
@@ -181,4 +229,19 @@
   }
   document.addEventListener("pointerup", () => endDurDrag(true));
   document.addEventListener("pointercancel", () => endDurDrag(false), true);
+
+  // 編集画面が描き直されるたび、マイナス区間のボタンを足し直す。
+  // subtree を見るので、自分が足したボタンでも監視が再発火する。
+  // 二重に足さない作りにはしてあるが、まとめて1回で済ませる。
+  const appEl = document.getElementById("app");
+  if (appEl) {
+    let queued = false;
+    const soon = () => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => { queued = false; addShrinkButtons(); }, 0);
+    };
+    new MutationObserver(soon).observe(appEl, { childList: true, subtree: true });
+    addShrinkButtons();
+  }
 })();

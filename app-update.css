@@ -334,3 +334,7 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
   font-size: 15.5px;
 }
 .ap-pick .ap-meta { flex: 0 0 auto; font-size: 12px; color: var(--muted, #6b675c); }
+
+/* マイナス区間の直し方は2通り。並べて選ばせるので、2つ入っても潰れないようにする */
+.cue-overlap-actions { flex-wrap: wrap; }
+.cue-overlap-actions button { flex: 1 1 46%; min-width: 0; }
