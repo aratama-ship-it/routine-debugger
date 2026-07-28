@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v272"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v273"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2613,7 +2613,8 @@ function renderEdit() {
   // 任意機能(初期は非表示。設定でON/OFF)。既に使われているステップは設定OFFでも操作可能にして詰まらせない
   const showRisk = routineFeatureEnabled(rt, "showRisk", draft.featureSettings);
   const showSlots = routineFeatureEnabled(rt, "showSlots", draft.featureSettings);
-  const emptyStepActions = `<div class="row-2" style="margin-top:12px">
+  const emptyStepActions = `<div id="from-run-video"></div>
+    <div class="row-2" style="margin-top:12px">
     <button class="btn small" onclick="sheetAddTrick(0)">＋ シーケンス</button>
     <button class="btn small ghost" onclick="addStep('transition',0)">＋ 移行</button>
   </div>`;
