@@ -86,16 +86,22 @@ if (!/const musicPlayback = window\.RoutineMusicPlayback\.create/.test(app)
 if (!/PART_PLAYBACK_STEP\s*=\s*0\.05/.test(app) || !/partNudgePlaybackRate/.test(app)) {
   failures.push("パート練習の再生速度を0.05倍刻みで調整できません");
 }
+// プレビュー動画は v270 から画面ごと(通し/パート/編集)に切り替える。
+// 旧 showPracticeVideo は、既存ルーティンの設定を引き継ぐための受け皿として残す。
 if (!/showPracticeVideo:\s*true/.test(app)
     || !/rt\.featureSettings\.showPracticeVideo\s*=\s*true/.test(app)
     || !/delete state\.settings\.practicePreviewMode/.test(app)
-    || !/routineSwitchRow\("プレビュー動画",[\s\S]*?"showPracticeVideo"/.test(app)
-    || !/function practicePreviewNameOnly\(\)[\s\S]*?!routineFeatureEnabled\(rt, "showPracticeVideo"\)/.test(app)
+    || !/PREVIEW_KEYS = \{ record: "previewRecord", part: "previewPart", edit: "previewEdit" \}/.test(app)
+    || !/routineSwitchRow\("プレビュー動画\(通し練習\)",[\s\S]*?"previewRecord"/.test(app)
+    || !/routineSwitchRow\("プレビュー動画\(パート練習\)",[\s\S]*?"previewPart"/.test(app)
+    || !/routineSwitchRow\("プレビュー動画\(編集\)",[\s\S]*?"previewEdit"/.test(app)
+    || !/rt\.featureSettings\.previewRecord = was/.test(app)
+    || !/function practicePreviewNameOnly\(\)[\s\S]*?routineFeatureEnabled\(rt, key\)/.test(app)
     || /function practicePreviewModeHtml\(\)|window\.setPracticePreviewMode/.test(app)
     || !/if \(practicePreviewNameOnly\(\)\) return;/.test(app)
     || !/\.practice-now\.name-only/.test(css)
-    || !/\["プレビュー動画", "Preview video"\]/.test(i18n)) {
-  failures.push("通し・パート練習のプレビュー動画が初期ONで、個別設定から切り替えられる仕様ではありません");
+    || !/\["プレビュー動画\(通し練習\)", "Preview video \(Full Run\)"\]/.test(i18n)) {
+  failures.push("プレビュー動画が通し・パート・編集ごとに初期ONで、個別設定から切り替えられる仕様ではありません");
 }
 const renderSettingsSource = app.match(/function renderSettings\(\) \{([\s\S]*?)\n\}\n\nwindow\.setLanguage/);
 if (!renderSettingsSource

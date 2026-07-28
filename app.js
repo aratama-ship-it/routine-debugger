@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v269"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v271"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -193,6 +193,13 @@ function migrateState() {
       routineSettingsChanged = true;
     } else if (!Object.prototype.hasOwnProperty.call(rt.featureSettings, "showPracticeVideo")) {
       rt.featureSettings.showPracticeVideo = true;
+    }
+    // 画面ごとに分ける前の設定を引き継ぐ。編集画面は当時の対象外なので常にONから始める
+    if (rt.featureSettings && !Object.prototype.hasOwnProperty.call(rt.featureSettings, "previewRecord")) {
+      const was = rt.featureSettings.showPracticeVideo !== false;
+      rt.featureSettings.previewRecord = was;
+      rt.featureSettings.previewPart = was;
+      rt.featureSettings.previewEdit = true;
       routineSettingsChanged = true;
     }
     if (rt.music) normalizeMusicMeta(rt.music);
@@ -360,13 +367,16 @@ function defaultRoutineFeatures() {
     showRisk: false,
     showSlots: false,
     showPracticeVideo: true,
+    previewRecord: true,
+    previewPart: true,
+    previewEdit: true,
   };
 }
 
 function routineFeatureEnabled(rt, key, settingsOverride = null) {
   const settings = settingsOverride || (rt && rt.featureSettings);
   if (settings && Object.prototype.hasOwnProperty.call(settings, key)) return !!settings[key];
-  if (key === "showPracticeVideo") return true;
+  if (key === "showPracticeVideo" || key.startsWith("preview")) return true;
   return !!(state.settings && state.settings[key]);
 }
 
@@ -706,10 +716,14 @@ let practiceDockStepId = null;
 let practiceDockGeneration = 0;
 let editPreviewStepId = null;
 let editPreviewManual = false;
+// プレビュー動画の要否は画面ごとに違う(通しでは邪魔、編集では要る等)。
+// 画面ごとの鍵を見る。旧来の showPracticeVideo は移行の受け皿として残す。
+const PREVIEW_KEYS = { record: "previewRecord", part: "previewPart", edit: "previewEdit" };
 function practicePreviewNameOnly() {
-  if (!["record", "part"].includes(view.name)) return false;
+  const key = PREVIEW_KEYS[view.name];
+  if (!key) return false;
   const rt = state.routines.find((routine) => routine.id === view.params.id) || null;
-  return !routineFeatureEnabled(rt, "showPracticeVideo");
+  return !routineFeatureEnabled(rt, key);
 }
 function practiceSchedule(steps) {
   let fallback = 0;
@@ -784,7 +798,8 @@ function editorPreviewPlayerHtml(hasMusic) {
   </div>`;
 }
 function practiceNowDockHtml(editorPlayer = "") {
-  const nameOnly = !editorPlayer && practicePreviewNameOnly();
+  // 編集画面でも設定に従う。楽曲の操作(editorPlayer)は残し、映像枠だけを落とす
+  const nameOnly = practicePreviewNameOnly();
   return `<section class="practice-now paused ${editorPlayer ? "has-editor-player" : ""} ${nameOnly ? "name-only" : ""}" id="practice-now" aria-live="polite" aria-atomic="true">
     <div class="practice-now-copy">
       <strong id="practice-now-name">シーケンスを準備中…</strong>
@@ -1855,7 +1870,9 @@ window.showRoutineMenu = (routineId) => {
       <div class="routine-menu-toggle-list">
         ${routineSwitchRow("リスク度", "事前予想と実際の失敗率を比べる", "showRisk", routineId, settings)}
         ${routineSwitchRow("A/B分岐", "本番で使うシーケンスを選択肢から切り替える", "showSlots", routineId, settings)}
-        ${routineSwitchRow("プレビュー動画", "通し・パート練習で現在のシーケンスの動画を表示する", "showPracticeVideo", routineId, settings)}
+        ${routineSwitchRow("プレビュー動画(通し練習)", isEnglish() ? "During a full run" : "通しの最中に表示する", "previewRecord", routineId, settings)}
+        ${routineSwitchRow("プレビュー動画(パート練習)", isEnglish() ? "While looping a section" : "区間を繰り返す間に表示する", "previewPart", routineId, settings)}
+        ${routineSwitchRow("プレビュー動画(編集)", isEnglish() ? "While editing" : "構成を組む間に表示する", "previewEdit", routineId, settings)}
       </div>
       <div class="routine-menu-note">OFFにしても登録済みの値は消えません</div>
     </section>
@@ -1995,8 +2012,8 @@ function routineCardHtml(rt, context = "list") {
   return `<article class="routine-card ${context === "home" ? "home-routine-card" : ""}">
     <div class="routine-row" data-line-color="${itemLineColor(rt)}">
       ${itemLineColorButtonHtml(rt, "routine")}
-      <button class="routine-delete-open" onclick="showDeleteRoutine('${rt.id}')"
-        aria-label="${esc(deleteLabel)}" title="${esc(deleteLabel)}">✕</button>
+      ${context === "home" ? "" : `<button class="routine-delete-open" onclick="showDeleteRoutine('${rt.id}')"
+        aria-label="${esc(deleteLabel)}" title="${esc(deleteLabel)}">✕</button>`}
       <div class="name"><span data-user-text>${esc(routineName)}</span>
         <span class="meta">${ver.steps.length}ステップ / v${rt.versions.length} / 通し${runCount}本</span></div>
       <div class="actions">
@@ -6227,7 +6244,9 @@ window.toggleRoutineFeature = (routineId, key, val) => {
   } else return;
   render();
   const label = key === "showRisk" ? "リスク度" : key === "showSlots" ? "A/B分岐"
-    : key === "showPracticeVideo" ? "プレビュー動画" : "表示設定";
+    : key === "previewRecord" ? "プレビュー動画(通し練習)"
+    : key === "previewPart" ? "プレビュー動画(パート練習)"
+    : key === "previewEdit" ? "プレビュー動画(編集)" : "表示設定";
   toast(`${label}をこのルーティンで${val ? "ON" : "OFF"}にしました`);
 };
 
