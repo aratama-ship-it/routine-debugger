@@ -1,4 +1,4 @@
-/* ルーティンノート — サンプル素材の自己修復
+/* ルーティンノート — サンプル素材の自己修復と後片付け
  *
  * 見つかった不具合:
  *   サンプル技は「記録(名前・長さ)」と「動画の実体(Blob)」が別々に保存されている。
@@ -10,9 +10,14 @@
  *   一度消えた動画は二度と戻らなかった。
  *
  * 直し方:
- *   実体の有無まで確かめ、欠けていれば記録ごと捨てて取り直す。
- *   その技を指していたステップの紐付けも外す(外さないと貼り直せない)。
+ *   実体の有無まで確かめ、欠けていれば同じ入れ物へ取り直す。
+ *   記録ごと作り直すとIDが変わり、その技を借りていた本人のルーティンの
+ *   紐付けまで切れてしまうため、記録には触らない。
  *   起動時に静かに直すので、利用者は気づかないまま元に戻る。
+ *
+ * もう一つ: サンプル演目を消しても技ライブラリに技9本が残り続けていた。
+ * ひとまとめで入れたものなので、演目を消したら技も一緒に片付ける。
+ * ただし本人のルーティンで使っている技は残す。
  *
  * 手を出す範囲はサンプルだけに限る。本人が自分で消した技まで復活させない。
  * app.js が容量上限に近いため、既存関数を包む形でここに置く。
@@ -20,32 +25,29 @@
 (() => {
   "use strict";
 
-  // 実体が無くなったサンプル技を、記録ごと取り除く。戻り値は取り除いた数。
-  async function dropBrokenSampleTricks() {
+  // 実体が無くなったサンプル技を、元の場所へ取り直す。戻り値は直した数。
+  //
+  // 記録ごと捨てて作り直すと技のIDが変わる。すると、その技を使っていた
+  // 「本人のルーティン」の紐付けまで切れてしまう(サンプルから借りた技はよくある)。
+  // なので記録はそのままに、同じ入れ物へ実体だけ書き戻す。
+  async function refetchBrokenSampleBlobs() {
     const samples = (state.tricks || []).filter((x) => x.sample);
-    if (!samples.length) return 0;
-    const broken = [];
+    if (!samples.length || !location.protocol.startsWith("http")) return 0;
+    let fixed = 0;
     for (const t of samples) {
       let alive = false;
       try { alive = !!(await blobGet(t.blobId)); } catch (_) { alive = false; }
-      if (!alive) broken.push(t);
+      if (alive) continue;
+      // 元ファイルの割り出しは、取得処理(ensureSampleTricks)と同じ名前の照合に合わせる
+      const src = SAMPLE_TRICKS.find((s) => t.name.startsWith(s.n));
+      if (!src) continue;
+      try {
+        const resp = await fetch(src.f);
+        if (!resp.ok) continue;
+        if (await blobPut(t.blobId, await resp.blob())) fixed++;
+      } catch (_) { /* 通信できないだけ。次の起動でまた試す */ }
     }
-    if (!broken.length) return 0;
-
-    const ids = new Set(broken.map((t) => t.id));
-    state.tricks = (state.tricks || []).filter((t) => !ids.has(t.id));
-    // 紐付けを残したままだと、取り直しても貼り直されない(空いている所にしか貼らないため)
-    for (const rt of state.routines || []) {
-      for (const ver of rt.versions || []) {
-        for (const step of ver.steps || []) {
-          if (ids.has(step.trickId)) delete step.trickId;
-          for (const opt of step.options || []) {
-            if (ids.has(opt.trickId)) delete opt.trickId;
-          }
-        }
-      }
-    }
-    return broken.length;
+    return fixed;
   }
 
   // 消えた技を指したままの紐付けを外す。サンプルのルーティンに限る
@@ -66,32 +68,68 @@
     return n;
   }
 
-  // 取り直して貼り直す。通信できなければ何もせず諦める(次の起動でまた試す)。
-  async function refetchAndRelink() {
-    if (!location.protocol.startsWith("http")) return false;
-    try {
-      await ensureSampleTricks();
-    } catch (_) { return false; }
-    for (const rt of (state.routines || []).filter((r) => r.sampleSet)) linkSampleVideos(rt);
-    return true;
-  }
-
   window.repairSampleMedia = async function repairSampleMedia() {
-    const dropped = await dropBrokenSampleTricks();
+    // 取り直すのは「実体だけ失われた」場合に限る。
+    // 技の記録ごと無いのは本人が消したからかもしれず、勝手に戻すと削除の意味がなくなる。
+    const fixed = await refetchBrokenSampleBlobs();
+    // 消えた技を指したままの紐付けは、取り直しとは関係なく外しておく
     const unlinked = dropDanglingSampleLinks();
-    if (!dropped && !unlinked) return { repaired: 0 };
-    await refetchAndRelink();
+    if (!fixed && !unlinked) return { repaired: 0 };
     saveState();
     if (view.name === "home" || view.name === "tricks") render();
-    return { repaired: dropped + unlinked };
+    return { repaired: fixed + unlinked };
   };
+
+  // ---------- サンプル演目を消したら、技も一緒に片付ける ----------
+  // サンプルは「演目+技9本」をひとまとめで入れている。演目だけ消えて技が残ると、
+  // 片付けたつもりの人の技ライブラリにサンプルが居座り続ける。
+  // ただし本人のルーティンで使っている技は残す(消すと本人の構成が壊れる)。
+  async function removeUnusedSampleTricks() {
+    if ((state.routines || []).some((r) => r.sampleSet)) return 0; // 別のサンプル演目がまだある
+    const used = new Set();
+    for (const rt of state.routines || []) {
+      for (const ver of rt.versions || []) {
+        for (const step of ver.steps || []) {
+          if (step.trickId) used.add(step.trickId);
+          for (const opt of step.options || []) if (opt.trickId) used.add(opt.trickId);
+        }
+      }
+    }
+    const doomed = (state.tricks || []).filter((t) => t.sample && !used.has(t.id));
+    if (!doomed.length) return 0;
+    const ids = new Set(doomed.map((t) => t.id));
+    state.tricks = (state.tricks || []).filter((t) => !ids.has(t.id));
+    for (const t of doomed) {
+      if (!(state.tricks || []).some((x) => x.blobId === t.blobId)) await blobDel(t.blobId);
+    }
+    saveState(); render();
+    return doomed.length;
+  }
+  window.removeUnusedSampleTricks = removeUnusedSampleTricks;
+
+  if (typeof window.performRoutineDelete === "function") {
+    const originalDelete = window.performRoutineDelete;
+    window.performRoutineDelete = async function wrappedPerformRoutineDelete(id) {
+      const target = (state.routines || []).find((r) => r.id === id);
+      const wasSample = !!(target && target.sampleSet);
+      const out = await originalDelete.apply(this, arguments);
+      if (!wasSample) return out;
+      const n = await removeUnusedSampleTricks();
+      if (n) {
+        toast(isEnglish()
+          ? `Sample removed (${n} sample sequences too)`
+          : `サンプルを削除しました(技${n}本も一緒に片付けました)`);
+      }
+      return out;
+    };
+  }
 
   // 「サンプルを読み込む」を押したときも、まず壊れている分を捨ててから通す。
   // これが無いと『既にあります』で終わり、利用者に打つ手が無くなる。
   if (typeof window.loadSampleSet === "function") {
     const original = window.loadSampleSet;
     window.loadSampleSet = async function wrappedLoadSampleSet() {
-      await dropBrokenSampleTricks();
+      await refetchBrokenSampleBlobs();
       dropDanglingSampleLinks();
       return original.apply(this, arguments);
     };
