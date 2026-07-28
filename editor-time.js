@@ -1,4 +1,4 @@
-/* ルーティンノート — 編集画面の時間まわり
+/* ルーティンノート — 編集画面まわり(時間の入力・区間の調整・離脱の確認)
  *
  * 1) 曲位置の数字入力
  *    スマホでは inputmode=numeric のキーボードに「:」も「.」も無く、
@@ -108,6 +108,74 @@
     for (const o of durationTargets(i)) delete o.dur;
     hideSheet(); render();
     toast(t("動画の長さに戻しました", "Using the video's length again"));
+  };
+
+
+  // ---------- 戻るときに、保存するかを確かめる ----------
+  // 編集して「戻る」を押すと、確認なしに全部消えていた。
+  // 組み立てに時間をかけた直後ほど失いやすく、取り返しがつかない。
+  //
+  // 何も変えていなければ黙って戻る。毎回聞かれると、確認そのものが読まれなくなる。
+  let baseSig = null;
+  let baseDraft = null;
+
+  // 楽曲は、音声の読み込みが終わった時点で長さ(duration/fullDuration/trimEnd)が
+  // 自動で書き込まれる。これは本人の編集ではないので、印に含めてはいけない。
+  // 一方で「末尾を切り詰めた」のは編集なので、そこは見分ける。
+  function musicSignature(m) {
+    if (!m) return null;
+    const dur = Number(m.duration);
+    const start = Math.round((Number(m.trimStart) || 0) * 10) / 10;
+    const end = Number(m.trimEnd);
+    // 末尾まで使う指定は、値が未確定でも確定後(=長さと同じ)でも同じ意味として扱う
+    const toEnd = !Number.isFinite(end) || !Number.isFinite(dur) || Math.abs(end - dur) < 0.05;
+    return `${m.blobId}|${m.name}|${start}|${toEnd ? "end" : Math.round(end * 10) / 10}`;
+  }
+
+  // 中身の比較に使う印。下書き固有の内部状態(先頭が_のもの)は含めない。
+  // ただし差し替え待ちの楽曲だけは「変更あり」として数える。
+  function editorSignature() {
+    if (!draft) return "";
+    const body = {
+      name: draft.name,
+      steps: draft.steps,
+      music: musicSignature(draft.music),
+      newMusic: !!draft._newMusicFile,
+      countdownSeconds: draft.countdownSeconds,
+      featureSettings: draft.featureSettings,
+    };
+    try {
+      return JSON.stringify(body, (k, v) => (k.startsWith("_") ? undefined : v));
+    } catch (_) { return ""; }
+  }
+
+  // 編集を開き直したら、その時点を基準に取り直す
+  function syncEditorBaseline() {
+    if (view.name !== "edit" || !draft) { baseDraft = null; baseSig = null; return; }
+    if (baseDraft === draft) return;
+    baseDraft = draft;
+    baseSig = editorSignature();
+  }
+
+  const editorDirty = () => !!draft && baseSig !== null && editorSignature() !== baseSig;
+
+  window.editorBack = () => {
+    syncEditorBaseline();
+    if (!editorDirty()) { draft = null; return go("routines"); }
+    showSheet(`
+      <h3>${t("編集中の内容を保存しますか", "Save your changes?")}</h3>
+      <div class="sheet-sub">${t("保存せずに戻ると、ここでの編集は消えます。",
+        "If you leave without saving, these edits are lost.")}</div>
+      <button class="btn primary" onclick="hideSheet();saveRoutine()">${
+        t("保存して戻る", "Save and leave")}</button>
+      <button class="btn danger-ghost" onclick="editorDiscard()">${
+        t("保存せずに戻る", "Leave without saving")}</button>
+      <button class="btn ghost" onclick="hideSheet()">${t("編集を続ける", "Keep editing")}</button>`);
+  };
+
+  window.editorDiscard = () => {
+    draft = null; baseDraft = null; baseSig = null;
+    hideSheet(); go("routines");
   };
 
   // ---------- マイナス区間の直し方を2つ出す ----------
@@ -239,9 +307,10 @@
     const soon = () => {
       if (queued) return;
       queued = true;
-      setTimeout(() => { queued = false; addShrinkButtons(); }, 0);
+      setTimeout(() => { queued = false; syncEditorBaseline(); addShrinkButtons(); }, 0);
     };
     new MutationObserver(soon).observe(appEl, { childList: true, subtree: true });
+    syncEditorBaseline();
     addShrinkButtons();
   }
 })();

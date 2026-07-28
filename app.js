@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v258"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v260"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2714,7 +2714,7 @@ function renderEdit() {
       <input type="file" id="music-file" accept="audio/*" class="hidden" onchange="attachMusic(this)">
     </div>`;
   return `
-    <div class="topbar"><button class="back-btn" onclick="draft=null;go('routines')">戻る</button>
+    <div class="topbar"><button class="back-btn" onclick="editorBack()">戻る</button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1>${routineMenuAction(rt ? rt.id : "")}</div>
     ${draft._restoredFromVersion ? `<div class="version-restore-notice">
       <span><b>v${draft._restoredFromVersion}</b> の構成を編集中です</span>
