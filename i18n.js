@@ -164,7 +164,7 @@
     ["0になったら通し練習スタートです", "The run starts when the count reaches 0"],
     ["ここでの変更はこのルーティンに保存されます", "This value is saved for this routine"],
     ["インカメ", "Front camera"], ["インカメで撮影", "Record with front camera"], ["映像のみ・通し終了まで", "Video only · until the run ends"],
-    ["撮影画角", "Camera framing"], ["4:3 横長", "4:3 Landscape"], ["9:16 縦長", "9:16 Tall"],
+    ["撮影画角", "Camera framing"], ["4:3 横長", "4:3 Landscape"], ["3:4 縦長", "3:4 Portrait"],
     ["インカメを準備", "Prepare front camera"], ["撮影をやめる", "Turn off camera"],
     ["カメラを準備中…", "Preparing camera…"], ["インカメの準備ができました", "Front camera is ready"],
     ["選んだ画角でカメラを準備中…", "Preparing the selected framing…"],

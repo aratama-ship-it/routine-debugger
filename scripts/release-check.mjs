@@ -266,13 +266,13 @@ if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?
   failures.push("通し映像がインカメ・カメラマイクOFFで設定されていません");
 }
 if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/\s*3/.test(app)
-    || !/vertical:\s*\{[\s\S]*?ratio:\s*9\s*\/\s*16/.test(app)
+    || !/vertical:\s*\{[\s\S]*?ratio:\s*3\s*\/\s*4/.test(app)
     || !/selectRunCameraProfile/.test(app)
     || !/function runVideoAspect\(video\)[\s\S]*?RUN_CAMERA_PROFILES\[video\?\.cameraProfile\]/.test(app)
     || !/\.run-camera-preview\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)
     || !/\.run-camera-live-preview\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)
     || !/\.run-video-review\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)) {
-  failures.push("通し映像の4:3横長／9:16縦長選択と各プレビューへの反映がありません");
+  failures.push("通し映像の4:3横長／3:4縦長選択と各プレビューへの反映がありません");
 }
 if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeight, frameWidth = 0, frameHeight = 0\)/.test(runVideoOrientation)
     || !/blocked:\s*requiresLandscape\s*&&\s*\(!viewportLandscape\s*\|\|\s*!frameLandscape\)/.test(runVideoOrientation)
@@ -285,7 +285,7 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
     || !/addEventListener\("resize", scheduleRunCameraOrientationUi\)/.test(app)
     || !/addEventListener\("orientationchange", scheduleRunCameraOrientationUi\)/.test(app)
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
-    || !/4:3横長はiPhoneを横向きに、9:16縦長は縦向きにして撮影します/.test(app)
+    || !/4:3横長はiPhoneを横向きに、3:4縦長は縦向きにして撮影します/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
   failures.push("4:3横長撮影を画面・実カメラ双方の横向き確認後だけ開始する保護がありません");
 }

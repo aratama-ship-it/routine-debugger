@@ -232,7 +232,7 @@
         "Next, build a routine with your own music and sequences.")}</p>
       <p class="sheet-note">${t("サンプルは残してあります。要らなくなったら、ルーティン一覧から削除できます。いつでも「使い方 → チュートリアル」からやり直せます。",
         "The sample is still there; delete it from the routine list when you're done. You can redo this any time from Guide → Tutorial.")}</p>
-      <button class="btn primary" onclick="hideSheet();go('edit',{})">${t("自分のルーティンを作る", "Create my routine")}</button>
+      <button class="btn primary" onclick="hideSheet();newRoutine()">${t("自分のルーティンを作る", "Create my routine")}</button>
       <button class="btn ghost" onclick="hideSheet();go('home')">${t("ホームへ", "Home")}</button>`);
   }
 

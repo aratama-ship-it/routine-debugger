@@ -23,15 +23,16 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v271"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v272"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
-// 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
-// 4:3は通常の横長保存、9:16は縦長出力を優先する。
+// 横も縦もセンサーの画角をそのまま使う(4:3 / 3:4)。切り落とさないので、
+// 撮ったあとで見返すときに端が欠けない。
 const RUN_CAMERA_PROFILES = {
   wide: { id: "wide", label: "4:3 横長", width: 960, height: 720, ratio: 4 / 3, cssRatio: "4 / 3", resizeMode: "none", orientation: "landscape" },
-  vertical: { id: "vertical", label: "9:16 縦長", width: 720, height: 1280, ratio: 9 / 16, cssRatio: "9 / 16", resizeMode: "crop-and-scale", orientation: "portrait" },
+  // スマートフォンのセンサーは4:3が主流。3:4なら縦向きでも切り落とさずに使える
+  vertical: { id: "vertical", label: "3:4 縦長", width: 720, height: 960, ratio: 3 / 4, cssRatio: "3 / 4", resizeMode: "none", orientation: "portrait" },
 };
 const ITEM_LINE_COLORS = ["blue", "rust", "olive", "mustard", "plum", "gray", "teal", "rose", "violet"];
 const ITEM_LINE_COLOR_LABELS = {
@@ -1106,8 +1107,8 @@ function currentRunCameraOrientationState(profileId, cap = runCamera) {
 function runCameraOrientationCopy(orientation, ready) {
   if (!orientation.viewportLandscape) {
     return isEnglish()
-      ? { title: "Turn the iPhone sideways for landscape recording", body: "The 9:16 portrait option can be recorded while holding the iPhone upright." }
-      : { title: "横方向で撮影する場合は、iPhoneを横向きにしてください", body: "9:16縦長は、iPhoneを縦向きのまま撮影できます。" };
+      ? { title: "Turn the iPhone sideways for landscape recording", body: "The 3:4 portrait option is recorded holding the iPhone upright." }
+      : { title: "横方向で撮影する場合は、iPhoneを横向きにしてください", body: "3:4縦長は、iPhoneを縦向きのまま撮影できます。" };
   }
   if (orientation.frameKnown && !orientation.frameLandscape) {
     return isEnglish()
@@ -1230,8 +1231,8 @@ function runCameraConfirmBody(routineId, status = "") {
         onclick="selectRunCameraProfile('${routineId}','${profile.id}')">${profile.label}</button>`).join("")}
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
-      ? "For 4:3 landscape, hold the iPhone sideways. For 9:16 portrait, hold it upright."
-      : "4:3横長はiPhoneを横向きに、9:16縦長は縦向きにして撮影します。"}</p>
+      ? "For 4:3 landscape, hold the iPhone sideways. For 3:4 portrait, hold it upright."
+      : "4:3横長はiPhoneを横向きに、3:4縦長は縦向きにして撮影します。"}</p>
     <div id="run-camera-orientation" class="run-camera-orientation ${orientation.blocked ? "is-blocked" : "is-ready"}"
       role="status" ${orientation.requiresLandscape ? "" : "hidden"}>
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
@@ -2120,7 +2121,7 @@ function renderHome() {
         <section class="home-wide-routines" aria-labelledby="home-wide-routines-title">
           <div class="home-wide-routines-head">
             <div><small>ROUTINES</small><h2 id="home-wide-routines-title">ルーティン</h2></div>
-            <button type="button" onclick="go('edit',{})">＋ 新規ルーティン</button>
+            <button type="button" onclick="newRoutine()">＋ 新規ルーティン</button>
           </div>
           <div class="home-wide-routine-list">${wideRoutineRows}</div>
         </section>
@@ -2243,7 +2244,7 @@ function renderRoutines() {
       <h2 id="routine-stack-title">登録済みのルーティン</h2>
       ${rows || `<div class="empty">まだルーティンがありません。<br>シーケンスと移行を順番に登録するところから始めます。</div>`}
     </section>
-    <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
+    <button class="btn" onclick="newRoutine()">＋ 新規ルーティン</button>
     ${state.routines.some((r) => r.sampleSet) ? "" :
       `<button class="btn ghost" onclick="loadSampleSet()">サンプルルーティンを読み込む</button>`}
 `;

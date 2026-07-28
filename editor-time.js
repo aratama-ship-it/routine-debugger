@@ -162,6 +162,39 @@
     if (step) { step.name = name; render(); }
   };
 
+
+  // ---------- 新しいルーティンは、名前を決めてから作る ----------
+  // 名前のない下書きのまま画面へ入ると、後で「無題」が並んで見分けがつかなくなる。
+  // 作る前に一度だけ聞く。あとから変えられるので、ここで悩ませない。
+  window.newRoutine = () => {
+    showSheet(`
+      <h3>${t("新しいルーティン", "New routine")}</h3>
+      <div class="sheet-sub">${t("まず名前を決めます。あとから変えられます。",
+        "Give it a name first. You can change it later.")}</div>
+      <div class="add-trick-name">
+        <input type="text" id="new-routine-name" placeholder="${t("ルーティン名", "Routine name")}"
+          enterkeyhint="done" onkeydown="if(event.key==='Enter')commitNewRoutine()">
+        <button class="btn primary" onclick="commitNewRoutine()">${t("作る", "Create")}</button>
+      </div>
+      <button class="btn ghost" onclick="hideSheet()">${t("やめる", "Cancel")}</button>`);
+    const input = document.getElementById("new-routine-name");
+    if (input) setTimeout(() => input.focus(), 0);
+  };
+
+  window.commitNewRoutine = () => {
+    const input = document.getElementById("new-routine-name");
+    const name = input ? input.value.trim().slice(0, 60) : "";
+    // 空では進ませない。ここで作られる「無題」は、後から必ず邪魔になる
+    if (!name) {
+      toast(t("ルーティン名を入れてください", "Please enter a name"));
+      if (input) input.focus();
+      return;
+    }
+    hideSheet();
+    go("edit", {});
+    if (draft) { draft.name = name; render(); }
+  };
+
   // ---------- 戻るときに、保存するかを確かめる ----------
   // 編集して「戻る」を押すと、確認なしに全部消えていた。
   // 組み立てに時間をかけた直後ほど失いやすく、取り返しがつかない。

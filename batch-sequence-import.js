@@ -210,9 +210,9 @@ function batchSetupHtml() {
   return `<div class="card batch-setup">
     <h2>${batchText("1. ルーティンを選ぶ", "1. Choose a routine")}</h2>
     <p>${batchText("最新バージョンからシーケンスの順番だけを読み込みます。既存のキュー位置は使いません。", "Only the sequence order is loaded from the latest version. Existing cue positions are ignored.")}</p>
-    ${routines.length ? `<select class="batch-routine-select" onchange="batchSelectRoutine(this.value)">${options}</select>` : `<div class="empty">${batchText("先にルーティンを作成してください。", "Create a routine first.")}</div>`}
+    <select class="batch-routine-select" onchange="batchSelectRoutine(this.value)">${options}<option value="__new">＋ ${batchText("新しいルーティンを作る", "Create a new routine")}</option></select>
     <h2>${batchText("2. 長尺動画を選ぶ", "2. Choose the full video")}</h2>
-    <button class="btn primary" ${routines.length ? "" : "disabled"} onclick="document.getElementById('batch-video-file').click()">＋ ${batchText("動画ファイルを選択", "Choose video")}</button>
+    <button class="btn primary" ${batchImportDraft && batchImportDraft.routineId ? "" : "disabled"} onclick="document.getElementById('batch-video-file').click()">＋ ${batchText("動画ファイルを選択", "Choose video")}</button>
     <input id="batch-video-file" class="hidden" type="file" accept="video/*" onchange="batchLoadVideo(this)">
     <p class="batch-storage-note">${batchText("元動画は1本だけ端末内へ保存し、各シーケンスは区間を参照します。", "The source video is stored once; each sequence references a time range.")}</p>
   </div>`;
@@ -293,8 +293,48 @@ function bindBatchSequenceImportUi() {
   });
 }
 
+// 「この映像で新しいルーティンを作る」ための入口。
+// これまでは既存ルーティンへの追加しかできず、映像から始める人が行き止まりになっていた。
+
+function batchNewRoutineSheet() {
+  showSheet(`
+    <h3>${batchText("新しいルーティン", "New routine")}</h3>
+    <div class="sheet-sub">${batchText("この動画から作るルーティンの名前を決めます。",
+      "Name the routine you are building from this video.")}</div>
+    <div class="add-trick-name">
+      <input type="text" id="batch-new-name" placeholder="${batchText("ルーティン名", "Routine name")}"
+        enterkeyhint="done" onkeydown="if(event.key==='Enter')batchCreateRoutine()">
+      <button class="btn primary" onclick="batchCreateRoutine()">${batchText("作る", "Create")}</button>
+    </div>
+    <button class="btn ghost" onclick="hideSheet();render()">${batchText("やめる", "Cancel")}</button>`);
+  const input = document.getElementById("batch-new-name");
+  if (input) setTimeout(() => input.focus(), 0);
+}
+
+window.batchCreateRoutine = () => {
+  const input = document.getElementById("batch-new-name");
+  const name = input ? input.value.trim().slice(0, 60) : "";
+  if (!name) {
+    toast(batchText("ルーティン名を入れてください", "Please enter a name"));
+    if (input) input.focus();
+    return;
+  }
+  // 中身の無いルーティンを作る。カットした区間がそのままシーケンスとして入る
+  const routine = { id: uid(), name, lineColor: "blue",
+    featureSettings: { ...defaultRoutineFeatures() },
+    versions: [{ id: uid(), createdAt: Date.now(), steps: [] }] };
+  state.routines.push(routine);
+  if (batchImportDraft) {
+    batchImportDraft.routineId = routine.id;
+    if (batchImportDraft.file) batchRebuildSegments();
+  }
+  saveState(); hideSheet(); render();
+  toast(batchText(`「${name}」を作りました`, `Created “${name}”`));
+};
+
 window.batchSelectRoutine = (routineId) => {
   if (!batchImportDraft) return;
+  if (routineId === "__new") return batchNewRoutineSheet();
   if (batchImportDraft.file && routineId !== batchImportDraft.routineId
       && !appConfirm(batchText("調整中のカット位置を破棄してルーティンを変更しますか？", "Discard the current cut adjustments and change routine?"))) {
     return render();
