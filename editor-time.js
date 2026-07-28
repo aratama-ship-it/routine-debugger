@@ -239,43 +239,68 @@
   // 描画後にもう1つのボタンを差し込む形にしている。
   // 押す対象の番号は、既にある「次をずらす」ボタンから読み取る
   // (この書式は release-check が固定しているので、勝手に変わることはない)。
+  function addFitButton(box, index, label) {
+    if (box.querySelector(".cue-shrink")) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cue-shrink";
+    b.setAttribute("onclick", `fitPreviousDuration(${index})`);
+    b.textContent = label;
+    box.appendChild(b);
+  }
+
   function addShrinkButtons() {
     if (view.name !== "edit" || !draft) return;
+    // マイナス区間: 前を短くして食い込みを消す
     for (const box of document.querySelectorAll(".cue-overlap-actions")) {
-      if (box.querySelector(".cue-shrink")) continue;
       const fit = box.querySelector('button[onclick^="fitCueToPrevious"]');
       const m = fit && /fitCueToPrevious\((\d+)\)/.exec(fit.getAttribute("onclick") || "");
-      if (!m) continue;
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "cue-shrink";
-      b.setAttribute("onclick", `shrinkPreviousToFit(${m[1]})`);
-      b.textContent = t("前のシーケンスを短くしてFIT", "Shorten previous & FIT");
-      box.appendChild(b);
+      if (m) addFitButton(box, m[1], t("前のシーケンスを短くしてFIT", "Shorten previous & FIT"));
+    }
+    // 空間: 前を長くして隙間を埋める。技や移行を足すほどでもないときに使う
+    for (const box of document.querySelectorAll(".cue-gap-actions")) {
+      const add = box.querySelector('button[onclick^="addStep(\'transition\'"]');
+      const m = add && /addStep\('transition',(\d+)\)/.exec(add.getAttribute("onclick") || "");
+      // 先頭の空間(前のシーケンスが無い)には出さない
+      if (m && Number(m[1]) > 0) {
+        addFitButton(box, m[1], t("前のシーケンスを長くしてFIT", "Extend previous & FIT"));
+      }
     }
   }
 
-  // i は「次」のシーケンスの番号。その手前のシーケンスを、食い込みが消える長さまで縮める。
-  window.shrinkPreviousToFit = (i) => {
-    const next = draft && draft.steps[i];
+  // i は「次」のシーケンスの番号。その手前のシーケンスの長さを、隙間も食い込みも
+  // 無くなる長さ(次のキュー − 前のキュー)に合わせる。
+  // 縮める(マイナス区間)と伸ばす(空間)は、どちらも同じ計算になる。
+  // 最後のシーケンスの後ろは、次のキューの代わりに楽曲の終わりを使う。
+  window.fitPreviousDuration = (i) => {
     const prev = draft && draft.steps[i - 1];
-    if (!next || !prev) return;
-    const prevCue = Number(prev.cue), nextCue = Number(next.cue);
+    if (!prev) return;
+    const next = draft.steps[i];
+    const prevCue = Number(prev.cue);
+    const nextCue = next ? Number(next.cue) : Number(editorMusicEndForDraft());
     if (!Number.isFinite(prevCue) || !Number.isFinite(nextCue)) {
       return toast(t("両方のキューを先に決めてください", "Set both cues first"));
     }
     const target = Math.round((nextCue - prevCue) * 10) / 10;
     if (target < 0) {
-      // 前のキューが後ろにある。長さの問題ではないので、縮めても直らない
+      // 前のキューが後ろにある。長さの問題ではないので、変えても直らない
       return toast(t("前のシーケンスの方が後ろにあります", "The previous cue comes after this one"));
     }
-    // A/Bは選択肢ごとに長さを持つ。はみ出しているものだけ縮める
+    // A/Bは選択肢ごとに長さを持つ。
+    // 縮めるときは、はみ出している選択肢だけを縮める。
+    // 伸ばすときは、いちばん長い選択肢だけを伸ばす(全部を揃えると、選択肢の差が消える)。
+    const current = stepDur(prev);
     const targets = isSlot(prev) ? prev.options : [prev];
-    for (const o of targets) if (editorDurationSource(o) > target) o.dur = target;
+    for (const o of targets) {
+      const own = editorDurationSource(o);
+      if (target < current ? own > target : Math.abs(own - current) < 0.05) o.dur = target;
+    }
     render();
     toast(t(`前のシーケンスを ${target.toFixed(1)}秒 にしました`,
             `Previous sequence set to ${target.toFixed(1)}s`));
   };
+  // 以前の名前でも呼べるようにしておく(マイナス区間のボタンから使っている)
+  window.shrinkPreviousToFit = (i) => window.fitPreviousDuration(i);
 
   // ---------- スライド中は縦の操作を止める ----------
   // 少しでも縦に動くとブラウザが縦スクロールを始め、こちらへは pointercancel が飛ぶ。
