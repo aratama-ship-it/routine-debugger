@@ -1,4 +1,4 @@
-/* ルーティンノート — はじめての1本(初回チュートリアル)
+/* ルーティンノート — 初回チュートリアル
  *
  * 機能を順に読み上げるツアーではなく、実際の画面で基本の一周を体験させる。
  *   サンプルを見る → 1か所だけ直す → 通しを1本記録する → 分析で見る → その区間を繰り返す
@@ -149,6 +149,23 @@
     document.body.classList.toggle("tut-above-bottombar", !!document.querySelector(".bottombar"));
   }
 
+  // ---------- ホームの「前回のルーティン」に置く入口 ----------
+  // ダウンロードした直後は、ここに「まだ練習したルーティンはありません」と出るだけで
+  // 次に何をすればいいか分からない。最初にやることをその場所へ置く。
+  // チュートリアルを終えるとサンプルのルーティンができるので、この案内は自然に消える。
+  function renderHomeEntry() {
+    const slot = document.querySelector(".home-recent-empty");
+    if (!slot) return;
+    if ((state.routines || []).length) return; // 1本でもあれば、案内より本人のルーティンが先
+    const html = `<button class="home-tutorial-card" onclick="tutorialStart()">
+      <span class="htc-kicker">${t("はじめに", "Start here")}</span>
+      <b>${t("チュートリアル", "Tutorial")}</b>
+      <span class="htc-sub">${t("サンプルの演目で、記録から次の練習を決めるまでを試す（5分ほど）",
+        "Use the sample act to go from a run to your next practice (about 5 min)")}</span>
+    </button>`;
+    if (slot.innerHTML !== html) slot.innerHTML = html;
+  }
+
   // ---------- 読ませる画面(0,1と完了) ----------
   function sheetIntro() {
     showSheet(`
@@ -213,8 +230,8 @@
       <h3>${t("最初の1本を記録できました", "You recorded your first run")}</h3>
       <p class="tut-lead">${t("次は、自分の曲と技でルーティンを作ってみましょう。",
         "Next, build a routine with your own music and sequences.")}</p>
-      <p class="sheet-note">${t("サンプルは残してあります。要らなくなったら、ルーティン一覧から削除できます。いつでもホームの「はじめての1本」からやり直せます。",
-        "The sample is still there; delete it from the routine list when you're done. You can redo this any time from the home screen.")}</p>
+      <p class="sheet-note">${t("サンプルは残してあります。要らなくなったら、ルーティン一覧から削除できます。いつでも「使い方 → チュートリアル」からやり直せます。",
+        "The sample is still there; delete it from the routine list when you're done. You can redo this any time from Guide → Tutorial.")}</p>
       <button class="btn primary" onclick="hideSheet();go('edit',{})">${t("自分のルーティンを作る", "Create my routine")}</button>
       <button class="btn ghost" onclick="hideSheet();go('home')">${t("ホームへ", "Home")}</button>`);
   }
@@ -240,7 +257,7 @@
   window.tutorialSkip = () => {
     setTut({ status: "skipped" });
     hideBar(); hideSheet();
-    toast(t("いつでもホームの「はじめての1本」から始められます", "You can start it any time from the home screen"));
+    toast(t("「使い方 → チュートリアル」からいつでも始められます", "You can start it any time from Guide → Tutorial"));
   };
 
   window.tutorialRun = () => {
@@ -258,6 +275,7 @@
   // ---------- 進んだかどうかを見る ----------
   // 判定は控えめに。満たしたら次へ送るが、満たせなくても「次へ」で必ず進める。
   function check() {
+    renderHomeEntry();
     if (!isActive()) return hideBar();
     const s = tut();
     if (s.step < 2 || s.step > LAST) return;

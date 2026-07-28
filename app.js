@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v253"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v254"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -115,7 +115,7 @@ function openDb() {
     req.onblocked = () => finish(null);
   });
 }
-// 音声Blob(楽曲MP3/練習録音)はstateとは別ストアに保存。JSONバックアップには含まれない
+// 音声Blob(楽曲MP3/練習録音)はstateとは別ストアに保存。完全バックアップ(ZIP)にだけ含まれる
 function blobPut(id, blob) {
   return new Promise((resolve) => {
     if (!db) return resolve(false);
@@ -1744,7 +1744,7 @@ function go(name, params = {}) {
 // 見出しの「?」で開く説明。項目内の長い説明文はここに畳む(UIをすっきり&いつでも参照)
 const INFO = {
   steps: { t: "ステップの並べ替え・ピン・FIT", b: "番号の下の <span style=\"color:var(--muted)\">⠿</span> を上下にドラッグすると、技の順番を入れ替えられます。<br><br>ピンを打つと、並べ替えや自動セットでもその技の曲位置を維持します。FITは、そのキューを一つ前のシーケンスの終わりへ揃えます。" },
-  audioLib: { t: "音源ライブラリ", b: "ここの音源は、ルーティン編集/タイムラインの「♪ ライブラリから」で選んで使えます。付属サンプルは最初から使えます。音源はこの端末内に保存され、JSONバックアップには含まれません(残したい録音は書き出しを)。" },
+  audioLib: { t: "音源ライブラリ", b: "ここの音源は、ルーティン編集/タイムラインの「♪ ライブラリから」で選んで使えます。付属サンプルは最初から使えます。音源はこの端末内に保存され、ログインしても同期されません。残すには完全バックアップ(ZIP)を使ってください。" },
   editorFeatures: { t: "ルーティンで使う機能", b: "人によっては使わない機能を、初期状態では隠しています。<br><br><b>リスク度</b> = 各技に危険度(1〜5)を付けて、分析で失敗率とのズレを見る機能。<br><b>A/B分岐</b> = 本番でどちらの技をやるか選べるステップを作る機能。<br><br>ルーティン画面右上の<b>個別</b>から、そのルーティンだけ切り替えられます。OFFにしても、設定済みのデータは消えません。" },
   videoQuality: { t: "技の動画の画質", b: "技の動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。" },
   fullBackup: { t: "完全バックアップ(ZIP)", b: "<b>ログイン中に復元すると、その内容が他の端末にも同期されます</b>(バックアップに無いものは他の端末からも消えます)。この端末だけに戻したいときは、先にログアウトしてください。<br><br>ルーティン・記録・設定に加えて、<b>技の動画・通し映像・音源・録音までまとめて1つのZIPファイル</b>に書き出します。機種変更や、端末のデータが消えたときの復旧はこちらを使ってください。<br><br>ZIPの中には各ファイルの照合値(SHA-256)を記録しているので、復元時に壊れていないか自動で検証します。1件でも壊れていれば復元を中止し、いまのデータは変更しません。<br><br><b>ZIPを検証する</b>は、復元せずに中身が無事かどうかだけを確かめます。バックアップが本当に使えるか、ときどき確認してください。<br><br>動画を含むためファイルは大きくなります。書き出したZIPは、iCloudやPCなど<b>この端末の外</b>に保存してください。" },
@@ -1754,7 +1754,7 @@ const INFO = {
 };
 const INFO_EN = {
   steps: { t: "Reordering, pins, and FIT", b: "Drag the ⠿ handle below the step number to change the order.<br><br>Pin a step to keep that sequence at the same music position when reordering or automatically setting cues. FIT aligns its cue with the end of the previous sequence." },
-  audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is not included in JSON backups, so export any recordings you need to keep." },
+  audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is never synced. Use a full backup (ZIP) to keep it." },
   editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
   videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
   fullBackup: { t: "Full backup (ZIP)", b: "Exports everything — routines, records, settings, <b>plus sequence videos, run videos, audio, and recordings</b> — as a single ZIP file. Use this when changing devices or recovering lost data.<br><br>The ZIP stores a SHA-256 checksum for every file, so a restore verifies the contents automatically. If even one file is damaged, the restore stops and your current data is left untouched.<br><br><b>Verify a ZIP</b> checks the contents without restoring. Check your backups this way from time to time.<br><br>Files are large because video is included. Store the exported ZIP <b>off this device</b>, for example in iCloud or on a computer." },
@@ -2123,7 +2123,6 @@ function renderHome() {
           </div>
         </footer>
         <div class="home-beta-strip">
-          <button onclick="tutorialStart()">はじめての1本</button>
           <button onclick="openFeedback()">要望・バグ報告を送る</button>
           <button onclick="openDocPage('backup.html')">データの守り方</button>
         </div>
@@ -6087,6 +6086,10 @@ window.openHelp = () => {
 function renderHelpEnglish() {
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')">Back</button><h1>Guide</h1></div>
+    <div class="card help-tutorial-card"><h2>Tutorial</h2>
+      <p>Use the sample act to go from recording a run to deciding what to practise next (about 5 minutes).</p>
+      <button class="btn primary" onclick="tutorialStart()">Start the tutorial</button>
+    </div>
     <div class="card help-guide-card"><h2>Start here</h2>
       <ol class="help-quick-steps">
         <li><span class="help-step-no">01</span><span><b>Build the routine.</b> Choose music and arrange the sequences. Record and register reference videos for sequences when useful.</span></li>
@@ -6105,13 +6108,18 @@ function renderHelpEnglish() {
     <div class="card help-guide-card"><h2>Analysis and records</h2>
       <div class="help-body">Analysis shows issue counts and rates by sequence. <b>Not attempted</b> is kept separate from the issue-rate denominator. In Session History, you can edit notes or exclude a mistaken run without deleting it.</div></div>
     <div class="card help-guide-card"><h2>Keep your data safe</h2>
-      <div class="help-body">Data is stored in this browser. Export a JSON backup regularly and before changing devices. Audio and video are not included, so export videos you want to keep and remove unneeded ones from <b>Performance Video Library</b>.</div></div>`;
+      <div class="help-body">Records are stored in this browser. With an account, everything except videos and audio syncs across devices. <b>Only a full backup (ZIP) keeps your videos and audio.</b></div>
+      <button class="btn ghost" onclick="openDocPage('backup.html')">Read: keeping your data safe</button></div>`;
 }
 
 function renderHelp() {
   if (isEnglish()) return renderHelpEnglish();
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>使い方</h1></div>
+    <div class="card help-tutorial-card"><h2>チュートリアル</h2>
+      <p>サンプルの演目で、記録から次の練習を決めるところまでを試します(5分ほど)。</p>
+      <button class="btn primary" onclick="tutorialStart()">チュートリアルを始める</button>
+    </div>
     <div class="card help-guide-card"><h2>まずはこの流れ</h2>
       <ol class="help-quick-steps">
         <li><span class="help-step-no">01</span><span><b>ルーティンを組み立てる。</b>楽曲を選び、シーケンスを並べる。必要な技は参考動画を撮影・登録する。</span></li>
@@ -6130,7 +6138,8 @@ function renderHelp() {
     <div class="card help-guide-card"><h2>分析と記録</h2>
       <div class="help-body">分析では、シーケンス別の問題回数と割合を確認します。<b>実施できなかった</b>は失敗率の分母から除き、別に集計します。履歴ではメモの編集や、誤記録した通しの集計除外ができます。</div></div>
     <div class="card help-guide-card"><h2>データを守る</h2>
-      <div class="help-body">データはこのブラウザ内に保存されます。設定から定期的に<b>JSONバックアップ</b>を書き出してください。音源と映像は含まれないため、残したい映像は個別に書き出し、不要な映像は<b>演技映像ライブラリ</b>から削除します。</div></div>`;
+      <div class="help-body">記録はこのブラウザ内に保存されます。アカウントを作ると、動画・音源以外は他の端末と同期されます。<b>動画・音源まで残せるのは完全バックアップ(ZIP)だけ</b>です。</div>
+      <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button></div>`;
 }
 
 // ========== 設定(バックアップ) ==========

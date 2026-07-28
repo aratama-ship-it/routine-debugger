@@ -312,7 +312,7 @@
     ["データの守り方を読む", "Read: keeping your data safe"],
     ["要望・バグ報告を送る", "Send feedback or a bug report"],
     ["データの守り方", "Keeping your data safe"],
-    ["はじめての1本", "Your first run"],
+    ["チュートリアルを始める", "Start the tutorial"],
     ["空間", "Gap"],
     ["バックアップを作成中…", "Creating backup…"], ["記録を書き出し中…", "Exporting records…"],
     ["ファイルをまとめています…", "Packing files…"], ["バックアップを読み込み中…", "Reading backup…"],

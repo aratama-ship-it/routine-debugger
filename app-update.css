@@ -280,3 +280,28 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 @media (prefers-reduced-motion: reduce) {
   #tut-bar { box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
 }
+
+/* ホームの「前回のルーティン」に置くチュートリアルの入口。
+   ダウンロード直後は空欄が出るだけなので、最初にやることをその場所へ置く */
+.home-tutorial-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 15px 16px 16px;
+  border: 1px dashed var(--accent, #a75c24);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent, #a75c24) 6%, var(--paper, #f8f4e9));
+  font: inherit;
+  cursor: pointer;
+}
+.home-tutorial-card .htc-kicker {
+  display: block; font-size: 11px; letter-spacing: .14em; font-weight: 700;
+  color: var(--accent, #a75c24); margin-bottom: 3px;
+}
+.home-tutorial-card b { display: block; font-size: 17px; line-height: 1.35; }
+.home-tutorial-card .htc-sub {
+  display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.6;
+  color: var(--ink-soft, #5b5f66);
+}
+.help-tutorial-card { border-left: 5px solid var(--accent, #a75c24); }
+.help-tutorial-card p { margin: 2px 0 12px; font-size: 14px; line-height: 1.7; }
