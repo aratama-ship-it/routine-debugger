@@ -391,3 +391,33 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 /* 編集を離れるときの3択。danger-ghost は既定が width:auto のため、
    1つだけ短くなって選択肢に見えなくなる。ここでは幅を揃える */
 #sheet .btn.danger-ghost.editor-leave { width: 100%; }
+
+/* ===== パート練習: よく使うループ区間 ===== */
+/* 同じ場所を詰めるうちにA/Bを何度も置き直すことになる。押せば戻せる控えを並べる */
+.part-presets { margin-top: 14px; }
+.part-presets h2 { font-size: 13px; margin: 0 0 8px; }
+.part-presets .pp-empty {
+  font-size: 12.5px; line-height: 1.6; color: var(--muted, #6b675c); margin-bottom: 10px;
+}
+.pp-chip {
+  display: flex; align-items: stretch; gap: 6px; margin-bottom: 7px;
+}
+.pp-chip .pp-apply {
+  flex: 1 1 auto; min-width: 0; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--rule, #c9c2ae); border-radius: 8px;
+  background: var(--card, #f8f4e9); font: inherit; cursor: pointer;
+}
+.pp-chip .pp-name {
+  display: block; font-size: 14.5px; font-weight: 650;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pp-chip .pp-range {
+  display: block; margin-top: 1px; font-size: 11.5px; color: var(--muted, #6b675c);
+  font-variant-numeric: tabular-nums;
+}
+.pp-chip .pp-del {
+  flex: 0 0 40px; border: 1px solid var(--rule, #c9c2ae); border-radius: 8px;
+  background: none; color: var(--muted, #6b675c); font: inherit; cursor: pointer;
+}
+.part-presets .pp-save { width: 100%; margin: 2px 0 0; }
+.part-presets .pp-save[disabled] { opacity: .5; }

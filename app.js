@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v268"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v269"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -4337,6 +4337,7 @@ function renderPart() {
       ${pointRow("a", rt.partLoop && rt.partLoop.a != null ? rt.partLoop.a : 0, "A 始点")}
       ${pointRow("b", end, "B 終点")}
       <div class="gap-note ${abInvalid ? "" : "hidden"}" id="part-loop-invalid">⚠︎ 終点Bが始点Aより前です。ループしません。</div>
+      <div class="part-presets" id="part-presets"></div>
       <div class="part-loop-delay-row">
         <div class="part-loop-delay-copy">
           <strong>ループの間隔</strong>
