@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v264"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v265"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -42,7 +42,11 @@ const ITEM_LINE_COLOR_LABELS = {
 // 機能の要望・バグ報告の送信先(GASウェブアプリURL)。空のままだとメール送信にフォールバックする。
 // 設定手順は FEEDBACK_GAS_SETUP.md 参照。デプロイ後、末尾が /exec のURLをここに貼る。
 // 要望の受け口(GAS→スプレッドシート)。手順は FEEDBACK_GAS_SETUP.md
-const FEEDBACK_ENDPOINT = "https://script.google.com/macros/s/AKfycbwk3UWvqSl2e_egKSwdOZU3HKWHriY97bBmnG_czXpYC-Q-1qayR-N4Q0D1dzn3Kkzm/exec";
+// 要望フォームの送信先。空にすると、下のメール送信へ自動で切り替わる。
+// ★ここに間違ったURLを入れると、要望は黙って捨てられる。
+//   no-cors で投げるため応答を読めず、届いていなくても「送信しました」と出てしまう。
+//   受け口を用意できるまでは、確実に届くメールに任せる(FEEDBACK_GAS_SETUP.md 参照)。
+const FEEDBACK_ENDPOINT = "";
 const FEEDBACK_MAILTO = "circusarata@gmail.com"; // フォールバック送信先
 
 // ---------- 状態 ----------
