@@ -154,3 +154,72 @@
     if (!el || !active || !el.contains(active)) reset(el);
   }, 120));
 })();
+
+/* ===== 持ち手を下へスワイプして、シートを閉じる =====
+ * 下から上がってくるシートは、上端に持ち手がある見た目なのに、
+ * 実際は「閉じる」ボタンを探すか背景を押すしかなかった。
+ * 見た目どおり、持ち手を下へ払えば閉じるようにする。
+ *
+ * 指の動きに追従させ、途中で止めたら戻す。半端に閉じないことが大事で、
+ * 「閉じるつもりがなかったのに消えた」方が困る。
+ */
+(() => {
+  "use strict";
+  const CLOSE_DISTANCE = 90;   // これだけ下げたら閉じる
+  const CLOSE_SPEED = 0.5;     // 速く払った場合は距離が短くても閉じる(px/ms)
+  const FLICK_MIN = 24;        // ただし、ごく短い揺れで閉じないための下限
+
+  const sheet = () => document.getElementById("sheet");
+  let drag = null;
+
+  function reset(el, animate) {
+    if (!el) return;
+    el.style.transition = animate ? "transform .18s ease-out" : "";
+    el.style.transform = "";
+    if (animate) setTimeout(() => { el.style.transition = ""; }, 200);
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    const grip = e.target.closest && e.target.closest(".grabber");
+    const el = sheet();
+    if (!grip || !el || el.classList.contains("hidden")) return;
+    // 横から出る広い面(パソコン)は、下へ払う操作に合わない
+    if (el.classList.contains("wide-side-sheet")) return;
+    drag = { el, startY: e.clientY, startAt: performance.now(), dy: 0, pointerId: e.pointerId };
+    el.style.transition = "none";
+    try { grip.setPointerCapture(e.pointerId); } catch (_) {}
+  }, true);
+
+  document.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    // 上へは動かさない。行き過ぎた感じを出さず、閉じる方向だけに反応させる
+    drag.dy = Math.max(0, e.clientY - drag.startY);
+    drag.el.style.transform = `translateY(${drag.dy}px)`;
+  });
+
+  function end() {
+    if (!drag) return;
+    const d = drag; drag = null;
+    const speed = d.dy / Math.max(1, performance.now() - d.startAt);
+    if (d.dy > CLOSE_DISTANCE || (d.dy > FLICK_MIN && speed > CLOSE_SPEED)) {
+      // 指の続きに見えるよう、いったん画面外まで送ってから閉じる
+      d.el.style.transition = "transform .16s ease-in";
+      d.el.style.transform = `translateY(${Math.max(d.el.offsetHeight, 320)}px)`;
+      setTimeout(() => { reset(d.el, false); hideSheet(); }, 150);
+      return;
+    }
+    reset(d.el, true);
+  }
+  document.addEventListener("pointerup", end);
+  document.addEventListener("pointercancel", end, true);
+
+  // 閉じたり中身が入れ替わったりしたときに、ずらしたままにしない
+  for (const name of ["hideSheet", "showSheet"]) {
+    if (typeof window[name] !== "function") continue;
+    const original = window[name];
+    window[name] = function wrappedSheetFn() {
+      reset(sheet(), false);
+      return original.apply(this, arguments);
+    };
+  }
+})();

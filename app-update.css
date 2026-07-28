@@ -369,3 +369,16 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 /* 空間の選択肢が3つになるので、折り返して並べる */
 .cue-gap-actions { flex-wrap: wrap; }
 .cue-gap-actions .cue-shrink { flex: 1 1 100%; }
+
+/* 持ち手は下へ払って閉じるので、ブラウザのスクロールに取られないようにする。
+   見た目は変えず、指が届く範囲だけ広げる */
+.grabber {
+  touch-action: none;
+  cursor: grab;
+  position: relative;
+}
+.grabber::after {
+  content: "";
+  position: absolute;
+  left: -60px; right: -60px; top: -12px; bottom: -12px;
+}
