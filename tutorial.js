@@ -20,8 +20,8 @@
 (() => {
   "use strict";
 
-  const TUT_VERSION = 1;
-  const LAST = 7;                 // 最後の段(0..7)。8で完了画面
+  const TUT_VERSION = 2;
+  const LAST = 6;                 // 最後の段(0..6)。7で完了画面
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
   const t = (ja, eng) => (en() ? eng : ja);
 
@@ -61,15 +61,7 @@
   // ---------- 各段 ----------
   // done() は「利用者がその段の狙いを達成したか」。満たせば自動で次へ進む。
   const STEPS = [
-    null, null, // 0,1 はシートで出すので付箋は使わない
-    {
-      title: t("まず、完成したノートを触ります", "Start from a finished note"),
-      body: t("技・楽曲・通しの記録が入ったサンプルを読み込みます。あなたのルーティンや記録には触れません。",
-              "Load a sample with sequences, music and run records. Your own data is not touched."),
-      cta: t("サンプルを読み込む", "Load the sample"),
-      run: () => loadSampleSet(),
-      done: () => !!sampleRoutine(),
-    },
+    null, null, // 0,1 はシートで出すので付箋は使わない。サンプルの読み込みも1で済ませる
     {
       title: t("構成を1か所だけ直します", "Change one thing"),
       body: t("ルーティンは、演技の順番を書いた一枚のシートです。並びか名前をひとつ変えて、保存してみましょう。",
@@ -142,7 +134,7 @@
     const el = bar();
     const html = `
       <div class="tut-head">
-        <span class="tut-sheet">SHEET ${String(s.step - 1).padStart(2, "0")} / 06</span>
+        <span class="tut-sheet">SHEET ${String(s.step - 1).padStart(2, "0")} / 05</span>
         <button class="tut-skip" onclick="tutorialSkip()">${t("やめる", "Quit")}</button>
       </div>
       <b class="tut-title">${step.title}</b>
@@ -164,7 +156,7 @@
       <p class="tut-lead">${t(
         "ルーティンノートは、技を並べるだけのアプリではありません。演技を通して、崩れた場所を残し、次の練習へつなげるノートです。",
         "This is not just a place to list tricks. You run your act, leave a mark where it broke, and decide what to practise next.")}</p>
-      <p class="sheet-note">${t("サンプルを使って、記録から次の練習を決めるところまで試します（5分ほど）。",
+      <p class="sheet-note">${t("サンプルの演目を読み込んで、記録から次の練習を決めるところまで試します（5分ほど）。",
         "We'll use a sample to go from recording to deciding what's next (about 5 minutes).")}</p>
       <button class="btn primary" onclick="tutorialToStep(1)">${t("サンプルで試す", "Try it with the sample")}</button>
       <button class="btn ghost" onclick="tutorialSkip()">${t("あとで", "Later")}</button>`);
@@ -184,9 +176,35 @@
           <span>${t("ブラウザのデータを消すと失われます。大切な記録ができたら、完全バックアップZIPを端末の外へ。",
             "Clearing browser data loses them. Export a full backup ZIP and keep it off-device.")}</span></div>
       </div>
-      <button class="btn primary" onclick="tutorialToStep(2)">${t("確認して続ける", "Got it")}</button>
+      <button class="btn primary" onclick="tutorialLoadSample()">${
+        t("サンプルを読み込んで始める", "Load the sample and start")}</button>
       <button class="btn ghost" onclick="openDocPage('backup.html')">${t("詳しく見る", "Read more")}</button>`);
   }
+
+  // サンプルの読み込みは、段として利用者に任せず最初に済ませる。
+  // 「次へ」で飛ばせる作りにしていたため、読み込まないまま進むと以降の画面が空になり、
+  // 動画も出ないまま説明だけが続いてしまっていた。
+  window.tutorialLoadSample = async () => {
+    hideSheet();
+    // loadSampleSet は「追加しますか?」と確認する。直前の画面で答えてもらった問いなので、
+    // ここでは二度聞かない。読み込みのあいだだけ、その1問に自動で答える。
+    const origConfirm = window.confirm;
+    window.confirm = () => true;
+    try {
+      await loadSampleSet();
+    } catch (_) { /* 下で結果を見て判断する */ } finally {
+      window.confirm = origConfirm;
+    }
+    if (sampleRoutine()) return enterStep(2);
+    // 通信できないとサンプルを取得できない。空の画面へ放り出さず、選べるようにする
+    showSheet(`
+      <h3>${t("サンプルを読み込めませんでした", "Could not load the sample")}</h3>
+      <p class="tut-lead">${t("初回だけ通信が必要です。電波の良い場所で、もう一度お試しください。",
+        "The first load needs a connection. Please try again where the signal is better.")}</p>
+      <button class="btn primary" onclick="tutorialLoadSample()">${t("もう一度読み込む", "Try again")}</button>
+      <button class="btn ghost" onclick="tutorialSkip();go('edit',{})">${
+        t("自分のルーティンから始める", "Start with my own routine")}</button>`);
+  };
 
   function sheetDone() {
     setTut({ status: "completed", completedAt: Date.now(), step: LAST + 1 });
