@@ -220,3 +220,63 @@ body.value-sliding { touch-action: none; overscroll-behavior: none; }
    ダブルタップ拡大はここで、ピンチは gesturestart の抑止で止める */
 html.no-pinch { touch-action: pan-x pan-y; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ===== はじめての1本(初回チュートリアル) ===== */
+/* 稽古ノートに貼った付箋。画面へ吹き出しを重ねず、下に1枚だけ置く */
+#tut-bar {
+  position: fixed;
+  left: 10px; right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 12px 14px 13px;
+  border-radius: 4px;
+  border: 1px solid var(--rule, #c9c2ae);
+  border-left: 5px solid var(--accent, #a75c24);
+  background: var(--card2, #f8f4e9);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .22);
+}
+/* 記録画面には下部の操作バーがあるので、その上へ逃がす */
+body.tut-above-bottombar #tut-bar { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+/* 付箋の分だけ本文の下に余白を足す(最後の行が隠れないように) */
+body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)); }
+
+#tut-bar .tut-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+#tut-bar .tut-sheet {
+  font-size: 10.5px; letter-spacing: .16em; font-weight: 700;
+  color: var(--accent, #a75c24);
+}
+#tut-bar .tut-skip {
+  border: 0; background: none; font: inherit; font-size: 12px; cursor: pointer;
+  color: var(--ink-soft, #6b675c); text-decoration: underline; text-underline-offset: 3px;
+  padding: 2px 0;
+}
+#tut-bar .tut-title { display: block; font-size: 15.5px; line-height: 1.45; }
+#tut-bar .tut-body { margin: 5px 0 10px; font-size: 12.5px; line-height: 1.65; color: var(--ink-soft, #5b5f66); }
+#tut-bar .tut-actions { display: flex; gap: 8px; }
+#tut-bar .tut-go, #tut-bar .tut-next {
+  flex: 1 1 auto; min-height: 42px; border-radius: 8px; font: inherit;
+  font-size: 14.5px; font-weight: 700; cursor: pointer;
+}
+#tut-bar .tut-go { flex: 2 1 auto; border: 0; background: var(--accent, #a75c24); color: #fff; }
+#tut-bar .tut-next {
+  flex: 0 0 84px; background: transparent;
+  border: 1px solid var(--rule, #c9c2ae); color: var(--ink, #23262c);
+}
+
+/* 読ませる画面(役割・データの約束・完了) */
+#sheet .tut-lead { font-size: 15px; line-height: 1.75; margin: -2px 0 12px; }
+#sheet .tut-promise { margin: 2px 0 16px; }
+#sheet .tut-promise > div {
+  padding: 11px 0 11px 14px;
+  border-left: 3px solid var(--accent, #a75c24);
+  margin-bottom: 10px;
+}
+#sheet .tut-promise b { display: block; font-size: 14.5px; margin-bottom: 3px; }
+#sheet .tut-promise span { display: block; font-size: 12.5px; line-height: 1.7; color: var(--ink-soft, #5b5f66); }
+
+/* 動きを減らす設定のときは、影や装飾を静かにする */
+@media (prefers-reduced-motion: reduce) {
+  #tut-bar { box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+}
