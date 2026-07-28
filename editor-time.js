@@ -111,6 +111,57 @@
   };
 
 
+
+  // ---------- 技を足す(名前を打つ / 技リストから選ぶ を1画面に) ----------
+  // 追加の入口が「＋技」と「＋技リストから」に割れていて、押す前にどちらか決めさせていた。
+  // やりたいことは「技を1つ足す」だけなので、入口は1つにする。
+  // 名前を打つ欄と技リストを同じ画面に並べ、その場でどちらでも選べるようにした。
+  window.sheetAddTrick = (insertAt = null) => {
+    const at = insertAt == null ? NaN : Number(insertAt);
+    const target = Number.isInteger(at) && at >= 0 && draft && at <= draft.steps.length ? at : null;
+    const pos = target == null ? "null" : target;
+    const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+    const rows = tricks.map((tr) => `
+      <div class="pick-trick-row" data-line-color="${itemLineColor(tr)}"
+        onclick="addStepFromTrick('${tr.id}',${pos})">
+        <span class="nm">${esc(trickDisplayName(tr))}</span>
+        <span class="kn">${fmtTime(tr.duration)}</span>
+        <button class="mini-btn play" aria-label="${esc(trickDisplayName(tr))}${t("の動画を再生", " video")}"
+          onclick="event.stopPropagation();playTrickVideo('${tr.id}',true)">▶</button>
+      </div>`).join("");
+    showSheet(`
+      <h3>${t("技を追加", "Add a sequence")}</h3>
+      <div class="sheet-sub">${t("名前を打つか、下の技リストから選びます。",
+        "Type a name, or pick one from the library below.")}</div>
+      <div class="add-trick-name">
+        <input type="text" id="add-trick-name" placeholder="${t("技の名前", "Sequence name")}"
+          enterkeyhint="done" onkeydown="if(event.key==='Enter')addTrickByName(${pos})">
+        <button class="btn primary" onclick="addTrickByName(${pos})">${t("追加", "Add")}</button>
+      </div>
+      ${tricks.length
+        ? `<div class="tag-label">${t("技リストから選ぶ", "From the library")}</div>
+           <div class="sheet-sub" style="margin-top:-2px">${
+             t("タップで追加 / 再生マークで動画を確認", "Tap to add / ▶ to preview")}</div>${rows}`
+        : `<div class="empty">${t("技リストはまだ空です。動画を登録すると、ここから選べます。",
+            "The library is empty. Register videos to pick them here.")}</div>`}
+      <button class="btn ghost" onclick="hideSheet()">${t("やめる", "Cancel")}</button>`);
+    const input = document.getElementById("add-trick-name");
+    if (input) setTimeout(() => input.focus(), 0);
+  };
+
+  window.addTrickByName = (insertAt = null) => {
+    const input = document.getElementById("add-trick-name");
+    const name = input ? input.value.trim() : "";
+    const at = insertAt == null ? NaN : Number(insertAt);
+    const target = Number.isInteger(at) ? at : null;
+    hideSheet();
+    // 名前が空でも足せる(行に入ってから決めたい人がいる)。従来の「＋技」と同じ振る舞い
+    addStep("trick", target);
+    if (!name) return;
+    const step = target == null ? draft.steps[draft.steps.length - 1] : draft.steps[target];
+    if (step) { step.name = name; render(); }
+  };
+
   // ---------- 戻るときに、保存するかを確かめる ----------
   // 編集して「戻る」を押すと、確認なしに全部消えていた。
   // 組み立てに時間をかけた直後ほど失いやすく、取り返しがつかない。

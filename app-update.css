@@ -338,3 +338,8 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 /* マイナス区間の直し方は2通り。並べて選ばせるので、2つ入っても潰れないようにする */
 .cue-overlap-actions { flex-wrap: wrap; }
 .cue-overlap-actions button { flex: 1 1 46%; min-width: 0; }
+
+/* 技の追加: 名前を打つ欄と、下の技リストを1画面に置く */
+.add-trick-name { display: flex; gap: 8px; margin: 4px 0 14px; }
+.add-trick-name input { flex: 1 1 auto; min-width: 0; }
+.add-trick-name .btn { flex: 0 0 auto; margin: 0; padding: 0 18px; }

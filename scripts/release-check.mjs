@@ -138,9 +138,10 @@ if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
     || !/function cueIntervalWarningHtml\(index\)/.test(app)
     || !/楽曲終了まで \$\{seconds\}秒の空間あり/.test(app)
     || !/class="cue-gap-actions"/.test(app)
-    || !/addStep\('trick',\$\{insertAt\}\)/.test(app)
-    || !/sheetPickTrick\(\$\{insertAt\}\)/.test(app)
+    || !/sheetAddTrick\(\$\{insertAt\}\)/.test(app)
     || !/addStep\('transition',\$\{insertAt\}\)/.test(app)
+    || !/window\.sheetAddTrick\s*=/.test(editorTime)
+    || !/window\.addTrickByName\s*=/.test(editorTime)
     || !/class="cue-overlap-actions"/.test(app)
     || !/次のシーケンスを遅らせてFIT/.test(app)
     || !/onclick="fitCueToPrevious\(\$\{insertAt\}\)"/.test(app)
@@ -159,7 +160,7 @@ if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
   failures.push("キュー間と楽曲末尾の空白・マイナス区間警告、空白内追加、閉じる操作、FIT整列が揃っていません");
 }
 if (/onclick="editorAutoCue\(\)"/.test(app)
-    || !/const emptyStepActions = `[\s\S]*?addStep\('trick',0\)[\s\S]*?sheetPickTrick\(0\)[\s\S]*?addStep\('transition',0\)/.test(app)
+    || !/const emptyStepActions = `[\s\S]*?sheetAddTrick\(0\)[\s\S]*?addStep\('transition',0\)/.test(app)
     || !/\$\{stepRows \|\| `[\s\S]*?\$\{emptyStepActions\}`\}/.test(app)) {
   failures.push("編集末尾の追加・自動セット領域が非表示で、空のルーティンだけに初回追加導線を残す仕様ではありません");
 }

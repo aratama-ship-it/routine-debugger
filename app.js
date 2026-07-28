@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v260"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v261"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2557,8 +2557,7 @@ function cueIntervalWarningHtml(index) {
   const dismiss = isEnglish() ? "Dismiss this interval warning" : "この区間警告を閉じる";
   const insertAt = index + 1;
   const actions = interval.kind === "gap" ? `<div class="cue-gap-actions" aria-label="${isEnglish() ? "Add a sequence in this gap" : "この空間にシーケンスを追加"}">
-    <button type="button" onclick="addStep('trick',${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Sequence" : "技"}</button>
-    <button type="button" onclick="sheetPickTrick(${insertAt})" aria-label="${isEnglish() ? "Choose a sequence from the library for this gap" : "空間に技リストから追加"}">＋${isEnglish() ? "Library" : "技リストから"}</button>
+    <button type="button" onclick="sheetAddTrick(${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Sequence" : "技"}</button>
     <button type="button" onclick="addStep('transition',${insertAt})" aria-label="${isEnglish() ? "Add a transition in this gap" : "空間に移行を追加"}">＋${isEnglish() ? "Transition" : "移行"}</button>
   </div>` : (!interval.terminal ? `<div class="cue-overlap-actions">
     <button type="button" onclick="fitCueToPrevious(${insertAt})"
@@ -2593,8 +2592,7 @@ function renderEdit() {
   const showRisk = routineFeatureEnabled(rt, "showRisk", draft.featureSettings);
   const showSlots = routineFeatureEnabled(rt, "showSlots", draft.featureSettings);
   const emptyStepActions = `<div class="row-2" style="margin-top:12px">
-    <button class="btn small" onclick="addStep('trick',0)">＋ 技</button>
-    <button class="btn small" onclick="sheetPickTrick(0)">＋ 技リストから</button>
+    <button class="btn small" onclick="sheetAddTrick(0)">＋ 技</button>
     <button class="btn small ghost" onclick="addStep('transition',0)">＋ 移行</button>
   </div>`;
   const stepRows = draft.steps.map((s, i) => {
