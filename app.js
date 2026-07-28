@@ -4,15 +4,15 @@
 const EVENT_TYPES = [
   { id: "drop_recovered", label: "ドロップ(復帰)", desc: "落としたが拾って続行", abort: false },
   { id: "wobble",         label: "乱れ(回収)",     desc: "崩れたが立て直した",   abort: false },
-  { id: "avoid",          label: "回避",           desc: "安全のため技を飛ばした", abort: false },
-  { id: "not_attempted",  label: "実施できなかった", desc: "直前の失敗などで、この技を実施できなかった", abort: false },
+  { id: "avoid",          label: "回避",           desc: "安全のためシーケンスを飛ばした", abort: false },
+  { id: "not_attempted",  label: "実施できなかった", desc: "直前の失敗などで、このシーケンスを実施できなかった", abort: false },
   { id: "drop_abort",     label: "ドロップ(中止)", desc: "落として通しを止めた", abort: true },
 ];
 const HYPOTHESIS_TAGS = ["集中切れ", "疲労", "技術ミス", "環境(風/床/光)", "道具", "緊張"];
 const FEELINGS = [
   { v: 3, label: "良い" }, { v: 2, label: "普通" }, { v: 1, label: "悪い" },
 ];
-// リスク度: 自分が事前に感じる「この技はどれくらい失敗しそうか」(1=かなり安全 〜 5=かなり危険)。
+// リスク度: 自分が事前に感じる「このシーケンスはどれくらい失敗しそうか」(1=かなり安全 〜 5=かなり危険)。
 // 実際の失敗率とのズレ(認識と結果の乖離)を見るための主観指標。1〜5の5段階。
 const RISK_LEVELS = [1, 2, 3, 4, 5];
 const RISK_LABEL = { 1: "リスク1", 2: "リスク2", 3: "リスク3", 4: "リスク4", 5: "リスク5" };
@@ -23,8 +23,8 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v266"; // 要望フォーム等で自動送信するアプリ版
-const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
+const APP_VERSION = "v267"; // 要望フォーム等で自動送信するアプリ版
+const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
 // 開発中は、保存映像と同じ横長4:3と、画面いっぱいに見せる9:16を撮影前に比較できるようにする。
@@ -153,7 +153,7 @@ function migrateState() {
   let itemColorsChanged = false;
   let runVideoStateChanged = false;
   if (!Array.isArray(state.sessions)) state.sessions = [];
-  if (!Array.isArray(state.tricks)) state.tricks = []; // 技ライブラリ(動画クリップ)
+  if (!Array.isArray(state.tricks)) state.tricks = []; // シーケンスライブラリ(動画クリップ)
   if (!Array.isArray(state.audios)) state.audios = []; // 音源ライブラリ(楽曲・録音)。ルーティンへはコピーして添付
   if (!Array.isArray(state.runVideos)) { state.runVideos = []; runVideoStateChanged = true; }
   if (!state.settings) state.settings = {}; // アプリ設定(動画品質など)
@@ -177,7 +177,7 @@ function migrateState() {
     delete item.tagIds;
   }
   if (Object.prototype.hasOwnProperty.call(state, "entityTags")) { delete state.entityTags; itemColorsChanged = true; }
-  // 技のトリム情報を補完(fullDuration=元動画の長さ, trimStart/trimEnd=有効区間, duration=有効区間の長さ)
+  // シーケンスのトリム情報を補完(fullDuration=元動画の長さ, trimStart/trimEnd=有効区間, duration=有効区間の長さ)
   for (const t of state.tricks) {
     if (t.fullDuration == null) t.fullDuration = t.duration;
     if (t.trimStart == null) t.trimStart = 0;
@@ -213,7 +213,7 @@ function migrateState() {
           delete st.trickId;
           routineSettingsChanged = true;
         }
-        // A/Bは複数の「技」から選ぶステップ。旧データで種別が欠けている／移行になっている場合も技へ統一する。
+        // A/Bは複数の「シーケンス」から選ぶステップ。旧データで種別が欠けている／移行になっている場合もシーケンスへ統一する。
         if (isSlot(st) && st.kind !== "trick") {
           st.kind = "trick";
           routineSettingsChanged = true;
@@ -378,7 +378,7 @@ function versionStats(routine, versionId) {
   const total = runs.length;
   const clean = runs.filter((r) => r.outcome === "clean").length;
   // ステップ別: 未実施は「予定地点へ到達したが試行できなかった」として失敗から分離する。
-  // 失敗率の分母は実施回数、未実施率の分母は到達数。直前の失敗による連鎖で次の技の失敗率を歪めない。
+  // 失敗率の分母は実施回数、未実施率の分母は到達数。直前の失敗による連鎖で次のシーケンスの失敗率を歪めない。
   const steps = ver.steps.map((st, i) => {
     const reachedRuns = runs.filter((r) => r.reachedIndex >= i);
     const actualFailure = (r) => r.events.some((e) => e.stepIndex === i && e.type !== "not_attempted");
@@ -459,7 +459,7 @@ function showSheet(html, variant = "") {
   $sheet.setAttribute("aria-modal", "true");
   $sheet.setAttribute("aria-label", $sheet.querySelector("h3")?.textContent.trim()
     || (isEnglish() ? "Dialog" : "確認"));
-  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // シート内の技動画にトリム適用
+  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // シート内のシーケンス動画にトリム適用
 }
 function releaseSheetMedia() {
   stopRunVideoAudioSync();
@@ -650,7 +650,7 @@ function updateMusicUI() {
     : (musicPlayer.paused ? "▶ 再生" : "❚❚ 一時停止"));
   const vol = document.getElementById("music-vol");
   if (vol && !vol.matches(":active")) vol.value = musicVolume;
-  if (view.name === "record") recordTickUI();   // キュー指定に基づく「いまこの技」ハイライト
+  if (view.name === "record") recordTickUI();   // キュー指定に基づく「いまこのシーケンス」ハイライト
   if (view.name === "part") { updatePartLoopPlayhead(); updatePracticeNowUI(); }
   if (view.name === "edit") { editorTickUI(); updateCueButtons(); updatePracticeNowUI(); } // 現在行+上部固定プレビュー
 }
@@ -722,7 +722,7 @@ function practiceSchedule(steps) {
 // plannedPracticeStep(現在ステップの判定)と空間表示は practice-dock.js にある
 function practiceStepName(rt, step) {
   if (!isSlot(step)) return stepDisplayName(step) || "名称未設定";
-  // A/Bを使わない間は、どの画面の現在技表示でも選択肢Aを通常の技として扱う。
+  // A/Bを使わない間は、どの画面の現在シーケンス表示でも選択肢Aを通常のシーケンスとして扱う。
   // 保存済みの選択肢とセッション既定値は消さず、ONに戻したときに復元する。
   if (!routineFeatureEnabled(rt, "showSlots")) {
     return (step.options[0] && optionDisplayName(step.options[0])) || stepDisplayName(step) || "名称未設定";
@@ -757,7 +757,7 @@ function syncEditPreviewButtons() {
     if (!btn) return;
     const active = !!(draft.steps[i] && draft.steps[i].id === practiceDockStepId);
     btn.classList.toggle("on", active);
-    btn.setAttribute("aria-label", active ? "この技を上部でプレビュー中" : "この技を上部でプレビュー");
+    btn.setAttribute("aria-label", active ? "このシーケンスを上部でプレビュー中" : "このシーケンスを上部でプレビュー");
   });
 }
 function editorPreviewPlayerHtml(hasMusic) {
@@ -787,7 +787,7 @@ function practiceNowDockHtml(editorPlayer = "") {
   const nameOnly = !editorPlayer && practicePreviewNameOnly();
   return `<section class="practice-now paused ${editorPlayer ? "has-editor-player" : ""} ${nameOnly ? "name-only" : ""}" id="practice-now" aria-live="polite" aria-atomic="true">
     <div class="practice-now-copy">
-      <strong id="practice-now-name">技を準備中…</strong>
+      <strong id="practice-now-name">シーケンスを準備中…</strong>
       <span class="practice-now-meta" id="practice-now-meta">プレビュー位置は固定されます</span>
       ${editorPlayer}
     </div>
@@ -831,7 +831,7 @@ async function updatePracticeNowUI() {
     const name = document.getElementById("practice-now-name");
     const meta = document.getElementById("practice-now-meta");
     const media = document.getElementById("practice-now-media");
-    if (name) name.textContent = uiText("技を追加するとここに表示されます");
+    if (name) name.textContent = uiText("シーケンスを追加するとここに表示されます");
     if (meta) meta.textContent = uiText("プレビュー位置は固定されます");
     if (media) media.innerHTML = `<span class="practice-video-empty">${uiText("動画プレビュー")}</span>`;
     practiceDockStepId = null;
@@ -891,7 +891,7 @@ function clearPracticeNowCache() {
   practiceVideoUrls.clear();
 }
 
-// 通し練習: 再生位置がキューを過ぎた最後のステップを「いまこの技」として光らせる
+// 通し練習: 再生位置がキューを過ぎた最後のステップを「いまこのシーケンス」として光らせる
 function recordTickUI() {
   const rows = document.querySelectorAll(".step-list .step-btn");
   if (!rows.length) return;
@@ -900,7 +900,7 @@ function recordTickUI() {
   const steps = latestVersion(rt).steps;
   const cur = musicCurrentTime();
   const planned = plannedPracticeStep(steps, cur);
-  // 空間のあいだは、どの行も「いまこの技」にしない
+  // 空間のあいだは、どの行も「いまこのシーケンス」にしない
   const ai = (!musicPlayer.paused || cur > 0.05) && planned && !planned.gap ? planned.index : -1;
   rows.forEach((el, i) => el.classList.toggle("now", i === ai));
   updatePracticeNowUI();
@@ -1735,7 +1735,7 @@ function go(name, params = {}) {
   if (["record", "part", "edit"].includes(view.name) && name !== view.name) clearPracticeNowCache();
   if (view.name === "edit" && name !== "edit") { musicPlayer.pause(); cuePlayStepId = null; }
   if (view.name === "stats" && name !== "stats") recPlayer.pause();
-  // 技撮影を離れるとき: カメラ解放
+  // シーケンス撮影を離れるとき: カメラ解放
   if (view.name === "trickrec" && name !== "trickrec") releaseTrickCam();
   // 音源ライブラリを離れるとき: 試聴停止・録音中なら保存して停止
   if (view.name === "audios" && name !== "audios") {
@@ -1747,14 +1747,14 @@ function go(name, params = {}) {
 
 // 見出しの「?」で開く説明。項目内の長い説明文はここに畳む(UIをすっきり&いつでも参照)
 const INFO = {
-  steps: { t: "ステップの並べ替え・ピン・FIT", b: "番号の下の <span style=\"color:var(--muted)\">⠿</span> を上下にドラッグすると、技の順番を入れ替えられます。<br><br>ピンを打つと、並べ替えや自動セットでもその技の曲位置を維持します。FITは、そのキューを一つ前のシーケンスの終わりへ揃えます。" },
+  steps: { t: "ステップの並べ替え・ピン・FIT", b: "番号の下の <span style=\"color:var(--muted)\">⠿</span> を上下にドラッグすると、シーケンスの順番を入れ替えられます。<br><br>ピンを打つと、並べ替えや自動セットでもそのシーケンスの曲位置を維持します。FITは、そのキューを一つ前のシーケンスの終わりへ揃えます。" },
   audioLib: { t: "音源ライブラリ", b: "ここの音源は、ルーティン編集/タイムラインの「♪ ライブラリから」で選んで使えます。付属サンプルは最初から使えます。音源はこの端末内に保存され、ログインしても同期されません。残すには完全バックアップ(ZIP)を使ってください。" },
-  editorFeatures: { t: "ルーティンで使う機能", b: "人によっては使わない機能を、初期状態では隠しています。<br><br><b>リスク度</b> = 各技に危険度(1〜5)を付けて、分析で失敗率とのズレを見る機能。<br><b>A/B分岐</b> = 本番でどちらの技をやるか選べるステップを作る機能。<br><br>ルーティン画面右上の<b>個別</b>から、そのルーティンだけ切り替えられます。OFFにしても、設定済みのデータは消えません。" },
-  videoQuality: { t: "技の動画の画質", b: "技の動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。" },
-  fullBackup: { t: "完全バックアップ(ZIP)", b: "<b>ログイン中に復元すると、その内容が他の端末にも同期されます</b>(バックアップに無いものは他の端末からも消えます)。この端末だけに戻したいときは、先にログアウトしてください。<br><br>ルーティン・記録・設定に加えて、<b>技の動画・通し映像・音源・録音までまとめて1つのZIPファイル</b>に書き出します。機種変更や、端末のデータが消えたときの復旧はこちらを使ってください。<br><br>ZIPの中には各ファイルの照合値(SHA-256)を記録しているので、復元時に壊れていないか自動で検証します。1件でも壊れていれば復元を中止し、いまのデータは変更しません。<br><br><b>ZIPを検証する</b>は、復元せずに中身が無事かどうかだけを確かめます。バックアップが本当に使えるか、ときどき確認してください。<br><br>動画を含むためファイルは大きくなります。書き出したZIPは、iCloudやPCなど<b>この端末の外</b>に保存してください。" },
+  editorFeatures: { t: "ルーティンで使う機能", b: "人によっては使わない機能を、初期状態では隠しています。<br><br><b>リスク度</b> = 各シーケンスに危険度(1〜5)を付けて、分析で失敗率とのズレを見る機能。<br><b>A/B分岐</b> = 本番でどちらのシーケンスをやるか選べるステップを作る機能。<br><br>ルーティン画面右上の<b>個別</b>から、そのルーティンだけ切り替えられます。OFFにしても、設定済みのデータは消えません。" },
+  videoQuality: { t: "シーケンスの動画の画質", b: "シーケンスの動画は容量を抑えるため自動で圧縮されます。軽量にすると保存容量が減りますが、少し粗くなります。この設定は今後の撮影・アップロードに適用されます(既存の動画はそのまま)。" },
+  fullBackup: { t: "完全バックアップ(ZIP)", b: "<b>ログイン中に復元すると、その内容が他の端末にも同期されます</b>(バックアップに無いものは他の端末からも消えます)。この端末だけに戻したいときは、先にログアウトしてください。<br><br>ルーティン・記録・設定に加えて、<b>シーケンスの動画・通し映像・音源・録音までまとめて1つのZIPファイル</b>に書き出します。機種変更や、端末のデータが消えたときの復旧はこちらを使ってください。<br><br>ZIPの中には各ファイルの照合値(SHA-256)を記録しているので、復元時に壊れていないか自動で検証します。1件でも壊れていれば復元を中止し、いまのデータは変更しません。<br><br><b>ZIPを検証する</b>は、復元せずに中身が無事かどうかだけを確かめます。バックアップが本当に使えるか、ときどき確認してください。<br><br>動画を含むためファイルは大きくなります。書き出したZIPは、iCloudやPCなど<b>この端末の外</b>に保存してください。" },
   csv: { t: "記録の書き出し(表計算用)", b: "練習の記録をCSVで書き出します。表計算ソフトで自分なりに集計したいとき用です。<br><br><b>これはバックアップではありません。</b>CSVからアプリへ戻すことはできません。残しておきたい場合は「完全バックアップ(ZIP)」を使ってください。" },
   feedback: { t: "ご意見・機能の要望", b: "「こんな機能がほしい」「ここが使いにくい」などを開発者に直接送れます。いただいた要望は今後の改善に使わせてもらいます。" },
-  reset: { t: "初期化", b: "まっさらな状態から試し直したいとき・サンプル一式を入れ直したいときに。ルーティン・記録・技と通しの動画・録音・楽曲・設定がすべて消えます(元に戻せません)。" },
+  reset: { t: "初期化", b: "まっさらな状態から試し直したいとき・サンプル一式を入れ直したいときに。ルーティン・記録・シーケンスと通しの動画・録音・楽曲・設定がすべて消えます(元に戻せません)。" },
 };
 const INFO_EN = {
   steps: { t: "Reordering, pins, and FIT", b: "Drag the ⠿ handle below the step number to change the order.<br><br>Pin a step to keep that sequence at the same music position when reordering or automatically setting cues. FIT aligns its cue with the end of the previous sequence." },
@@ -1854,7 +1854,7 @@ window.showRoutineMenu = (routineId) => {
       <h4 id="routine-feature-title">使う機能${infoBtn("editorFeatures")}</h4>
       <div class="routine-menu-toggle-list">
         ${routineSwitchRow("リスク度", "事前予想と実際の失敗率を比べる", "showRisk", routineId, settings)}
-        ${routineSwitchRow("A/B分岐", "本番で使う技を選択肢から切り替える", "showSlots", routineId, settings)}
+        ${routineSwitchRow("A/B分岐", "本番で使うシーケンスを選択肢から切り替える", "showSlots", routineId, settings)}
         ${routineSwitchRow("プレビュー動画", "通し・パート練習で現在のシーケンスの動画を表示する", "showPracticeVideo", routineId, settings)}
       </div>
       <div class="routine-menu-note">OFFにしても登録済みの値は消えません</div>
@@ -1936,7 +1936,7 @@ function render() {
   ensureGlobalSettingsAction();
   applyUiLanguage($app);
   if (view.name === "edit") requestAnimationFrame(syncEditorSequenceDurations);
-  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // 技動画にトリム区間を適用
+  if (typeof bindAllTrimVideos === "function") bindAllTrimVideos(); // シーケンス動画にトリム区間を適用
   // 音源ロードによる再描画後も、常設の現在シーケンス名と静止プレビューを同じDOMへ同期する
   if (["record", "part", "edit"].includes(view.name)) updatePracticeNowUI();
   if (view.name === "record") bindRunCameraLivePreview();
@@ -2224,7 +2224,7 @@ function renderRoutines() {
       <h1>ルーティン一覧</h1></div>
     <section class="routine-stack-list" aria-labelledby="routine-stack-title">
       <h2 id="routine-stack-title">登録済みのルーティン</h2>
-      ${rows || `<div class="empty">まだルーティンがありません。<br>技と移行を順番に登録するところから始めます。</div>`}
+      ${rows || `<div class="empty">まだルーティンがありません。<br>シーケンスと移行を順番に登録するところから始めます。</div>`}
     </section>
     <button class="btn" onclick="go('edit',{})">＋ 新規ルーティン</button>
     ${state.routines.some((r) => r.sampleSet) ? "" :
@@ -2561,7 +2561,7 @@ function cueIntervalWarningHtml(index) {
   const dismiss = isEnglish() ? "Dismiss this interval warning" : "この区間警告を閉じる";
   const insertAt = index + 1;
   const actions = interval.kind === "gap" ? `<div class="cue-gap-actions" aria-label="${isEnglish() ? "Add a sequence in this gap" : "この空間にシーケンスを追加"}">
-    <button type="button" onclick="sheetAddTrick(${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間に技を追加"}">＋${isEnglish() ? "Sequence" : "技"}</button>
+    <button type="button" onclick="sheetAddTrick(${insertAt})" aria-label="${isEnglish() ? "Add a sequence in this gap" : "空間にシーケンスを追加"}">＋${isEnglish() ? "Sequence" : "シーケンス"}</button>
     <button type="button" onclick="addStep('transition',${insertAt})" aria-label="${isEnglish() ? "Add a transition in this gap" : "空間に移行を追加"}">＋${isEnglish() ? "Transition" : "移行"}</button>
   </div>` : (!interval.terminal ? `<div class="cue-overlap-actions">
     <button type="button" onclick="fitCueToPrevious(${insertAt})"
@@ -2596,18 +2596,18 @@ function renderEdit() {
   const showRisk = routineFeatureEnabled(rt, "showRisk", draft.featureSettings);
   const showSlots = routineFeatureEnabled(rt, "showSlots", draft.featureSettings);
   const emptyStepActions = `<div class="row-2" style="margin-top:12px">
-    <button class="btn small" onclick="sheetAddTrick(0)">＋ 技</button>
+    <button class="btn small" onclick="sheetAddTrick(0)">＋ シーケンス</button>
     <button class="btn small ghost" onclick="addStep('transition',0)">＋ 移行</button>
   </div>`;
   const stepRows = draft.steps.map((s, i) => {
-    // A/B機能がOFFのA/Bステップは、データは残したまま表示だけ畳んで「選択肢A」を通常の技として見せる
+    // A/B機能がOFFのA/Bステップは、データは残したまま表示だけ畳んで「選択肢A」を通常のシーケンスとして見せる
     const collapsedSlot = isSlot(s) && !showSlots;
     const nameVal = collapsedSlot ? optionDisplayName(s.options[0]) : stepDisplayName(s);
-    const namePh = collapsedSlot ? "シーケンス名" : (isSlot(s) ? "分岐の名前(例: ラスト技)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "シーケンス名");
+    const namePh = collapsedSlot ? "シーケンス名" : (isSlot(s) ? "分岐の名前(例: ラストシーケンス)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "シーケンス名");
     const nameOninput = collapsedSlot ? `draft.steps[${i}].options[0].name=this.value` : `draft.steps[${i}].name=this.value`;
     const stepKind = isSlot(s) ? "trick" : (s.kind || "trick");
-    const kindToggleText = isEnglish() ? (stepKind === "trick" ? "Seq." : "Trans.") : (stepKind === "trick" ? "技" : "移行");
-    const kindToggleLabel = isEnglish() ? (stepKind === "trick" ? "Sequence" : "Transition") : (stepKind === "trick" ? "技" : "移行");
+    const kindToggleText = isEnglish() ? (stepKind === "trick" ? "Seq." : "Trans.") : (stepKind === "trick" ? "シーケンス" : "移行");
+    const kindToggleLabel = isEnglish() ? (stepKind === "trick" ? "Sequence" : "Transition") : (stepKind === "trick" ? "シーケンス" : "移行");
     const fitLabel = isEnglish()
       ? (i === 0 ? "Fit this cue to 0:00.0" : "Fit this cue to the end of the previous sequence")
       : (i === 0 ? "先頭のキューを0:00.0に合わせる" : "前のシーケンスの終わりにキューを合わせる");
@@ -2639,7 +2639,7 @@ function renderEdit() {
             <button class="mini-btn cue-pin ${s.cueLocked ? "locked" : ""}" onclick="toggleCueLock(${i})"
               aria-pressed="${s.cueLocked ? "true" : "false"}"
               aria-label="${s.cueLocked ? "ポジションロックを解除" : "ポジションを固定"}"
-              title="${s.cueLocked ? "ポジションロックを解除" : "この技を現在の曲位置に固定"}">
+              title="${s.cueLocked ? "ポジションロックを解除" : "このシーケンスを現在の曲位置に固定"}">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5h7l-1 5 2.5 2.5v2h-4v7l-1 1.5-1-1.5v-7H7v-2l2.5-2.5-1-5Z"/></svg>
             </button>
             <button class="mini-btn cue-fit" onclick="fitCueToPrevious(${i})"
@@ -2665,7 +2665,7 @@ function renderEdit() {
         </div>` : ""}
         <button class="kind-toggle es-kind-toggle ${stepKind === "trick" ? "t" : ""}"
           onclick="toggleStepKind(${i})" ${isSlot(s)
-            ? `aria-label="A/B選択の技。タップで移行に変更" title="移行にする場合は確認します"`
+            ? `aria-label="A/B選択のシーケンス。タップで移行に変更" title="移行にする場合は確認します"`
             : `aria-label="${kindToggleLabel}"`}>${kindToggleText}</button>
       </div>
       ${isSlot(s) && showSlots ? s.options.map((o, oi) => `
@@ -2733,7 +2733,7 @@ function renderEdit() {
       </aside>
       <main class="tablet-edit-main">
         <div class="card tablet-step-card">
-          <h2>ステップ(技と移行) — 上から実施順${infoBtn("steps")}</h2>
+          <h2>ステップ(シーケンスと移行) — 上から実施順${infoBtn("steps")}</h2>
           ${stepRows || `<div class="empty">最初のシーケンスを追加</div>${emptyStepActions}`}
         </div>
         ${rt ? `<p class="hint">${isEnglish()
@@ -2761,17 +2761,17 @@ window.setRisk = (i, n) => {
   else draft.steps[i].risk = Number(n);
   render();
 };
-// このステップの♪キュー位置から曲を再生/一時停止。押した技のボタンだけ再生↔停止でトグルする
+// このステップの♪キュー位置から曲を再生/一時停止。押したシーケンスのボタンだけ再生↔停止でトグルする
 let cuePlayStepId = null;
 window.editorPlayFromCue = (i) => {
   const s = draft && draft.steps[i];
   if (!s || s.cue == null || !musicPlayer.src) return;
   if (cuePlayStepId === s.id) {
-    // 同じ技のボタン: 再生中なら一時停止、停止中ならこの技の位置から再生
-    // 止めてから押し直したときも、続きではなくこの技の位置から始める
+    // 同じシーケンスのボタン: 再生中なら一時停止、停止中ならこのシーケンスの位置から再生
+    // 止めてから押し直したときも、続きではなくこのシーケンスの位置から始める
     if (musicPlayer.paused) { ensureAudioGraph(); musicSetTime(s.cue); playMedia(musicPlayer, "楽曲を再生できませんでした"); } else musicPlayer.pause();
   } else {
-    // 別の技のボタン: その技の位置へ頭出しして再生
+    // 別のシーケンスのボタン: そのシーケンスの位置へ頭出しして再生
     cuePlayStepId = s.id;
     ensureAudioGraph();
     musicSetTime(s.cue);
@@ -2779,7 +2779,7 @@ window.editorPlayFromCue = (i) => {
   }
   updateCueButtons();
 };
-// ♪キュー再生ボタンの表示更新(押した技=再生中は一時停止アイコン、他は常に再生アイコン)
+// ♪キュー再生ボタンの表示更新(押したシーケンス=再生中は一時停止アイコン、他は常に再生アイコン)
 function updateCueButtons() {
   document.querySelectorAll(".cue-play").forEach((b) => {
     const active = cuePlayStepId && b.dataset.cueStep === cuePlayStepId && !musicPlayer.paused;
@@ -2951,7 +2951,7 @@ function flattenSlotToStep(s, kind = "trick") {
   s.kind = kind;
 }
 
-// A/B化: 既存のシーケンス名を選択肢Aに移し、スロット(分岐)にする。解除は選択肢Aを技に戻す
+// A/B化: 既存のシーケンス名を選択肢Aに移し、スロット(分岐)にする。解除は選択肢Aをシーケンスに戻す
 window.toggleSlot = (i) => {
   const s = draft.steps[i];
   if (isSlot(s)) {
@@ -3032,13 +3032,13 @@ window.sheetPickTrick = (insertAt = null) => {
   const tricks = (state.tricks || []).slice().sort((a, b) => b.createdAt - a.createdAt);
   if (!tricks.length) {
     return showSheet(`
-      <h3>技リストから追加</h3>
-      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <h3>シーケンスリストから追加</h3>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先にシーケンスを撮影・登録してください。</div>
       <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
   showSheet(`
-    <h3>技リストから追加</h3>
+    <h3>シーケンスリストから追加</h3>
     <div class="sheet-sub">タップで追加 / 再生マークで動画を確認</div>
     ${tricks.map((t) => `
       <div class="pick-trick-row" data-line-color="${itemLineColor(t)}" onclick="addStepFromTrick('${t.id}',${target == null ? "null" : target})">
@@ -3273,7 +3273,7 @@ window.confirmRunStart = (routineId) => {
     <h3>通し練習を始めますか？</h3>
     <div class="sheet-sub">${esc(routineDisplayName(rt))}</div>
     <div class="run-confirm-note">
-      <div><span>最初の技</span><b>${first ? esc(stepLabel(first)) : "—"}</b></div>
+      <div><span>最初のシーケンス</span><b>${first ? esc(stepLabel(first)) : "—"}</b></div>
       <div><span>楽曲</span><b>${rt.music ? `「${esc(rt.music.name)}」を0秒から再生` : "楽曲なし"}</b></div>
     </div>
     <section class="run-camera-confirm" id="run-camera-area" data-routine-id="${esc(rt.id)}">
@@ -3459,7 +3459,7 @@ function renderRecord() {
       </div>`;
     }
     if (isSlot(s)) {
-      // A/B分岐OFF: 選択肢A(options[0])を通常の技として表示。チップは出さず、常にAで進める
+      // A/B分岐OFF: 選択肢A(options[0])を通常のシーケンスとして表示。チップは出さず、常にAで進める
       const selOpt = s.options[0];
       const risk = selOpt.risk;
       return `<div class="step-btn ${s.kind}" onclick="tapStep(${i})">
@@ -3804,7 +3804,7 @@ function renderStats() {
   const versionGuide = rt.sampleSet && rt.versions.length >= 3 ? `
     <div class="version-guide">
       <b>構成の変化を比較できます</b>
-      <span>v1 基本構成 → v2 移行を追加 → v3 A/B分岐と技を追加</span>
+      <span>v1 基本構成 → v2 移行を追加 → v3 A/B分岐とシーケンスを追加</span>
     </div>` : "";
   const verSelect = rt.versions.length > 1 ? `
     ${versionGuide}
@@ -3818,7 +3818,7 @@ function renderStats() {
       <div class="topbar"><button class="back-btn" onclick="go('routines')">戻る</button>
         <h1>${esc(routineDisplayName(rt))} 分析</h1>${routineMenuAction(rt.id)}</div>
       ${verSelect}
-      <div class="empty">v${verIndex} の通し記録はまだありません。<br>「通し練習」からクリーン、失敗、実施できなかった技を記録すると、ここに偏りが表示されます。</div>`;
+      <div class="empty">v${verIndex} の通し記録はまだありません。<br>「通し練習」からクリーン、失敗、実施できなかったシーケンスを記録すると、ここに偏りが表示されます。</div>`;
   }
 
   const english = isEnglish();
@@ -4357,7 +4357,7 @@ function renderPart() {
     </div>`;
 }
 
-// ========== 技の詳細(ステップ別のミス内訳) ==========
+// ========== シーケンスの詳細(ステップ別のミス内訳) ==========
 const typeLabel = (id) => uiText((EVENT_TYPES.find((t) => t.id === id) || {}).label || id);
 
 function renderStepDetail() {
@@ -4420,9 +4420,9 @@ function renderStepDetail() {
       <div class="stat-box"><div class="v">${reached}</div><div class="l">対象地点への到達</div></div>
     </div>
     ${step.trickId && (state.tricks || []).some((t) => t.id === step.trickId)
-      ? `<button class="btn" onclick="playTrickVideo('${step.trickId}')">▶ 技の動画を見る</button>` : ""}
+      ? `<button class="btn" onclick="playTrickVideo('${step.trickId}')">▶ シーケンスの動画を見る</button>` : ""}
     ${optBreakdown ? `<div class="card"><h2>選択肢別</h2>${optBreakdown}</div>` : ""}
-    ${noteRows ? `<div class="card"><h2>この技の記録(新しい順)</h2>${noteRows}</div>` : `<div class="empty">この技の失敗・未実施記録はまだありません</div>`}
+    ${noteRows ? `<div class="card"><h2>このシーケンスの記録(新しい順)</h2>${noteRows}</div>` : `<div class="empty">このシーケンスの失敗・未実施記録はまだありません</div>`}
     ${typeCounts.length ? `<div class="card"><h2>記録の種類(全${evs.length}件中)</h2>
       ${typeCounts.map((x) => `<div class="bd-row"><span class="k">${x.t.label}</span><span class="v">${x.n}件</span></div>`).join("")}</div>` : ""}
     ${Object.keys(tagCounts).length ? `<div class="card"><h2>原因の仮説タグ(複数選択・推測)</h2>
@@ -4559,9 +4559,9 @@ window.commitEditSession = (sessId) => {
   saveState(); hideSheet(); render(); toast("保存しました");
 };
 
-// ========== 技ライブラリ(動画クリップの登録・撮影) ==========
-// RDB-05の第一歩。技を最大20秒の動画として蓄積する。将来: 音楽タイムラインへの配置
-const TRICK_MAX_SEC = 20;      // 技の最大長。超過は登録を弾く
+// ========== シーケンスライブラリ(動画クリップの登録・撮影) ==========
+// RDB-05の第一歩。シーケンスを最大20秒の動画として蓄積する。将来: 音楽タイムラインへの配置
+const TRICK_MAX_SEC = 20;      // シーケンスの最大長。超過は登録を弾く
 const TRICK_MAX_BYTES = 100 * 1024 * 1024; // 登録動画の上限100MB
 // C: 動画の圧縮プロファイル(撮影・アップロード両方に適用)。設定で切替可
 const VIDEO_PROFILES = {
@@ -4571,7 +4571,7 @@ const VIDEO_PROFILES = {
 function videoProfile() { return VIDEO_PROFILES[(state.settings || {}).videoQuality] || VIDEO_PROFILES.standard; }
 const fmtBytes = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}GB` : n >= 1e6 ? `${(n / 1e6).toFixed(0)}MB` : `${Math.ceil(n / 1e3)}KB`;
 
-// サンプル技(ボール軌道のループアニメ)。samples/ に同梱、http(s)配信時のみ読み込み可
+// サンプルシーケンス(ボール軌道のループアニメ)。samples/ に同梱、http(s)配信時のみ読み込み可
 const SAMPLE_TRICKS = [
   { f: "samples/s1.mp4", n: "3ボールカスケード" }, { f: "samples/s2.mp4", n: "リバースカスケード" },
   { f: "samples/s3.mp4", n: "シャワー" },           { f: "samples/s4.mp4", n: "4ボールファウンテン" },
@@ -4847,7 +4847,7 @@ window.audioPlay = async (id) => {
   });
 };
 
-// ---------- 楽曲の長さ調整(トリム)。技動画と同じく元Blobは残し、有効区間だけを保存 ----------
+// ---------- 楽曲の長さ調整(トリム)。シーケンス動画と同じく元Blobは残し、有効区間だけを保存 ----------
 let musicTrimUrl = null;
 let musicTrimDraft = null; // { kind, id, meta, start, end, full }
 async function openMusicTrim(meta, blob, kind, id) {
@@ -5093,8 +5093,8 @@ window.pickLibraryMusic = async (id, target) => {
 
 window.loadSampleTricks = async () => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
-  if (!appConfirm(`サンプルの技9個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
-  showLoading("サンプルの技を読み込み中…");
+  if (!appConfirm(`サンプルのシーケンス9個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
+  showLoading("サンプルのシーケンスを読み込み中…");
   let ok = 0;
   try {
     for (const s of SAMPLE_TRICKS) {
@@ -5117,8 +5117,8 @@ window.loadSampleTricks = async () => {
   saveState(); render();
   toast(ok ? `サンプル${ok}個を追加しました` : "サンプルを読み込めませんでした");
 };
-// サンプル一式: 技9個(既にあれば再利用)+サンプル楽曲+全機能入りのサンプルルーティン
-// v1=基本構成、v2=移行と後半技を追加、v3=A/B分岐と技を追加。初心者が版の意味を実画面で追えるようにする。
+// サンプル一式: シーケンス9個(既にあれば再利用)+サンプル楽曲+全機能入りのサンプルルーティン
+// v1=基本構成、v2=移行と後半シーケンスを追加、v3=A/B分岐とシーケンスを追加。初心者が版の意味を実画面で追えるようにする。
 function sampleTrickId(name) {
   const normalized = String(name || "").replace(/[（(].*?[）)]/g, "").trim();
   if (!normalized) return undefined;
@@ -5190,7 +5190,7 @@ function ensureSampleSequenceDemo(rt) {
     stepsAdded = true;
   }
   if (stepsAdded) remapExpandedSampleSessions(rt, version, previousSteps);
-  if (!version.label || version.label === "A/B分岐を追加") version.label = "A/B分岐と技を追加";
+  if (!version.label || version.label === "A/B分岐を追加") version.label = "A/B分岐とシーケンスを追加";
   rt.sampleSequenceSchema = SAMPLE_SEQUENCE_SCHEMA;
   return true;
 }
@@ -5218,7 +5218,7 @@ function cloneSampleStep(step) {
 function sampleDirectChoiceStep(slot) {
   if (!slot) return null;
   const opt = slot.options && slot.options[0];
-  const name = opt?.name || slot.name || "選択技";
+  const name = opt?.name || slot.name || "選択シーケンス";
   const trick = (state.tricks || []).find((t) => t.sample && t.name.startsWith(name));
   return {
     id: uid(), name, kind: "trick", cue: slot.cue,
@@ -5263,7 +5263,7 @@ function ensureSampleVersionDemo(rt) {
   if (rt.versions.length >= 3) {
     if (!rt.versions[0].label) rt.versions[0].label = "基本構成";
     if (!rt.versions[1].label) rt.versions[1].label = "移行を追加";
-    if (!latestVersion(rt).label) latestVersion(rt).label = "A/B分岐と技を追加";
+    if (!latestVersion(rt).label) latestVersion(rt).label = "A/B分岐とシーケンスを追加";
     if (originalCount === 1) {
       latestVersion(rt).createdAt = Math.min(Number(latestVersion(rt).createdAt) || Date.now(), Date.now() - 5 * 24 * 60 * 60 * 1000);
     }
@@ -5305,14 +5305,14 @@ function seedSampleHistory(rt, force = false) {
     } },
     { days: 21, feeling: 1, note: "仕事後・少し疲労", review: "後半だけでなく4ボールへの入りも不安定。", nextPlan: "通し前に4ボールを3回だけ確認", fails: {
       1: ["four", "wobble", ["疲労"], "入りで軌道が狭くなった"],
-      2: ["choice", "drop_abort", ["技術ミス"], "選択技の入りでドロップ"],
+      2: ["choice", "drop_abort", ["技術ミス"], "選択シーケンスの入りでドロップ"],
       3: ["four", "drop_abort", ["疲労"], "4ボールで中止"],
       5: ["five", "wobble", ["疲労"], "終盤で乱れた"],
       6: ["reverse", "drop_recovered", ["集中切れ"], "リバースで一度落とした"],
       7: ["choice", "wobble", ["技術ミス"], "ラスト前で軌道が前へ出た"],
       8: ["four", "drop_abort", ["疲労"], "4ボールの高さ不足"],
     } },
-    { days: 14, feeling: 2, note: "体育館・本番用の靴", review: "呼吸を意識すると4ボールの成功が増えた。", nextPlan: "選択技A/Bを同じ本数ずつ試す", fails: {
+    { days: 14, feeling: 2, note: "体育館・本番用の靴", review: "呼吸を意識すると4ボールの成功が増えた。", nextPlan: "選択シーケンスA/Bを同じ本数ずつ試す", fails: {
       2: ["four", "wobble", ["技術ミス"], "4ボールで小さな乱れ"],
       4: ["choice", "drop_recovered", ["技術ミス"], "5ボールを拾って復帰"],
       6: ["four", "drop_abort", ["集中切れ"], "音を聞き逃して中止"],
@@ -5320,22 +5320,22 @@ function seedSampleHistory(rt, force = false) {
     } },
     { days: 7, feeling: 3, note: "本番を想定して衣装で練習", review: "全体は安定。Aの方がまだ乱れやすい。", nextPlan: "Aを選ぶ日は手の高さだけ意識", fails: {
       3: ["four", "wobble", ["緊張"], "4ボールの最初だけ硬くなった"],
-      5: ["choice", "wobble", ["技術ミス"], "選択技Aで乱れた"],
+      5: ["choice", "wobble", ["技術ミス"], "選択シーケンスAで乱れた"],
       7: ["reverse", "wobble", ["集中切れ"], "リバースの出口で乱れた"],
     } },
-    { days: 2, feeling: 3, note: "通し前に短いパート練習", review: "4ボールは半数で乱れ、選択技も不安定。リバースは一度だけだった。", nextPlan: "4ボールと選択技を優先してパート練習", fails: {
+    { days: 2, feeling: 3, note: "通し前に短いパート練習", review: "4ボールは半数で乱れ、選択シーケンスも不安定。リバースは一度だけだった。", nextPlan: "4ボールと選択シーケンスを優先してパート練習", fails: {
       1: [
         ["four", "wobble", ["技術ミス"], "4ボールの入りで軌道が崩れた"],
-        ["choice", "drop_recovered", ["緊張"], "選択技を拾って続行"],
+        ["choice", "drop_recovered", ["緊張"], "選択シーケンスを拾って続行"],
         ["reverse", "wobble", ["集中切れ"], "リバースの出口で一度乱れた"],
       ],
       2: [
         ["four", "wobble", ["技術ミス"], "4ボールの高さが揃わなかった"],
-        ["choice", "wobble", ["技術ミス"], "選択技の入りで軌道が前へ出た"],
+        ["choice", "wobble", ["技術ミス"], "選択シーケンスの入りで軌道が前へ出た"],
       ],
       3: [
         ["four", "drop_recovered", ["疲労"], "4ボールを拾って復帰"],
-        ["choice", "wobble", ["緊張"], "選択技で小さく乱れた"],
+        ["choice", "wobble", ["緊張"], "選択シーケンスで小さく乱れた"],
       ],
       4: ["four", "wobble", ["技術ミス"], "4ボールを立て直した"],
     } },
@@ -5416,14 +5416,14 @@ async function ensureSampleTricks() {
 }
 window.loadSampleSet = async () => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
-  if (!appConfirm("サンプル一式(技9個+楽曲付きサンプルルーティン)を追加しますか?")) return;
+  if (!appConfirm("サンプル一式(シーケンス9個+楽曲付きサンプルルーティン)を追加しますか?")) return;
   showLoading("サンプル一式を読み込み中…");
   try {
   const byName = await ensureSampleTricks();
   if (state.routines.some((r) => r.sampleSet)) {
     state.routines.filter((r) => r.sampleSet).forEach(linkSampleVideos);
     saveState(); render();
-    return toast("サンプルルーティンは既にあります(技のみ確認しました)");
+    return toast("サンプルルーティンは既にあります(シーケンスのみ確認しました)");
   }
   // サンプル楽曲(レジストリの1曲目を使用)
   let music = null;
@@ -5432,7 +5432,7 @@ window.loadSampleSet = async () => {
     const mid = uid();
     if (await blobPut(mid, mf)) music = { blobId: mid, name: mf.name };
   }
-  // 技リンク/移行/リスク度/♪キュー/A/Bスロットを含むが、任意機能の表示は初期OFFにする。
+  // シーケンスリンク/移行/リスク度/♪キュー/A/Bスロットを含むが、任意機能の表示は初期OFFにする。
   const T = (n) => (byName[n] ? byName[n].id : undefined);
   const steps = [
     { id: uid(), name: "3ボールカスケード", kind: "trick", risk: 1, cue: 0, trickId: T("3ボールカスケード") },
@@ -5493,16 +5493,16 @@ function renderTricks() {
     <button class="btn batch-import-open" onclick="go('trickbatch')">▤ 長尺動画から一括追加</button>
     <input type="file" id="trick-file" accept="video/*" class="hidden" onchange="trickImport(this)">
     <div class="card">
-      <h2>登録済みのシーケンス・技 (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
-      ${rows || `<div class="empty">まだ技がありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
+      <h2>登録済みのシーケンス (最大${TRICK_MAX_SEC}秒/本${totalBytes ? ` — 合計${fmtBytes(totalBytes)}` : ""})</h2>
+      ${rows || `<div class="empty">まだシーケンスがありません。<br>撮影するか、撮ってある動画を登録してください。</div>`}
     </div>
     ${tricks.some((t) => t.sample)
-      ? `<button class="btn ghost" onclick="removeSampleTricks()">サンプル技をまとめて削除</button>`
-      : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(技9個+ルーティン)</button>`}`;
+      ? `<button class="btn ghost" onclick="removeSampleTricks()">サンプルシーケンスをまとめて削除</button>`
+      : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(シーケンス9個+ルーティン)</button>`}`;
 }
 
-// 技動画をシートで再生(どの画面からでもワンタップ)。
-// ctx: true=追加ピッカーから(「この技を追加」) / 数値=編集ステップctxへの紐づけモード / なし=閲覧のみ
+// シーケンス動画をシートで再生(どの画面からでもワンタップ)。
+// ctx: true=追加ピッカーから(「このシーケンスを追加」) / 数値=編集ステップctxへの紐づけモード / なし=閲覧のみ
 let sheetVideoUrl = null;
 window.playTrickVideo = async (trickId, ctx) => {
   const t = (state.tricks || []).find((x) => x.id === trickId);
@@ -5520,8 +5520,8 @@ window.playTrickVideo = async (trickId, ctx) => {
       ? `<button class="btn primary" onclick="linkTrickToStep(${ctx},'${t.id}')">この動画を紐づける</button>
          <button class="btn ghost" onclick="sheetLinkTrick(${ctx})">戻る</button>`
       : ctx === true
-      ? `<button class="btn primary" onclick="addStepFromTrick('${t.id}')">この技をルーティンに追加</button>
-         <button class="btn ghost" onclick="sheetPickTrick()">技リストに戻る</button>`
+      ? `<button class="btn primary" onclick="addStepFromTrick('${t.id}')">このシーケンスをルーティンに追加</button>
+         <button class="btn ghost" onclick="sheetPickTrick()">シーケンスリストに戻る</button>`
       : `<button class="btn ghost" onclick="hideSheet()">閉じる</button>`;
     showSheet(`
       <h3>${esc(trickDisplayName(t))}</h3>
@@ -5532,7 +5532,7 @@ window.playTrickVideo = async (trickId, ctx) => {
   });
 };
 
-// 編集画面の技動画は、行内を広げず、通し/パートと共通の上部固定プレビューへ表示する。
+// 編集画面のシーケンス動画は、行内を広げず、通し/パートと共通の上部固定プレビューへ表示する。
 window.editorPreviewTrick = (i) => {
   const s = draft && draft.steps[i];
   if (!s || !s.trickId) return;
@@ -5542,7 +5542,7 @@ window.editorPreviewTrick = (i) => {
   updatePracticeNowUI();
 };
 
-// 手入力の技に技ライブラリの動画を紐づける(注釈扱い=版は分割しない)
+// 手入力のシーケンスにシーケンスライブラリの動画を紐づける(注釈扱い=版は分割しない)
 window.sheetLinkTrick = (i) => {
   const s = draft && draft.steps[i];
   if (!s) return;
@@ -5550,12 +5550,12 @@ window.sheetLinkTrick = (i) => {
   if (!tricks.length) {
     return showSheet(`
       <h3>動画を紐づけ</h3>
-      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先にシーケンスを撮影・登録してください。</div>
       <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
   showSheet(`
-    <h3>「${esc(stepDisplayName(s) || "この技")}」に動画を紐づけ</h3>
+    <h3>「${esc(stepDisplayName(s) || "このシーケンス")}」に動画を紐づけ</h3>
     <div class="sheet-sub">タップで紐づけ / 再生マークで動画を確認</div>
     ${tricks.map((t) => `
       <div class="pick-trick-row" data-line-color="${itemLineColor(t)}" onclick="linkTrickToStep(${i},'${t.id}')">
@@ -5587,7 +5587,7 @@ window.unlinkTrickFromStep = (i) => {
   toast("紐づけを解除しました");
 };
 
-// A/Bの各選択肢は独立した技として、別々の動画を紐づける。
+// A/Bの各選択肢は独立したシーケンスとして、別々の動画を紐づける。
 window.sheetLinkTrickToOption = (i, oi) => {
   const option = draft && draft.steps[i] && draft.steps[i].options && draft.steps[i].options[oi];
   if (!option) return;
@@ -5595,7 +5595,7 @@ window.sheetLinkTrickToOption = (i, oi) => {
   if (!tricks.length) {
     return showSheet(`
       <h3>動画を紐づけ</h3>
-      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先に技を撮影・登録してください。</div>
+      <div class="empty">${TRICK_LIBRARY_LABEL}が空です。<br>先にシーケンスを撮影・登録してください。</div>
       <button class="btn" onclick="hideSheet();go('tricks')">${TRICK_LIBRARY_LABEL}へ</button>
       <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
   }
@@ -5659,7 +5659,7 @@ function bindAllTrimVideos() {
     bindTrimVideo(v, (state.tricks || []).find((x) => x.id === v.dataset.trimTrick)));
 }
 
-// ---------- 技動画の長さ調整(トリム)。始点/終点を設定=有効区間だけを技の長さに。後からいつでも変更可 ----------
+// ---------- シーケンス動画の長さ調整(トリム)。始点/終点を設定=有効区間だけをシーケンスの長さに。後からいつでも変更可 ----------
 let trimUrl = null;
 let trimDraft = null; // { id, start, end, full, changeContext? }
 window.sheetTrimTrick = async (id, changeContext = "") => {
@@ -5737,7 +5737,7 @@ function trimSheetHtml() {
       <button class="mini-btn" onclick="trimNudge('end',0.1)">＋</button>
       <button class="btn small" onclick="trimSetPoint('end')">今の位置</button>
     </div>
-    <div class="b-now-line" style="color:var(--text)">この技の長さ: <b id="trim-len">${fmtTime(d.end - d.start)}</b></div>
+    <div class="b-now-line" style="color:var(--text)">このシーケンスの長さ: <b id="trim-len">${fmtTime(d.end - d.start)}</b></div>
     <button class="btn primary" onclick="trimSave()">保存</button>
     ${changeAction}
     <button class="btn ghost" onclick="hideSheet()">キャンセル</button>`;
@@ -5789,7 +5789,7 @@ window.trimSave = () => {
 window.sheetRenameTrick = (id) => {
   const t = state.tricks.find((x) => x.id === id);
   showSheet(`
-    <h3>技の名前</h3>
+    <h3>シーケンスの名前</h3>
     <input type="text" id="trick-name" value="${esc(t.name)}">
     <div style="height:14px"></div>
     <button class="btn primary" onclick="commitRenameTrick('${id}')">保存</button>
@@ -5835,7 +5835,7 @@ async function saveTrick(blob, duration, defaultName) {
   setTimeout(() => sheetRenameTrick(id), 80); // 保存直後に名前を付けさせる
 }
 // アップロード動画をプロファイルに合わせて再エンコード(canvas→captureStream→MediaRecorder)。
-// ffmpeg等の重い依存を足さずブラウザ標準で完結。音声は落とす(技は映像確認が目的)。非対応/失敗はnull
+// ffmpeg等の重い依存を足さずブラウザ標準で完結。音声は落とす(シーケンスは映像確認が目的)。非対応/失敗はnull
 async function reencodeVideo(file) {
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
   const prof = videoProfile();
@@ -5900,11 +5900,11 @@ window.trickImport = async (input) => {
   return withLoading("動画を確認・圧縮中…", async () => {
     const dur0 = await probeVideoDuration(file);
     if (dur0 == null) return toast("動画を読み込めませんでした");
-    if (dur0 > TRICK_MAX_SEC + 0.5) return toast(`技は最大${TRICK_MAX_SEC}秒です(この動画は${fmtTime(dur0)})。トリミングしてから登録してください`);
+    if (dur0 > TRICK_MAX_SEC + 0.5) return toast(`シーケンスは最大${TRICK_MAX_SEC}秒です(この動画は${fmtTime(dur0)})。トリミングしてから登録してください`);
     let blob = file, dur = dur0;
     const enc = await reencodeVideo(file);
     if (enc && enc.blob.size > 0 && enc.blob.size < file.size) { blob = enc.blob; dur = enc.duration || dur0; }
-    await saveTrick(blob, dur, file.name.replace(/\.[^.]+$/, "") || "新しい技");
+    await saveTrick(blob, dur, file.name.replace(/\.[^.]+$/, "") || "新しいシーケンス");
   });
 };
 
@@ -5981,25 +5981,25 @@ window.trickRecSave = async () => {
   if (!trickCam || !trickCam.blob) return;
   const blob = trickCam.blob, dur = trickCam.duration;
   return withLoading("動画を保存中…", async () =>
-    saveTrick(blob, dur, `技 ${new Date().toLocaleDateString("ja-JP")}`));
+    saveTrick(blob, dur, `シーケンス ${new Date().toLocaleDateString("ja-JP")}`));
 };
 
 function renderTrickRec() {
   if (!trickCam) setTimeout(initTrickCam, 0);
   if (trickCam && trickCam.error) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>技を撮影</h1></div>
+      <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>シーケンスを撮影</h1></div>
       <div class="empty">この環境ではアプリ内カメラを使えません。<br>カメラアプリで撮影して「動画を登録」から取り込んでください。</div>
       <button class="btn" onclick="document.getElementById('trick-file2').click()">＋ 動画を登録</button>
       <input type="file" id="trick-file2" accept="video/*" capture="environment" class="hidden" onchange="trickImport(this)">`;
   }
   const reviewing = trickCam && trickCam.blob;
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>技を撮影</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('tricks')">戻る</button><h1>シーケンスを撮影</h1></div>
     ${reviewing ? `
       <video class="trick-video main" src="${trickCam.objUrl}" controls autoplay playsinline loop></video>
       <div class="row-2" style="margin-top:12px">
-        <button class="btn primary" style="margin:0" onclick="trickRecSave()">この技を保存</button>
+        <button class="btn primary" style="margin:0" onclick="trickRecSave()">このシーケンスを保存</button>
         <button class="btn" style="margin:0" onclick="trickRecRetake()">撮り直す</button>
       </div>` : `
       <video id="cam-preview" class="trick-video main" autoplay playsinline muted></video>
@@ -6086,35 +6086,6 @@ window.openHelp = () => {
   go("help");
 };
 
-function renderHelpEnglish() {
-  return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')">Back</button><h1>Guide</h1></div>
-    <div class="card help-tutorial-card"><h2>Tutorial</h2>
-      <p>Use the sample act to go from recording a run to deciding what to practise next (about 5 minutes).</p>
-      <button class="btn primary" onclick="tutorialStart()">Start the tutorial</button>
-    </div>
-    <div class="card help-guide-card"><h2>Start here</h2>
-      <ol class="help-quick-steps">
-        <li><span class="help-step-no">01</span><span><b>Build the routine.</b> Choose music and arrange the sequences. Record and register reference videos for sequences when useful.</span></li>
-        <li><span class="help-step-no">02</span><span><b>Practice.</b> Try the complete routine in Full Run, or repeat a selected range in Section Practice.</span></li>
-        <li><span class="help-step-no">03</span><span><b>Review and refine.</b> Use full-run analysis to find patterns, then work closely on the sections that need attention.</span></li>
-        <li><span class="help-step-no">04</span><span><b>Continue to the next practice.</b> Adjust the routine if needed, then repeat the cycle to improve consistency and precision.</span></li>
-      </ol>
-    </div>
-    <div class="card help-guide-card"><h2>Two practice modes</h2>
-      <div class="help-body">
-        <div class="help-topic-line"><b>Full Run</b> logs results for analysis. You can also record with the front camera; music is added when the video is saved. Up to five videos are kept across the app.</div>
-        <div class="help-topic-line"><b>Section Practice</b> loops an A–B range with adjustable speed and pause (default: 3 seconds). Its results are not included in analysis.</div>
-      </div></div>
-    <div class="card help-guide-card"><h2>Edit a routine</h2>
-      <div class="help-body">Set sequence order, music cues, and linked reference videos in <b>Edit</b>. When saving, choose a <b>new version</b> to keep earlier analysis separate, or overwrite the current version. <b>Routine Settings</b> controls Risk, A/B choices, preview video, and sequence history.</div></div>
-    <div class="card help-guide-card"><h2>Analysis and records</h2>
-      <div class="help-body">Analysis shows issue counts and rates by sequence. <b>Not attempted</b> is kept separate from the issue-rate denominator. In Session History, you can edit notes or exclude a mistaken run without deleting it.</div></div>
-    <div class="card help-guide-card"><h2>Keep your data safe</h2>
-      <div class="help-body">Records are stored in this browser. With an account, everything except videos and audio syncs across devices. <b>Only a full backup (ZIP) keeps your videos and audio.</b></div>
-      <button class="btn ghost" onclick="openDocPage('backup.html')">Read: keeping your data safe</button></div>`;
-}
-
 function renderHelp() {
   if (isEnglish()) return renderHelpEnglish();
   return `
@@ -6125,7 +6096,7 @@ function renderHelp() {
     </div>
     <div class="card help-guide-card"><h2>まずはこの流れ</h2>
       <ol class="help-quick-steps">
-        <li><span class="help-step-no">01</span><span><b>ルーティンを組み立てる。</b>楽曲を選び、シーケンスを並べる。必要な技は参考動画を撮影・登録する。</span></li>
+        <li><span class="help-step-no">01</span><span><b>ルーティンを組み立てる。</b>楽曲を選び、シーケンスを並べる。必要なシーケンスは参考動画を撮影・登録する。</span></li>
         <li><span class="help-step-no">02</span><span><b>練習する。</b>通し練習で全体を試す、またはパート練習で区間を繰り返す。</span></li>
         <li><span class="help-step-no">03</span><span><b>振り返り、細かく練習する。</b>通しの分析で傾向を見つけ、気になる区間を集中的に整える。</span></li>
         <li><span class="help-step-no">04</span><span><b>次の練習へつなげる。</b>必要なら構成を調整し、またこの流れを繰り返して精度を高める。</span></li>
@@ -6174,7 +6145,7 @@ function renderSettings() {
       <button class="btn storage-manage-btn" onclick="go('runvideos')">演技映像の保存を管理</button>
     </div>
     <div class="card">
-      <h2>技の動画の画質(撮影・アップロード)${infoBtn("videoQuality")}</h2>
+      <h2>シーケンスの動画の画質(撮影・アップロード)${infoBtn("videoQuality")}</h2>
       <div class="segmented" id="vq-seg">
         ${Object.entries(VIDEO_PROFILES).map(([k, p]) => `<button class="choice ${(state.settings.videoQuality || "standard") === k ? "selected" : ""}"
           onclick="setVideoQuality('${k}')">${p.label}</button>`).join("")}
@@ -6276,7 +6247,7 @@ window.openFeedback = () => {
         onclick="selectOne('fb-kind',this)">${k.label}</button>`).join("")}
     </div>
     <label class="fld">内容 *</label>
-    <textarea id="fb-body" rows="5" placeholder="例: 技ごとに成功率のグラフが見たい / ○○の画面でボタンが押しにくい など"></textarea>
+    <textarea id="fb-body" rows="5" placeholder="例: シーケンスごとに成功率のグラフが見たい / ○○の画面でボタンが押しにくい など"></textarea>
     <label class="fld">お名前(任意)</label>
     <input type="text" id="fb-name" value="${esc(nm)}" placeholder="誰からの要望か分かると助かります(空欄OK)">
     <div style="height:14px"></div>

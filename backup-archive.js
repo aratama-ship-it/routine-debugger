@@ -220,7 +220,7 @@ const BLOB_EXT = {
 const blobExt = (type) => BLOB_EXT[String(type || "").split(";")[0].trim().toLowerCase()] || "bin";
 const safeBlobName = (id) => String(id).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80);
 
-// state から参照されている全Blobを集める。同じblobIdを複数の技が共有する場合があるので必ず重複排除する。
+// state から参照されている全Blobを集める。同じblobIdを複数のシーケンスが共有する場合があるので必ず重複排除する。
 function collectBackupBlobRefs() {
   const refs = new Map();
   const add = (blobId, kind) => { if (blobId && !refs.has(blobId)) refs.set(blobId, { blobId, kind }); };
@@ -290,7 +290,7 @@ window.exportFullBackup = async () => {
     zip.addText("README.txt",
       "ルーティンノート 完全バックアップ\r\n\r\n"
       + `書き出し日時: ${manifest.exportedAt}\r\nアプリ版: ${APP_VERSION}\r\n\r\n`
-      + "このZIPには記録(state.json)と、技の動画・通し映像・音源・録音(blobs/)が入っています。\r\n"
+      + "このZIPには記録(state.json)と、シーケンスの動画・通し映像・音源・録音(blobs/)が入っています。\r\n"
       + "復元はアプリの [設定 > 完全バックアップ > ZIPから復元する] から行ってください。\r\n"
       + "ファイル名を変えても復元できます。中のファイルは編集しないでください。\r\n");
     updateLoading("ファイルをまとめています…");
@@ -501,7 +501,7 @@ window.resetAllData = () => {
       <span>${count}</span>
       <p>${english
         ? "Routines, practice records, sequence and full-run videos, recordings, audio, and settings will all be erased."
-        : "ルーティン、練習記録、技と通しの動画、録音、楽曲、設定がすべて消えます。"}</p>
+        : "ルーティン、練習記録、シーケンスと通しの動画、録音、楽曲、設定がすべて消えます。"}</p>
       <p>${english
         ? "Export a full backup (ZIP) first if you want to keep anything."
         : "残したいものがあれば、先に「完全バックアップ」からZIPを書き出してください。"}</p>

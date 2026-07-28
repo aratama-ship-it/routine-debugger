@@ -127,8 +127,8 @@ ${splatter(430, 220, 240, Math.round(60 * D), 404)}
 ${splatter(340, 1470, 260, Math.round(70 * D), 505)}
 ${splatter(1050, 980, 150, Math.round(24 * D), 606)}
 
-<!-- 書道: 「技」の大きな筆文字を淡いウォーターマークに(明朝+かすれ) -->
-<text x="620" y="1060" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="620" fill="#221d16" opacity="0.13" text-anchor="middle" filter="url(#inkCore)">技</text>
+<!-- 書道: 「シーケンス」の大きな筆文字を淡いウォーターマークに(明朝+かすれ) -->
+<text x="620" y="1060" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="600" font-size="620" fill="#221d16" opacity="0.13" text-anchor="middle" filter="url(#inkCore)">シーケンス</text>
 
 <!-- 落款(朱の印): 署名のような佇まい -->
 <g transform="rotate(-4 795 1200)" opacity="0.42">

@@ -22,7 +22,7 @@ function trickBlobStillReferenced(blobId) {
 
 window.removeSampleTricks = async () => {
   const samples = (state.tricks || []).filter((item) => item.sample);
-  if (!samples.length || !appConfirm(`サンプルの技${samples.length}個をまとめて削除しますか?`)) return;
+  if (!samples.length || !appConfirm(`サンプルのシーケンス${samples.length}個をまとめて削除しますか?`)) return;
   const blobIds = new Set(samples.map((item) => item.blobId).filter(Boolean));
   state.tricks = state.tricks.filter((item) => !item.sample);
   for (const blobId of blobIds) if (!trickBlobStillReferenced(blobId)) await blobDel(blobId);
@@ -251,7 +251,7 @@ function renderBatchSequenceImport() {
       ${batchSelectedEditor()}
       <section class="card batch-list-card">
         <h2>${batchText("キューと動画の登録", "Cues and video registration")}</h2>
-        <p>${batchText("動画を見ながら上から順にキューを設定します。移行はキューだけを保存し、シーケンス・技ライブラリには追加しません。", "Set each cue in order while watching the video. Transitions save only their cue and are not added to the Sequence Library.")}</p>
+        <p>${batchText("動画を見ながら上から順にキューを設定します。移行はキューだけを保存し、シーケンスライブラリには追加しません。", "Set each cue in order while watching the video. Transitions save only their cue and are not added to the Sequence Library.")}</p>
         <p>${batchText("動画が登録済みのシーケンスは、間違って置き換えないよう初期状態でスキップします。", "Sequences with a video are skipped by default to prevent accidental replacement.")}</p>
         <p class="batch-action-note">${batchText("差し替えは同じライブラリ項目を使う他のルーティンにも反映されます。別シーケンスは新しい項目を作り、このルーティンだけをそちらへ紐づけます。", "Replace affects every routine using that library item. Save as another sequence creates a new item and switches only this routine to it.")}</p>
         <div class="batch-segment-list">${batchSegmentRows()}</div>

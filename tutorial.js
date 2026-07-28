@@ -171,7 +171,7 @@
     showSheet(`
       <h3>${t("通すたびに、次に練習する場所が決まる", "Every run tells you what to practise next")}</h3>
       <p class="tut-lead">${t(
-        "ルーティンノートは、技を並べるだけのアプリではありません。演技を通して、崩れた場所を残し、次の練習へつなげるノートです。",
+        "ルーティンノートは、シーケンスを並べるだけのアプリではありません。演技を通して、崩れた場所を残し、次の練習へつなげるノートです。",
         "This is not just a place to list tricks. You run your act, leave a mark where it broke, and decide what to practise next.")}</p>
       <p class="sheet-note">${t("サンプルの演目を読み込んで、記録から次の練習を決めるところまで試します（5分ほど）。",
         "We'll use a sample to go from recording to deciding what's next (about 5 minutes).")}</p>
@@ -228,7 +228,7 @@
     hideBar();
     showSheet(`
       <h3>${t("最初の1本を記録できました", "You recorded your first run")}</h3>
-      <p class="tut-lead">${t("次は、自分の曲と技でルーティンを作ってみましょう。",
+      <p class="tut-lead">${t("次は、自分の曲とシーケンスでルーティンを作ってみましょう。",
         "Next, build a routine with your own music and sequences.")}</p>
       <p class="sheet-note">${t("サンプルは残してあります。要らなくなったら、ルーティン一覧から削除できます。いつでも「使い方 → チュートリアル」からやり直せます。",
         "The sample is still there; delete it from the routine list when you're done. You can redo this any time from Guide → Tutorial.")}</p>

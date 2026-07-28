@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"),
+const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -105,20 +105,20 @@ if (!renderSettingsSource
     || !/routineSwitchRow\("A\/B分岐"/.test(app)) {
   failures.push("リスク度・A/B分岐が全体設定では非表示で、個別設定だけから変更できる仕様ではありません");
 }
-if (/技名|Sequence name/.test(app) || /技名|Skill name|skill name/.test(i18n)
+if (/シーケンス名という語の誤用|Sequence name/.test(app) || /シーケンス名という語の誤用|Skill name|skill name/.test(i18n)
     || !/placeholder="選択肢\$\{String\.fromCharCode\(65 \+ oi\)\}のシーケンス名"/.test(app)
     || !/\["シーケンス名", "Sequence"\]/.test(i18n)
     || !/\[\/\^選択肢\(\[A-Z\]\)のシーケンス名\$\/, "Option \$1 sequence"\]/.test(i18n)) {
   failures.push("名称を示す用語が、日本語はシーケンス名、英語はSequenceに統一されていません");
 }
 if (!/\["練習", "Run"\]/.test(i18n)
-    || !/\["＋ 技", "\+ Sequence"\]/.test(i18n)
-    || !/Add a sequence in this gap[\s\S]*?\? "Sequence" : "技"/.test(app)
+    || !/\["＋ シーケンス", "\+ Sequence"\]/.test(i18n)
+    || !/Add a sequence in this gap[\s\S]*?\? "Sequence" : "シーケンス"/.test(app)
     || !/routine-quick-note-label">簡易メモ <span aria-hidden="true">✎<\/span>/.test(app)) {
   failures.push("英語のRun・Sequence表記、またはQuick memoの編集マークが揃っていません");
 }
 // 長さはシーケンス名の右側に置く。v248から表示専用ではなく、押すと変更でき、
-// 横スライドでも変えられる操作になっている(動画を紐づけていない技・移行の
+// 横スライドでも変えられる操作になっている(動画を紐づけていないシーケンス・移行の
 // 長さを変える手段が他に無いため)。
 // v249から、名前が長くても隠さない。隠すと操作そのものへ辿り着けなくなる。
 if (!/<div class="es-name-field">[\s\S]*?<button type="button" class="es-duration" onclick="sheetStepDuration\(\$\{i\}\)" data-i="\$\{i\}"[\s\S]*?>\$\{editorDurationLabel\(s, showSlots\)\}<\/button>/.test(app)
@@ -178,11 +178,12 @@ if (/stepsSignature/.test(app)
     || !/分析を分けて残す<b>新しいバージョン<\/b>か、現在版の上書き/.test(app)) {
   failures.push("既存ルーティンの保存時に、新バージョン保存と現在版の上書きを影響説明付きで選べません");
 }
-if (!/function renderHelpEnglish\(\)[\s\S]*?Start here[\s\S]*?Keep your data safe/.test(app)
+// 英語版の使い方は help-en.js にある(app.js の容量上限のため分離した)
+if (!/renderHelpEnglish = function renderHelpEnglish\(\)[\s\S]*?Start here[\s\S]*?Keep your data safe/.test(helpEn)
     || !/function renderHelp\(\)[\s\S]*?まずはこの流れ[\s\S]*?データを守る/.test(app)
-    || !/Build the routine\.[\s\S]*?Review and refine\.[\s\S]*?repeat the cycle/.test(app)
+    || !/Build the routine\.[\s\S]*?Review and refine\.[\s\S]*?repeat the cycle/.test(helpEn)
     || !/ルーティンを組み立てる。[\s\S]*?振り返り、細かく練習する。[\s\S]*?またこの流れを繰り返して精度を高める/.test(app)
-    || (app.match(/class="card help-guide-card"/g) || []).length !== 10
+    || ((app + helpEn).match(/class="card help-guide-card"/g) || []).length !== 10
     || !/class="help-quick-steps"/.test(app)
     || !/\.help-quick-steps li/.test(css)) {
   failures.push("使い方が日英とも、準備・練習・振り返り・次の練習の循環として整理されていません");
@@ -218,8 +219,8 @@ if (!/SAMPLE_SEQUENCE_SCHEMA\s*=\s*2/.test(app)
     || !/["']コラムス["']/.test(app)
     || !/["']ミルズメス風["']/.test(app)
     || !/["']サークルトス["']/.test(app)
-    || !/v3 A\/B分岐と技を追加/.test(app)
-    || !/A\/B分岐と技を追加/.test(i18n)) {
+    || !/v3 A\/B分岐とシーケンスを追加/.test(app)
+    || !/A\/B分岐とシーケンスを追加/.test(i18n)) {
   failures.push("サンプルv3が10シーケンス構成へ移行できません");
 }
 if (!/SAMPLE_TRANSITION_COLOR_SCHEMA\s*=\s*1/.test(app)
@@ -371,12 +372,12 @@ const currentStepMarkup = runVideoReview.match(/function runVideoCurrentStepMark
 if (!/function runVideoReviewStepContext\(video,[\s\S]*?found\.sess\.versionId/.test(runVideoReview)
     || !/function runVideoReviewStepName\(context, step\)[\s\S]*?runChoice\(context\.run, step\)/.test(runVideoReview)
     || !currentStepMarkup || /<video\b/.test(currentStepMarkup[1])
-    || !/実施中の技/.test(currentStepMarkup[1])
+    || !/実施中のシーケンス/.test(currentStepMarkup[1])
     || !/\$\{runVideoCurrentStepMarkup\(stepContext\)\}[\s\S]*?runVideoDownload/.test(runVideoReview)
     || !/\["loadedmetadata", "timeupdate", "seeking", "seeked"\]/.test(runVideoReview)
     || !/bindRunVideoCurrentStep\(stepContext\)/.test(runVideoReview)
     || !/\.run-video-current-step/.test(css)) {
-  failures.push("保存済み通し映像で、撮影時の構成とA/B選択に基づく実施中の技を文字だけで追従表示できません");
+  failures.push("保存済み通し映像で、撮影時の構成とA/B選択に基づく実施中のシーケンスを文字だけで追従表示できません");
 }
 if (!/preserveRunVideoMusicSnapshots/.test(runVideoSync)
     || !/deleteRunVideoMusicBlobIfUnused/.test(runVideoSync)) {
@@ -449,14 +450,14 @@ if (!homeHeaderRule || !/min-height:\s*calc\(66px \+ var\(--safe-top\)\)/.test(h
 if (!/<svg class="head-settings-icon" viewBox="0 0 24 24" stroke-width="2" style="fill:none"/.test(app)) {
   failures.push("全体設定の歯車が選択時も中抜きになる指定がありません");
 }
-if (!/const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ"/.test(app)
+if (!/const TRICK_LIBRARY_LABEL = "シーケンスライブラリ"/.test(app)
     || (app.match(/\$\{TRICK_LIBRARY_LABEL\}/g) || []).length < 8
-    || !/\["シーケンス・技ライブラリ", "Sequence Library"\]/.test(i18n)) {
-  failures.push("シーケンス・技ライブラリの名称が画面全体と英語表示に統一されていません");
+    || !/\["シーケンスライブラリ", "Sequence Library"\]/.test(i18n)) {
+  failures.push("シーケンスライブラリの名称が画面全体と英語表示に統一されていません");
 }
-if (!/登録済みのシーケンス・技 \(最大\$\{TRICK_MAX_SEC\}秒\/本/.test(app)
+if (!/登録済みのシーケンス \(最大\$\{TRICK_MAX_SEC\}秒\/本/.test(app)
     || !/Saved sequences \(max/.test(i18n)) {
-  failures.push("登録済み一覧の見出しがシーケンス・技の表記に統一されていません");
+  failures.push("登録済み一覧の見出しがシーケンスの表記に統一されていません");
 }
 if (!/trickbatch:\s*renderBatchSequenceImport/.test(app)
     || !/go\('trickbatch'\)/.test(app)

@@ -1,4 +1,4 @@
-/* ルーティンノート — 保存済み通し映像の再生・書き出しと実施技の追従表示 */
+/* ルーティンノート — 保存済み通し映像の再生・書き出しと実施シーケンスの追従表示 */
 "use strict";
 
 function runVideoStorageBytes(videos = storedRunVideos()) {
@@ -13,7 +13,7 @@ function runVideoStorageActions(videos) {
         ? `Delete ${videos.length} saved performance videos (${fmtBytes(runVideoStorageBytes(videos))}) from this app.`
         : `このアプリ内の演技映像${videos.length}本（${fmtBytes(runVideoStorageBytes(videos))}）をまとめて削除できます。`}</span></div>
     <button type="button" class="btn danger-ghost" onclick="showDeleteAllRunVideos()">${english ? "Delete all performance videos" : "演技映像をまとめて削除"}</button>
-    <small>${english ? "Routines, practice records, skill videos, and music remain." : "ルーティン・練習記録・技動画・音源は残ります。"}</small>
+    <small>${english ? "Routines, practice records, skill videos, and music remain." : "ルーティン・練習記録・シーケンス動画・音源は残ります。"}</small>
   </div>`;
 }
 
@@ -99,7 +99,7 @@ function runVideoCurrentStepMarkup(context) {
   const current = plannedPracticeStep(context.steps, 0);
   const name = current ? runVideoReviewStepName(context, current.step) : "—";
   return `<section class="run-video-current-step" id="run-video-current-step" aria-live="polite" aria-atomic="true">
-    <span>${isEnglish() ? "Current skill" : "実施中の技"}</span>
+    <span>${isEnglish() ? "Current skill" : "実施中のシーケンス"}</span>
     <strong id="run-video-current-step-name">${esc(name)}</strong>
     <small id="run-video-current-step-meta">${current ? `${current.index + 1}/${context.steps.length} · ♪${fmtTimeFine(current.start)}` : "—"}</small>
   </section>`;

@@ -445,7 +445,7 @@ window.showDeleteAllRunVideos = () => {
       <span>${isEnglish() ? "Only the saved full-run video files will be deleted." : "アプリ内に保存した通し練習の映像だけを削除します。"}</span>
       <p>${isEnglish()
         ? "Routines, practice records, issue markers, skill videos, music, and files already exported to Photos or Files will remain."
-        : "ルーティン・練習記録・失敗地点・技動画・音源・写真やファイルへ書き出した映像は残ります。"}</p>
+        : "ルーティン・練習記録・失敗地点・シーケンス動画・音源・写真やファイルへ書き出した映像は残ります。"}</p>
     </div>
     <div class="delete-slide-wrap">
       <div class="delete-slide-track" id="delete-run-videos-slide" role="slider" tabindex="0"

@@ -8,7 +8,7 @@
  *    打ちながら整形後の姿がそのまま欄に出るので、規則は説明しなくても分かる。
  *
  * 2) ステップの長さ
- *    動画を紐づけていない技・移行は長さが既定値のままで、変える手段が無かった。
+ *    動画を紐づけていないシーケンス・移行は長さが既定値のままで、変える手段が無かった。
  *    長さの表示をそのまま押せるようにして、ここから直接変えられるようにする。
  *
  * app.js が容量上限に近いため、ここに置く。app.js のトップレベル変数
@@ -112,10 +112,10 @@
 
 
 
-  // ---------- 技を足す(名前を打つ / 技リストから選ぶ を1画面に) ----------
-  // 追加の入口が「＋技」と「＋技リストから」に割れていて、押す前にどちらか決めさせていた。
-  // やりたいことは「技を1つ足す」だけなので、入口は1つにする。
-  // 名前を打つ欄と技リストを同じ画面に並べ、その場でどちらでも選べるようにした。
+  // ---------- シーケンスを足す(名前を打つ / シーケンスリストから選ぶ を1画面に) ----------
+  // 追加の入口が「＋シーケンス」と「＋シーケンスリストから」に割れていて、押す前にどちらか決めさせていた。
+  // やりたいことは「シーケンスを1つ足す」だけなので、入口は1つにする。
+  // 名前を打つ欄とシーケンスリストを同じ画面に並べ、その場でどちらでも選べるようにした。
   window.sheetAddTrick = (insertAt = null) => {
     const at = insertAt == null ? NaN : Number(insertAt);
     const target = Number.isInteger(at) && at >= 0 && draft && at <= draft.steps.length ? at : null;
@@ -130,19 +130,19 @@
           onclick="event.stopPropagation();playTrickVideo('${tr.id}',true)">▶</button>
       </div>`).join("");
     showSheet(`
-      <h3>${t("技を追加", "Add a sequence")}</h3>
-      <div class="sheet-sub">${t("名前を打つか、下の技リストから選びます。",
+      <h3>${t("シーケンスを追加", "Add a sequence")}</h3>
+      <div class="sheet-sub">${t("名前を打つか、下のシーケンスリストから選びます。",
         "Type a name, or pick one from the library below.")}</div>
       <div class="add-trick-name">
-        <input type="text" id="add-trick-name" placeholder="${t("技の名前", "Sequence name")}"
+        <input type="text" id="add-trick-name" placeholder="${t("シーケンスの名前", "Sequence name")}"
           enterkeyhint="done" onkeydown="if(event.key==='Enter')addTrickByName(${pos})">
         <button class="btn primary" onclick="addTrickByName(${pos})">${t("追加", "Add")}</button>
       </div>
       ${tricks.length
-        ? `<div class="tag-label">${t("技リストから選ぶ", "From the library")}</div>
+        ? `<div class="tag-label">${t("シーケンスリストから選ぶ", "From the library")}</div>
            <div class="sheet-sub" style="margin-top:-2px">${
              t("タップで追加 / 再生マークで動画を確認", "Tap to add / ▶ to preview")}</div>${rows}`
-        : `<div class="empty">${t("技リストはまだ空です。動画を登録すると、ここから選べます。",
+        : `<div class="empty">${t("シーケンスリストはまだ空です。動画を登録すると、ここから選べます。",
             "The library is empty. Register videos to pick them here.")}</div>`}
       <button class="btn ghost" onclick="hideSheet()">${t("やめる", "Cancel")}</button>`);
     const input = document.getElementById("add-trick-name");
@@ -155,7 +155,7 @@
     const at = insertAt == null ? NaN : Number(insertAt);
     const target = Number.isInteger(at) ? at : null;
     hideSheet();
-    // 名前が空でも足せる(行に入ってから決めたい人がいる)。従来の「＋技」と同じ振る舞い
+    // 名前が空でも足せる(行に入ってから決めたい人がいる)。従来の「＋シーケンス」と同じ振る舞い
     addStep("trick", target);
     if (!name) return;
     const step = target == null ? draft.steps[draft.steps.length - 1] : draft.steps[target];

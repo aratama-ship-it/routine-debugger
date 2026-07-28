@@ -58,7 +58,7 @@ const video = { routineId: "routine-1", sessionId: "session-1", runId: "run-1" }
 const stepContext = context.runVideoReviewStepContext(video);
 assert.equal(stepContext.steps, steps, "the review should use the version recorded by the session");
 const markup = context.runVideoCurrentStepMarkup(stepContext);
-assert.match(markup, /実施中の技/, "the current-skill label should be shown");
+assert.match(markup, /実施中のシーケンス/, "the current-skill label should be shown");
 assert.doesNotMatch(markup, /<video\b/, "the current-skill area should not add a skill preview video");
 
 context.bindRunVideoCurrentStep(stepContext);
