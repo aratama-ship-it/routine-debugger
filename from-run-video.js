@@ -94,16 +94,41 @@
         "まだ区切りがありません。再生して、シーケンスの変わり目で「ここで区切る」を押します。",
         "No marks yet. Play, and tap at each change.")}</div>`;
     }
-    return marks.map((sec, i) => {
-      const end = i + 1 < marks.length ? marks[i + 1] : (sourceVideo.duration || sec);
+    return marks.map((m, i) => {
+      const el = videoEl();
+      const tail = (Number.isFinite(el && el.duration) && el.duration > 0)
+        ? el.duration : (sourceVideo.duration || m.at);
+      const end = i + 1 < marks.length ? marks[i + 1].at : tail;
       return `<div class="frv-mark">
         <span class="frv-no">${i + 1}</span>
-        <span class="frv-time">${fmtTimeFine(sec)} – ${fmtTimeFine(end)}</span>
-        <span class="frv-len">${(Math.round((end - sec) * 10) / 10).toFixed(1)}${t("秒", "s")}</span>
+        <input type="text" class="frv-name" value="${esc(m.name || "")}"
+          placeholder="${t("名前(なくてもよい)", "Name (optional)")}"
+          oninput="renameRunVideoMark(${i},this.value)">
+        <span class="frv-time">${fmtTimeFine(m.at)} – ${fmtTimeFine(end)}</span>
+        <span class="frv-len">${(Math.round((end - m.at) * 10) / 10).toFixed(1)}${t("秒", "s")}</span>
         <button class="frv-del" onclick="dropRunVideoMark(${i})"
           aria-label="${t("この区切りを消す", "Remove this mark")}">✕</button>
       </div>`;
     }).join("");
+  }
+
+  // 打ち直しのたびに描き直すと、打っている途中の名前が消える。値だけ控える
+  window.renameRunVideoMark = (i, value) => {
+    if (marks[i]) marks[i].name = value;
+  };
+
+  // 打つたびに映像まで作り直すと、再生が止まって位置も戻る。
+  // 変わるのは一覧と決定ボタンだけなので、そこだけ差し替える。
+  function refreshMarks() {
+    const list = document.getElementById("frv-marks");
+    if (!list) return renderCueSheet();
+    list.innerHTML = markRows();
+    const go = document.getElementById("frv-commit");
+    if (!go) return;
+    go.disabled = marks.length < 2;
+    go.textContent = marks.length < 2
+      ? t("区切りを2つ以上打ってください", "Add at least two marks")
+      : t(`${marks.length}個のシーケンスを作る`, `Create ${marks.length} sequences`);
   }
 
   function renderCueSheet(keepTime) {
@@ -114,10 +139,19 @@
         "再生しながら、シーケンスの変わり目で押します。あとから消せます。",
         "Play and tap at each change. You can remove marks later.")}</div>
       <video id="frv-video" class="frv-video" src="${objectUrl}" playsinline controls preload="metadata"></video>
+      <div class="frv-nudge" role="group" aria-label="${t("再生位置の微調整", "Fine-tune position")}">
+        <button onclick="nudgeRunVideo(-1)">−1${t("秒", "s")}</button>
+        <button onclick="nudgeRunVideo(-0.1)">−0.1</button>
+        <button onclick="nudgeRunVideo(0.1)">＋0.1</button>
+        <button onclick="nudgeRunVideo(1)">＋1${t("秒", "s")}</button>
+      </div>
       <button class="btn primary frv-mark-btn" onclick="addRunVideoMark()">${
         t("ここで区切る", "Mark here")}</button>
-      <div class="frv-marks">${markRows()}</div>
-      <button class="btn primary" onclick="commitRunVideoCues()" ${marks.length < 2 ? "disabled" : ""}>${
+      <p class="frv-note">${t(
+        "※ ここで完璧に合わせなくて大丈夫です。区切りの位置も名前も、あとから編集画面で細かく直せます。",
+        "You don't need to be exact here — positions and names can be adjusted later in the editor.")}</p>
+      <div class="frv-marks" id="frv-marks">${markRows()}</div>
+      <button class="btn primary" id="frv-commit" onclick="commitRunVideoCues()" ${marks.length < 2 ? "disabled" : ""}>${
         marks.length < 2
           ? t("区切りを2つ以上打ってください", "Add at least two marks")
           : t(`${marks.length}個のシーケンスを作る`, `Create ${marks.length} sequences`)}</button>
@@ -131,42 +165,54 @@
     if (!el) return;
     const sec = Math.round(el.currentTime * 10) / 10;
     // 近すぎる区切りは、押し間違いとみなして受けない
-    if (marks.some((m) => Math.abs(m - sec) < 0.3)) {
+    if (marks.some((m) => Math.abs(m.at - sec) < 0.3)) {
       return toast(t("すぐ近くに区切りがあります", "There is already a mark here"));
     }
-    marks.push(sec);
-    marks.sort((a, b) => a - b);
-    renderCueSheet(sec);
+    marks.push({ at: sec, name: "" });
+    marks.sort((a, b) => a.at - b.at);
+    refreshMarks();
+  };
+
+  window.nudgeRunVideo = (delta) => {
+    const el = videoEl();
+    if (!el) return;
+    // 記録された長さより、実際に読み込めた長さを信じる(食い違うことがある)
+    const max = Number.isFinite(el.duration) && el.duration > 0
+      ? el.duration : (sourceVideo && sourceVideo.duration) || 0;
+    el.currentTime = Math.max(0, Math.min(max, Math.round((el.currentTime + delta) * 10) / 10));
   };
 
   window.dropRunVideoMark = (i) => {
     marks.splice(i, 1);
-    renderCueSheet();
+    refreshMarks();
   };
 
   // ---------- 決定 ----------
   window.commitRunVideoCues = async () => {
     if (!draft || marks.length < 2 || !sourceVideo) return;
-    const total = sourceVideo.duration || marks[marks.length - 1];
+    const el = videoEl();
+    const total = (Number.isFinite(el && el.duration) && el.duration > 0)
+      ? Math.round(el.duration * 10) / 10
+      : (sourceVideo.duration || marks[marks.length - 1].at);
     const steps = [];
     for (let i = 0; i < marks.length; i++) {
-      const start = marks[i];
-      const end = i + 1 < marks.length ? marks[i + 1] : total;
+      const start = marks[i].at;
+      const end = i + 1 < marks.length ? marks[i + 1].at : total;
       const dur = Math.round((end - start) * 10) / 10;
       if (dur <= 0) continue;
       // 区間ごとにシーケンスを1本作る。映像は切り出さず、元の1本を参照する
       const trickId = uid();
       state.tricks.push({
-        id: trickId, name: `${t("シーケンス", "Sequence")} ${steps.length + 1}`,
+        id: trickId, name: marks[i].name.trim() || `${t("シーケンス", "Sequence")} ${steps.length + 1}`,
         blobId: sourceVideo.blobId, duration: dur, fullDuration: total,
         trimStart: start, trimEnd: end, lineColor: "blue",
         size: sourceVideo.size || 0, fromRunVideo: true, createdAt: Date.now(),
       });
       steps.push({
-        id: uid(), name: `${t("シーケンス", "Sequence")} ${steps.length + 1}`,
+        id: uid(), name: marks[i].name.trim() || `${t("シーケンス", "Sequence")} ${steps.length + 1}`,
         kind: "trick", trickId, lineColor: "blue",
         // 最初の区切りを0秒として曲位置を置く。映像の頭から曲が鳴っている前提
-        cue: Math.round((start - marks[0]) * 10) / 10,
+        cue: Math.round((start - marks[0].at) * 10) / 10,
         dur,
       });
     }

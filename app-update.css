@@ -458,3 +458,21 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 .frv-mark .frv-time { flex: 1 1 auto; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .frv-mark .frv-len { flex: 0 0 auto; font-size: 12px; color: var(--muted, #6b675c); }
 .frv-mark .frv-del { flex: 0 0 32px; border: 0; background: none; color: var(--muted, #6b675c); font: inherit; cursor: pointer; }
+
+/* 再生位置の微調整。指で秒を合わせるのは難しいので、押して詰められるようにする */
+.frv-nudge { display: flex; gap: 6px; margin-bottom: 10px; }
+.frv-nudge button {
+  flex: 1; min-height: 38px; border: 1px solid var(--rule, #c9c2ae); border-radius: 8px;
+  background: var(--card2, #f4efe2); font: inherit; font-size: 13px; font-weight: 650;
+  font-variant-numeric: tabular-nums; cursor: pointer;
+}
+/* 完璧に合わせなくてよい、と先に伝える。ここで丁寧になりすぎると手が止まる */
+.frv-note {
+  margin: -4px 0 14px; font-size: 12px; line-height: 1.6; color: var(--muted, #6b675c);
+}
+/* 区切りごとの名前。空でよいので、控えめな見た目にする */
+.frv-mark .frv-name {
+  flex: 1 1 auto; min-width: 0; box-sizing: border-box;
+  padding: 7px 9px; font-size: 13.5px; border-radius: 7px;
+}
+.frv-mark .frv-time { flex: 0 0 auto; font-size: 12px; }
