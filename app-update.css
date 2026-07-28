@@ -335,9 +335,11 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 }
 .ap-pick .ap-meta { flex: 0 0 auto; font-size: 12px; color: var(--muted, #6b675c); }
 
-/* マイナス区間の直し方は2通り。並べて選ばせるので、2つ入っても潰れないようにする */
+/* マイナス区間の直し方は2段。
+   上段=前を短くする(その場で収まる) / 下段=次を遅らせる(以降が全部ずれる)。
+   影響の小さい方を上に置き、1つずつ読ませる */
 .cue-overlap-actions { flex-wrap: wrap; }
-.cue-overlap-actions button { flex: 1 1 46%; min-width: 0; }
+.cue-overlap-actions button { flex: 1 1 100%; min-width: 0; }
 
 /* 技の追加: 名前を打つ欄と、下の技リストを1画面に置く。
    .btn は width:100% が既定なので、横並びにすると枠からはみ出す。

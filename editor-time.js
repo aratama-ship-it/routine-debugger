@@ -250,14 +250,16 @@
 
   function addShrinkButtons() {
     if (view.name !== "edit" || !draft) return;
-    // マイナス区間: 前を短くして食い込みを消す
+    // マイナス区間: 2段。上段=前を短くする / 下段=次を遅らせる。
+    // 先に「自分の長さを削る」、次に「後ろをずらす」の順に並べる。
+    // 後ろをずらすと以降の構成全体が動くので、影響の小さい方を上に置く。
     for (const box of document.querySelectorAll(".cue-overlap-actions")) {
       if (box.querySelector(".cue-shrink")) continue;
       const fit = box.querySelector('button[onclick^="fitCueToPrevious"]');
       const m = fit && /fitCueToPrevious\((\d+)\)/.exec(fit.getAttribute("onclick") || "");
       if (m) {
-        box.appendChild(makeFitButton("cue-shrink", `fitPreviousDuration(${m[1]})`,
-          t("前のシーケンスを短くしてFIT", "Shorten previous & FIT")));
+        box.insertBefore(makeFitButton("cue-shrink", `fitPreviousDuration(${m[1]})`,
+          t("前のシーケンスを短くしてFIT", "Shorten previous & FIT")), box.firstChild);
       }
     }
     // 空間: 3段に分ける。
