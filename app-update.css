@@ -305,3 +305,32 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 }
 .help-tutorial-card { border-left: 5px solid var(--accent, #a75c24); }
 .help-tutorial-card p { margin: 2px 0 12px; font-size: 14px; line-height: 1.7; }
+
+/* ===== 音源ライブラリ: 決める前に試し聴きする ===== */
+/* 「聴く」と「決める」を分ける。押し間違えで曲が差し替わるのが一番困る */
+.ap-row { display: flex; gap: 8px; align-items: stretch; margin: 8px 0; }
+.ap-play {
+  flex: 0 0 52px;
+  border: 1px solid var(--rule, #c9c2ae);
+  border-radius: 10px;
+  background: var(--card2, #f4efe2);
+  color: var(--accent, #a75c24);
+  font: inherit; font-size: 15px; font-weight: 700;
+  cursor: pointer;
+}
+.ap-play.on { background: var(--accent, #a75c24); color: #fff; border-color: transparent; }
+.ap-pick {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule, #c9c2ae);
+  border-radius: 10px;
+  background: var(--card, #f8f4e9);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.ap-pick .ap-name {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 15.5px;
+}
+.ap-pick .ap-meta { flex: 0 0 auto; font-size: 12px; color: var(--muted, #6b675c); }

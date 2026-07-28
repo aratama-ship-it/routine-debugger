@@ -107,3 +107,50 @@
     else if (event.shiftKey && (active === first || active === el)) { event.preventDefault(); last.focus(); }
   }, true);
 })();
+
+/* ===== 画面下のシートを、電卓風キーボードで隠さない =====
+ * 秒数を打つときにキーボードが下から出てくると、入力欄がその裏へ入って
+ * 何を打っているか見えなくなっていた。
+ * キーボードの高さぶんシートを持ち上げ、打っている欄が見える位置まで送る。
+ * visualViewport が無い環境(古いブラウザ)では何もしない。
+ */
+(() => {
+  "use strict";
+  const vv = window.visualViewport;
+  if (!vv) return;
+
+  function sheetEl() {
+    const el = document.getElementById("sheet");
+    return el && !el.classList.contains("hidden") ? el : null;
+  }
+  function reset(el) {
+    if (!el) return;
+    el.style.bottom = "";
+    el.style.maxHeight = "";
+  }
+
+  function fit() {
+    const el = sheetEl();
+    if (!el) return;
+    const active = document.activeElement;
+    const typing = active && el.contains(active)
+      && /^(INPUT|TEXTAREA)$/.test(active.tagName);
+    // キーボードの高さ。60px未満は、閉じている時のわずかな誤差とみなす
+    const keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    if (!typing || keyboard < 60) return reset(el);
+    el.style.bottom = `${keyboard}px`;
+    el.style.maxHeight = `${Math.max(160, vv.height - 24)}px`;
+    // シートの中でも、打っている欄が真ん中に来るまで送る
+    active.scrollIntoView({ block: "center" });
+  }
+
+  const soon = () => setTimeout(fit, 250); // キーボードが出きるのを待つ
+  vv.addEventListener("resize", fit);
+  vv.addEventListener("scroll", fit);
+  document.addEventListener("focusin", soon);
+  document.addEventListener("focusout", () => setTimeout(() => {
+    const el = sheetEl();
+    const active = document.activeElement;
+    if (!el || !active || !el.contains(active)) reset(el);
+  }, 120));
+})();

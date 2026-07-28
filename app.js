@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v256"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v257"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンス・技ライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2765,8 +2765,9 @@ window.editorPlayFromCue = (i) => {
   const s = draft && draft.steps[i];
   if (!s || s.cue == null || !musicPlayer.src) return;
   if (cuePlayStepId === s.id) {
-    // 同じ技のボタン: 再生中なら一時停止、停止中なら再開(位置はそのまま)
-    if (musicPlayer.paused) { ensureAudioGraph(); playMedia(musicPlayer, "楽曲を再生できませんでした"); } else musicPlayer.pause();
+    // 同じ技のボタン: 再生中なら一時停止、停止中ならこの技の位置から再生
+    // 止めてから押し直したときも、続きではなくこの技の位置から始める
+    if (musicPlayer.paused) { ensureAudioGraph(); musicSetTime(s.cue); playMedia(musicPlayer, "楽曲を再生できませんでした"); } else musicPlayer.pause();
   } else {
     // 別の技のボタン: その技の位置へ頭出しして再生
     cuePlayStepId = s.id;
