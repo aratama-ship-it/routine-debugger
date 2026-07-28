@@ -219,7 +219,7 @@
         "If you leave without saving, these edits are lost.")}</div>
       <button class="btn primary" onclick="hideSheet();saveRoutine()">${
         t("保存して戻る", "Save and leave")}</button>
-      <button class="btn danger-ghost" onclick="editorDiscard()">${
+      <button class="btn danger-ghost editor-leave" onclick="editorDiscard()">${
         t("保存せずに戻る", "Leave without saving")}</button>
       <button class="btn ghost" onclick="hideSheet()">${t("編集を続ける", "Keep editing")}</button>`);
   };
@@ -239,34 +239,72 @@
   // 描画後にもう1つのボタンを差し込む形にしている。
   // 押す対象の番号は、既にある「次をずらす」ボタンから読み取る
   // (この書式は release-check が固定しているので、勝手に変わることはない)。
-  function addFitButton(box, index, label) {
-    if (box.querySelector(".cue-shrink")) return;
+  function makeFitButton(cls, call, label) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "cue-shrink";
-    b.setAttribute("onclick", `fitPreviousDuration(${index})`);
+    b.className = cls;
+    b.setAttribute("onclick", call);
     b.textContent = label;
-    box.appendChild(b);
+    return b;
   }
 
   function addShrinkButtons() {
     if (view.name !== "edit" || !draft) return;
     // マイナス区間: 前を短くして食い込みを消す
     for (const box of document.querySelectorAll(".cue-overlap-actions")) {
+      if (box.querySelector(".cue-shrink")) continue;
       const fit = box.querySelector('button[onclick^="fitCueToPrevious"]');
       const m = fit && /fitCueToPrevious\((\d+)\)/.exec(fit.getAttribute("onclick") || "");
-      if (m) addFitButton(box, m[1], t("前のシーケンスを短くしてFIT", "Shorten previous & FIT"));
+      if (m) {
+        box.appendChild(makeFitButton("cue-shrink", `fitPreviousDuration(${m[1]})`,
+          t("前のシーケンスを短くしてFIT", "Shorten previous & FIT")));
+      }
     }
-    // 空間: 前を長くして隙間を埋める。技や移行を足すほどでもないときに使う
+    // 空間: 3段に分ける。
+    //   上段 = 前を伸ばして埋める / 中段 = 足す / 下段 = 後ろを伸ばして埋める
+    // 埋め方は「どちらの側を動かすか」で意味が変わるので、上下に分けて並べる。
     for (const box of document.querySelectorAll(".cue-gap-actions")) {
+      if (box.querySelector(".cue-fit-prev") || box.querySelector(".cue-fit-next")) continue;
       const add = box.querySelector('button[onclick^="addStep(\'transition\'"]');
       const m = add && /addStep\('transition',(\d+)\)/.exec(add.getAttribute("onclick") || "");
-      // 先頭の空間(前のシーケンスが無い)には出さない
-      if (m && Number(m[1]) > 0) {
-        addFitButton(box, m[1], t("前のシーケンスを長くしてFIT", "Extend previous & FIT"));
+      if (!m) continue;
+      const i = Number(m[1]);
+      // 前のシーケンスが無い先頭の空間には、上段を出さない
+      if (i > 0) {
+        box.insertBefore(makeFitButton("cue-fit-prev", `fitPreviousDuration(${i})`,
+          t("前のシーケンスを長くしてFIT", "Extend previous & FIT")), box.firstChild);
+      }
+      // 後ろのシーケンスが無い末尾の空間には、下段を出さない
+      if (draft.steps[i]) {
+        box.appendChild(makeFitButton("cue-fit-next", `extendNextToFit(${i})`,
+          t("後のシーケンスを長くしてFIT", "Extend next & FIT")));
       }
     }
   }
+
+  // 後ろのシーケンスを、空間のぶんだけ手前へ伸ばす。
+  // 前のFITと違うのは「終わる時刻を動かさない」こと。
+  // 開始を早めるだけだと後ろ全体がずれるので、早めたぶん長さを足して尻を据え置く。
+  window.extendNextToFit = (i) => {
+    const prev = draft && draft.steps[i - 1];
+    const next = draft && draft.steps[i];
+    if (!prev || !next) return;
+    const prevCue = Number(prev.cue), nextCue = Number(next.cue);
+    if (!Number.isFinite(prevCue) || !Number.isFinite(nextCue)) {
+      return toast(t("両方のキューを先に決めてください", "Set both cues first"));
+    }
+    const start = Math.round((prevCue + stepDur(prev)) * 10) / 10;
+    const gain = Math.round((nextCue - start) * 10) / 10;
+    if (gain <= 0) return toast(t("ここには空間がありません", "There is no gap here"));
+    next.cue = start;
+    // A/Bは選択肢ごとに長さを持つ。全部に同じだけ足さないと、終わる時刻が揃わない
+    for (const o of (isSlot(next) ? next.options : [next])) {
+      o.dur = Math.round((editorDurationSource(o) + gain) * 10) / 10;
+    }
+    render();
+    toast(t(`後のシーケンスを ${gain.toFixed(1)}秒 手前から始めました`,
+            `Next sequence now starts ${gain.toFixed(1)}s earlier`));
+  };
 
   // i は「次」のシーケンスの番号。その手前のシーケンスの長さを、隙間も食い込みも
   // 無くなる長さ(次のキュー − 前のキュー)に合わせる。

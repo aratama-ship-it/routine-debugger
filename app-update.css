@@ -366,9 +366,12 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
   white-space: nowrap;
 }
 
-/* 空間の選択肢が3つになるので、折り返して並べる */
+/* 空間の選択肢は3段。
+   上段=前を伸ばす / 中段=足す(横並び) / 下段=後ろを伸ばす。
+   埋め方は動かす側で意味が変わるので、上下に分けて置く */
 .cue-gap-actions { flex-wrap: wrap; }
-.cue-gap-actions .cue-shrink { flex: 1 1 100%; }
+.cue-gap-actions .cue-fit-prev,
+.cue-gap-actions .cue-fit-next { flex: 1 1 100%; }
 
 /* 持ち手は下へ払って閉じるので、ブラウザのスクロールに取られないようにする。
    見た目は変えず、指が届く範囲だけ広げる */
@@ -382,3 +385,7 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
   position: absolute;
   left: -60px; right: -60px; top: -12px; bottom: -12px;
 }
+
+/* 編集を離れるときの3択。danger-ghost は既定が width:auto のため、
+   1つだけ短くなって選択肢に見えなくなる。ここでは幅を揃える */
+#sheet .btn.danger-ghost.editor-leave { width: 100%; }
