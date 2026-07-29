@@ -287,6 +287,7 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
     || !/画角は端末の向きに合わせます。カメラを準備する前に、撮る向きへ回してください。/.test(app)
     || !/function selectedRunCameraProfileId\(\)[\s\S]*?width >= height \? "wide" : "vertical"/.test(app)
+    || !/async function syncRunCameraProfileToOrientation\(routineId\)[\s\S]*?runCamera\.profileId === want/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
   failures.push("撮影の画角が端末の向きに追従し、横向き確認後だけ開始する保護がありません");
 }

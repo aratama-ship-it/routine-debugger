@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v277"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v279"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1135,6 +1135,9 @@ function syncRunCameraOrientationUi(routineId) {
     if (title) title.textContent = copy.title;
     if (body) body.textContent = copy.body;
   }
+  // 画角の表示も回転に合わせる。開き直しより先に、いまの向きを見せる
+  const profileLabel = document.querySelector(".run-camera-profile .selected");
+  if (profileLabel) profileLabel.textContent = runCameraProfile(selectedRunCameraProfileId()).label;
   const toggle = document.getElementById("run-camera-toggle");
   if (toggle && !ready && toggle.dataset.loading !== "true") {
     toggle.disabled = orientation.blocked;
@@ -1346,12 +1349,36 @@ let runCameraOrientationUiRaf = 0;
 function scheduleRunCameraOrientationUi() {
   const area = document.getElementById("run-camera-area");
   if (!area) return;
-  if (runCameraOrientationUiRaf) cancelAnimationFrame(runCameraOrientationUiRaf);
-  runCameraOrientationUiRaf = requestAnimationFrame(() => {
+  // rAFは画面が描画されていない間は止まる。向きの追従は取りこぼすと
+  // 「横にしたのに縦で録れる」に直結するので、タイマーで確実に回す。
+  // 回している最中の連続発火は、直前の予約を取り消してまとめる。
+  if (runCameraOrientationUiRaf) clearTimeout(runCameraOrientationUiRaf);
+  runCameraOrientationUiRaf = setTimeout(() => {
     runCameraOrientationUiRaf = 0;
     const routineId = area.dataset.routineId;
-    if (routineId && document.getElementById("run-camera-area") === area) syncRunCameraOrientationUi(routineId);
-  });
+    if (routineId && document.getElementById("run-camera-area") === area) {
+      syncRunCameraOrientationUi(routineId);
+      syncRunCameraProfileToOrientation(routineId);
+    }
+  }, 120); // 回している途中の中間状態で開き直さないよう、少し待つ
+}
+
+// 端末を回したら、その向きの画角でカメラを開き直す。
+// 表示だけ変えても、実際に録れる映像は開いたときの向きのままなので、
+// 「横にしたのに縦で録れる」ことになる。開き直して初めて追従する。
+let runCameraReprofiling = false;
+async function syncRunCameraProfileToOrientation(routineId) {
+  if (runCameraReprofiling) return;
+  if (!runCameraReady(routineId)) return;
+  if (runCamera && runCamera.recording) return; // 録画中に作り直すと、その通しが失われる
+  const want = selectedRunCameraProfileId();
+  if (!runCamera || runCamera.profileId === want) return;
+  runCameraReprofiling = true;
+  try {
+    stopRunCameraNow();
+    updateRunCameraConfirm(routineId, isEnglish() ? "Preparing for this orientation…" : "この向きでカメラを準備中…");
+    await prepareRunCamera(routineId);
+  } finally { runCameraReprofiling = false; }
 }
 window.addEventListener("resize", scheduleRunCameraOrientationUi);
 window.addEventListener("orientationchange", scheduleRunCameraOrientationUi);
