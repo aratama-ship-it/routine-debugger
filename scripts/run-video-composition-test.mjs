@@ -44,9 +44,10 @@ const plan = context.createRunVideoPostCompositionPlan({
   music,
   syncAudioDelaySeconds: 0.35,
 }, { duration: 2.1, width: 1280, height: 720 }, { duration: 120 });
-// 合成は録れたファイルの寸法を守る。カメラの申告(960x720)を優先すると、
-// 食い違ったときに絵を引き伸ばして潰してしまう。
+// 録れたファイルの寸法をそのまま使う。切り出すと画素を捨てるだけになる。
 assert.equal(plan.width, 1280, "the recorded file's own size wins");
+assert.equal(plan.height, 720);
+
 assert.equal(plan.height, 720);
 assert.equal(plan.duration, 2);
 assert.equal(plan.trimStart, 3.5);

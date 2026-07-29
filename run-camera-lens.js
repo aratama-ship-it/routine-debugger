@@ -5,10 +5,9 @@
  * ただし画面が自分を向かないので、カウントダウンは音で知らせる
  * (iPhoneのフラッシュはSafariから触れない)。
  *
- * iOSの事情:
- *  - iOS 16.3以降、背面の各レンズが enumerateDevices に出る
- *  - deviceId は開くたびに変わる端末がある。保存してよいのはレンズ名まで
- *  - ラベルはカメラを一度許可したあとにしか入らない
+ * iOSの事情: iOS 16.3以降は背面の各レンズが enumerateDevices に出るが、
+ * deviceId は開くたびに変わる端末がある。保存してよいのはレンズ名まで。
+ * ラベルはカメラを一度許可したあとにしか入らない。
  *
  * app.js が容量上限に近いため、選択の記憶・一覧・音はここに置く。
  */
@@ -40,7 +39,6 @@
   const savedLens = () => read(LENS_KEY, "");
   const isRear = () => facing() === "environment";
 
-  window.runCameraFacing = facing;
   window.runCameraIsRear = isRear;
   window.runCameraFacingLabel = () =>
     isRear() ? t("背面カメラ", "Rear camera") : t("インカメ", "Front camera");
@@ -52,8 +50,7 @@
   const looksCombined = (label) => /dual|triple|デュアル|トリプル/i.test(label || "");
   const looksFront = (label) => /front|前面|face ?time|self/i.test(label || "");
 
-  // 一覧は控えておく。カメラを開く直前に await を挟むと、Safariが
-  // 「操作から始まった呼び出し」と見なさず、許可の確認そのものが出なくなる。
+  // 一覧は控えておく。開く直前に await を挟むと、Safariが操作起点と見なさず許可が出ない。
   let cachedDevices = [];
 
   async function refreshVideoDevices() {
@@ -85,9 +82,8 @@
   };
 
   // ---------- 開いたあとの向きの取り直し ----------
-  // レンズをdeviceIdで名指しすると、iOSが縦横の希望を無視して
-  // センサー本来の横長フレームを返すことがある。開いた直後に実測し、
-  // 食い違っていれば制約で直し、それでも駄目ならレンズ指定を外して開き直す。
+  // レンズを名指しすると縦横の希望が無視されることがある。実測して直し、
+  // 駄目ならレンズ指定を外して開き直す。
   const frameIsLandscape = (settings) =>
     (Number(settings.width) || 0) >= (Number(settings.height) || 0);
 
@@ -140,8 +136,6 @@
     if (mode === "off") return false;
     return isRear();
   };
-  window.runCountdownBeepEnabled = beepEnabled;
-
   window.runCountdownBeep = (remaining) => {
     if (!beepEnabled()) return;
     try {

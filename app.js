@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v303"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v305"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1092,9 +1092,11 @@ let runVideoPostCompositionBusy = false;
 
 // 画角は端末の向きから決める。持ち方と設定が食い違うと、
 // 「横で構えているのに縦で録れている」といった事故が起きるため、選ばせない。
+// 画角は横長だけ。iPhoneのカメラは端末を縦に構えても横長のフレームを返すため、
+// 縦長を用意しても切り出して画素を捨てることにしかならない。
+// 縦長で撮るのは、AVFoundationを直接使えるネイティブ版の仕事。
 function selectedRunCameraProfileId() {
-  const { width, height } = runCameraViewportSize();
-  return width >= height ? "wide" : "vertical";
+  return "wide";
 }
 function runCameraProfile(profileId = selectedRunCameraProfileId()) {
   return RUN_CAMERA_PROFILES[profileId] || RUN_CAMERA_PROFILES.wide;
@@ -1124,20 +1126,18 @@ function currentRunCameraOrientationState(profileId, cap = runCamera) {
   return runCameraOrientationState(profile.id, viewport.width, viewport.height, frame.width, frame.height);
 }
 function runCameraOrientationCopy(orientation, ready) {
-  if (!orientation.viewportLandscape) {
-    return isEnglish()
-      ? { title: "Turn the iPhone sideways for landscape recording", body: "The 3:4 portrait option is recorded holding the iPhone upright." }
-      : { title: "横方向で撮影する場合は、iPhoneを横向きにしてください", body: "3:4縦長は、iPhoneを縦向きのまま撮影できます。" };
-  }
+  // 見るのは実際の映像の向きだけ。端末の持ち方では止めない
+  // (背面カメラは縦に構えても横長で返るため)。
   if (orientation.frameKnown && !orientation.frameLandscape) {
     return isEnglish()
-      ? { title: "The camera feed is still portrait", body: "Keep the iPhone sideways, stop the camera, then prepare it again." }
-      : { title: "カメラ映像がまだ縦向きです", body: `横向きのまま撮影をやめ、もう一度${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
+      ? { title: "The camera feed is portrait", body: "Turn the iPhone sideways, stop the camera, then prepare it again." }
+      : { title: "カメラ映像が縦向きです", body: `iPhoneを横向きにして撮影をやめ、もう一度${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
   }
   return isEnglish()
-    ? { title: ready ? "Landscape feed confirmed" : "Landscape orientation confirmed", body: ready ? "Keep the iPhone sideways throughout recording." : "Keep this orientation and prepare the front camera." }
-    : { title: ready ? "横長の映像を確認しました" : "横向きを確認しました", body: ready ? "撮影中もiPhoneを横向きのまま固定してください。" : `この向きのまま${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
+    ? { title: ready ? "Landscape feed confirmed" : "Landscape recording", body: ready ? "The run is recorded in landscape." : "Recording is landscape, however you hold the iPhone." }
+    : { title: ready ? "横長の映像を確認しました" : "横長で撮影します", body: ready ? "この画角のまま記録します。" : "iPhoneを縦に構えても、映像は横長で記録されます。" };
 }
+
 function syncRunCameraOrientationUi(routineId) {
   const ready = runCameraReady(routineId);
   const profile = runCameraProfile(ready ? runCamera.profileId : undefined);

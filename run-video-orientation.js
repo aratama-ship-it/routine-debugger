@@ -1,7 +1,8 @@
 "use strict";
 
-// iPhone Safariでは要求したwidth/heightより端末の向きが優先される場合がある。
-// 4:3横長は、画面と実カメラフレームの両方が横向きのときだけ録画を許可する。
+// 判断の基準は「実際に返ってきた映像が横長かどうか」だけにする。
+// 背面カメラは端末を縦に構えても横長で返るため、持ち方で縛ると撮れなくなる。
+// インカメは持ち方に追従して縦で返るので、その場合はここで止まる。
 const RUN_CAMERA_LANDSCAPE_PROFILE_ID = "wide";
 
 function normalizedRunCameraDimension(value) {
@@ -25,6 +26,6 @@ function runCameraOrientationState(profileId, viewportWidth, viewportHeight, fra
     viewportLandscape,
     frameKnown,
     frameLandscape,
-    blocked: requiresLandscape && (!viewportLandscape || !frameLandscape),
+    blocked: requiresLandscape && frameKnown && !frameLandscape,
   };
 }
