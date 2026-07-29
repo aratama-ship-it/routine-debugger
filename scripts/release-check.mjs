@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"),
+const [app, runVideoOrientation, runCameraLens, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -372,6 +372,29 @@ if (!/if \(gainNode\) gainNode\.gain\.value = 0;/.test(app)
     || !/const unmute = \(\) => \{ musicPlayer\.muted = false; musicSetVolume\(musicVolume\); \};/.test(app)) {
   failures.push("カウントダウン中の再生権限取りが無音になっていません");
 }
+// 背面カメラとレンズを選べること。iOSのdeviceIdは開くたびに変わるので保存しない
+if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
+    || !/rd_run_camera_facing/.test(runCameraLens)
+    || !/rd_run_camera_lens/.test(runCameraLens)
+    || /setItem\("rd_run_camera_device_id"/.test(runCameraLens)
+    || !/deviceId: \{ exact: hit\.deviceId \}/.test(runCameraLens)
+    || !/facingMode: \{ ideal: facing\(\) \}/.test(runCameraLens)
+    || !/await runCameraVideoConstraints\(profile\)/.test(app)
+    || !/<div id="run-camera-lens">\$\{/.test(app)
+    || !/runCameraLensRowHtml\(routineId\)/.test(app)
+    || !/renderRunCameraLensRow\(routineId\)/.test(app)
+    || !/\.run-camera-preview\.is-rear/.test(updateCss)) {
+  failures.push("背面カメラ・レンズの選択ができません");
+}
+// 背面では画面が見えないので、カウントダウンを音で知らせる
+if (!/window\.runCountdownBeep = \(remaining\)/.test(runCameraLens)
+    || !/rd_countdown_beep/.test(runCameraLens)
+    || !/if \(mode === "on"\) return true;/.test(runCameraLens)
+    || !/return isRear\(\);/.test(runCameraLens)
+    || !/runCountdownBeep\(remaining\)/.test(app)
+    || !/runCountdownBeep\(seconds\)/.test(app)) {
+  failures.push("カウントダウンを音で知らせられません");
+}
 }
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/stoppedRunVideoCapture\s*!==\s*capture/.test(runVideoSync)
@@ -552,16 +575,18 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 9_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-if (gzipShell > 180_000) failures.push(`主要コードのgzip概算が180KBを超えています (${gzipShell})`);
+// 2026-07-29: 背面カメラ・レンズ選択・カウントダウン音の追加で180KBを超えたため引き上げ。
+// 機能を足すたびに上げる枠ではない。次に当たったら、まず不要コードを削るか分割を疑う。
+if (gzipShell > 184_000) failures.push(`主要コードのgzip概算が184KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

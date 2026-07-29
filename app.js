@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v293"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v296"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1239,7 +1239,7 @@ function runCameraConfirmBody(routineId, status = "") {
     : (isEnglish() ? "Video only · until the run ends" : "映像のみ・通し終了まで");
   return `
     <div class="run-camera-head">
-      <div><b>インカメで撮影 <span class="run-camera-state ${ready ? "on" : "off"}">${
+      <div><b>${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}で撮影 <span class="run-camera-state ${ready ? "on" : "off"}">${
         ready ? (isEnglish() ? "ON" : "ON") : (isEnglish() ? "OFF" : "OFF")}</span></b>
         <span>${ready
           ? (isEnglish() ? "This run will be recorded." : "この通しは撮影されます")
@@ -1247,6 +1247,8 @@ function runCameraConfirmBody(routineId, status = "") {
         <span>${audioCopy}</span></div>
       <span class="run-video-capacity">保存 ${count}/${RUN_VIDEO_LIMIT}本</span>
     </div>
+    <div id="run-camera-lens">${
+      typeof runCameraLensRowHtml === "function" ? runCameraLensRowHtml(routineId) : ""}</div>
     <div class="run-camera-profile" role="status" aria-label="撮影画角">
       <span class="selected">${selectedProfile.label}</span>
     </div>
@@ -1257,7 +1259,8 @@ function runCameraConfirmBody(routineId, status = "") {
       role="status" ${orientation.requiresLandscape ? "" : "hidden"}>
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
     </div>
-    ${ready ? `<video id="run-camera-preview" class="run-camera-preview" style="--run-camera-aspect:${selectedProfile.cssRatio}" autoplay playsinline muted></video>` : ""}
+    ${ready ? `<video id="run-camera-preview" class="run-camera-preview${
+      typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${selectedProfile.cssRatio}" autoplay playsinline muted></video>` : ""}
     ${status ? `<div class="run-camera-status" role="status">${esc(status)}</div>` : ""}
     <button type="button" class="btn ${ready ? "ghost" : ""}" id="run-camera-toggle"
       ${prepareBlocked ? "disabled aria-disabled=\"true\"" : ""}
@@ -1275,6 +1278,7 @@ function updateRunCameraConfirm(routineId, status = "") {
   if (!area) return;
   area.innerHTML = runCameraConfirmBody(routineId, status);
   applyUiLanguage(area);
+  if (typeof renderRunCameraLensRow === "function") renderRunCameraLensRow(routineId);
   const preview = document.getElementById("run-camera-preview");
   if (preview && runCameraReady(routineId)) {
     preview.srcObject = runCamera.stream;
@@ -1308,13 +1312,15 @@ async function prepareRunCamera(routineId) {
   const requestGeneration = ++runCameraRequestGeneration;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: profile.width }, height: { ideal: profile.height },
-        aspectRatio: { ideal: profile.ratio },
-        resizeMode: profile.resizeMode,
-        frameRate: { ideal: 24, max: 30 },
-      },
+      video: typeof runCameraVideoConstraints === "function"
+        ? await runCameraVideoConstraints(profile)
+        : {
+          facingMode: "user",
+          width: { ideal: profile.width }, height: { ideal: profile.height },
+          aspectRatio: { ideal: profile.ratio },
+          resizeMode: profile.resizeMode,
+          frameRate: { ideal: 24, max: 30 },
+        },
       audio: false,
     });
     if (requestGeneration !== runCameraRequestGeneration || !document.getElementById("run-camera-area")) {
@@ -1327,7 +1333,8 @@ async function prepareRunCamera(routineId) {
       routineId, stream, chunks: [], recording: false, profileId: profile.id, generation: requestGeneration,
       frameWidth: Number(settings.width) || 0, frameHeight: Number(settings.height) || 0,
     };
-    updateRunCameraConfirm(routineId, "インカメの準備ができました");
+    updateRunCameraConfirm(routineId, `${
+      typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}の準備ができました`);
     return true;
   } catch (_) {
     if (requestGeneration !== runCameraRequestGeneration) return false;
@@ -3450,11 +3457,13 @@ window.startRunCountdown = (routineId) => {
     }, 520);
   };
 
+  if (typeof runCountdownBeep === "function") runCountdownBeep(seconds);
   if (seconds <= 0) return begin();
   let remaining = seconds;
   runCountdownTimer = setInterval(() => {
     remaining -= 1;
     const number = document.getElementById("run-countdown-number");
+    if (typeof runCountdownBeep === "function") runCountdownBeep(remaining);
     if (remaining <= 0) begin();
     else if (number) number.textContent = String(remaining);
   }, 1000);
@@ -3562,7 +3571,8 @@ function renderRecord() {
       <aside class="tablet-practice-side" aria-label="${isEnglish() ? "Run controls" : "通し練習の操作"}">
         ${practiceNowDockHtml()}
         ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
-          <video id="run-camera-live-preview" class="run-camera-live-preview" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
+          <video id="run-camera-live-preview" class="run-camera-live-preview${
+            typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
             aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
           <div class="run-video-live-copy">
             <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
