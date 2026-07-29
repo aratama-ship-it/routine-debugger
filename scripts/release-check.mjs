@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"),
+const [app, runVideoOrientation, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -103,7 +103,8 @@ if (!/showPracticeVideo:\s*true/.test(app)
     || !/\["プレビュー動画\(通し練習\)", "Preview video \(Full Run\)"\]/.test(i18n)) {
   failures.push("プレビュー動画が通し・パート・編集ごとに初期ONで、個別設定から切り替えられる仕様ではありません");
 }
-const renderSettingsSource = app.match(/function renderSettings\(\) \{([\s\S]*?)\n\}\n\nwindow\.setLanguage/);
+// 設定画面は settings-view.js にある(app.js の容量上限のため分離した)
+const renderSettingsSource = settingsView.match(/renderSettings = function renderSettings\(\) \{([\s\S]*?)\n\};/);
 if (!renderSettingsSource
     || /すべてのルーティンに適用|switchRow\("リスク度"|switchRow\("A\/B分岐"/.test(renderSettingsSource[1])
     || !/function defaultRoutineFeatures\(\)[\s\S]*?showRisk:\s*false[\s\S]*?showSlots:\s*false/.test(app)
@@ -513,8 +514,8 @@ if (!/function runVideoStorageActions\(videos\)/.test(runVideoReview)
     || !/state\.runVideos\s*=\s*\[\]/.test(runVideoSync)
     || !/videoIds\.has\(run\.videoId\)[\s\S]*?delete run\.videoId/.test(runVideoSync)
     || !/Promise\.all\(videos\.map\(\(video\)\s*=>\s*blobDel\(video\.blobId\)\)\)/.test(runVideoSync)
-    || !/映像の使用容量/.test(app)
-    || !/onclick="go\('runvideos'\)">演技映像の保存を管理/.test(app)
+    || !/映像の使用容量/.test(settingsView)
+    || !/onclick="go\(.runvideos.\)">演技映像の保存を管理/.test(settingsView)
     || !/\.run-video-storage-actions/.test(css)) {
   failures.push("演技映像の容量表示と、スライド確認付き一括削除が揃っていません");
 }

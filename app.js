@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v287"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v288"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -932,9 +932,10 @@ musicPlayback.bindEvents({
   onStop: () => {
     if (musicRaf) { cancelAnimationFrame(musicRaf); musicRaf = 0; }
     updateMusicUI(); // 停止時に最終位置へ同期
-    if (runCamera && runCamera.recording) stopRunVideoCaptureAtMusicStop();
+    // 曲がまだ鳴り始めていない段階の停止(カウントダウン中の権限取得など)では止めない。
+    // ここを見ないと、権限取得のpause()で録画が即座に終わってしまう。
+    if (runCamera && runCamera.recording && runCamera.audioStartedAt) stopRunVideoCaptureAtMusicStop();
   },
-  // 音が鳴り始めた時点で録画する。
   onPlaying: () => {
     if (!activeFullRunRoutineId) return;
     // 先に「もう回っているか」を見る。撮影を始めた時点で armed は下ろされるため、
@@ -6165,73 +6166,6 @@ window.openHelp = () => {
 };
 
 // ========== 設定(バックアップ) ==========
-function renderSettings() {
-  const runTotal = state.sessions.reduce((a, s) => a + s.runs.length, 0);
-  const runVideoBytes = runVideoStorageBytes();
-  setTimeout(refreshStorageInfo, 0); // 容量・永続化の取得は非同期なので描画後に埋める
-  setTimeout(renderAccountCard, 0);  // アカウント欄は account.js が埋める
-  return `
-    <div class="topbar"><button class="back-btn" onclick="returnFromGlobalSettings()" aria-label="戻る" title="戻る">◀</button><h1>グローバル設定</h1></div>
-    <div class="card" id="account-card"></div>
-    <div class="card">
-      <h2>${isEnglish() ? "Language" : "表示言語"}</h2>
-      <div class="segmented" id="language-seg" role="group" aria-label="${isEnglish() ? "Language" : "表示言語"}">
-        <button class="choice ${!isEnglish() ? "selected" : ""}" onclick="setLanguage('ja')">日本語</button>
-        <button class="choice ${isEnglish() ? "selected" : ""}" onclick="setLanguage('en')">English</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>データ</h2>
-      <div class="bd-row"><span class="k">ルーティン</span><span class="v">${state.routines.length}</span></div>
-      <div class="bd-row"><span class="k">セッション</span><span class="v">${state.sessions.length}</span></div>
-      <div class="bd-row"><span class="k">通し合計</span><span class="v">${runTotal}本</span></div>
-      <div class="bd-row"><span class="k">通し映像</span><span class="v">${storedRunVideos().length}/${RUN_VIDEO_LIMIT}本</span></div>
-      <div class="bd-row"><span class="k">映像の使用容量</span><span class="v">${fmtBytes(runVideoBytes)}</span></div>
-      <div class="bd-row"><span class="k">端末全体の使用容量</span><span class="v" id="storage-est">…</span></div>
-      <div class="bd-row"><span class="k">データの保護</span><span class="v" id="storage-persist">…</span></div>
-      <div class="bd-row"><span class="k">未使用データ</span><span class="v" id="storage-orphan">…</span></div>
-      <button class="btn storage-manage-btn" onclick="go('runvideos')">演技映像の保存を管理</button>
-    </div>
-    <div class="card">
-      <h2>シーケンスの動画の画質(撮影・アップロード)${infoBtn("videoQuality")}</h2>
-      <div class="segmented" id="vq-seg">
-        ${Object.entries(VIDEO_PROFILES).map(([k, p]) => `<button class="choice ${(state.settings.videoQuality || "standard") === k ? "selected" : ""}"
-          onclick="setVideoQuality('${k}')">${p.label}</button>`).join("")}
-      </div>
-    </div>
-    <div class="card">
-      <h2>完全バックアップ(動画・音源を含む)${infoBtn("fullBackup")}</h2>
-      <button class="btn primary" onclick="exportFullBackup()">ZIPで書き出す</button>
-      <button class="btn" onclick="document.getElementById('zip-import-file').click()">ZIPから復元する</button>
-      <input type="file" id="zip-import-file" accept=".zip,application/zip" class="hidden" onchange="importFullBackup(this)">
-      <button class="btn ghost" onclick="document.getElementById('zip-verify-file').click()">ZIPを検証する(復元しない)</button>
-      <input type="file" id="zip-verify-file" accept=".zip,application/zip" class="hidden" onchange="verifyFullBackup(this)">
-      <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button>
-    </div>
-    <div class="card">
-      <h2>記録の書き出し(表計算用)${infoBtn("csv")}</h2>
-      <button class="btn ghost" onclick="exportCsv()">CSVエクスポート</button>
-    </div>
-    <div class="card">
-      <h2>ご意見・機能の要望${infoBtn("feedback")}</h2>
-      <button class="btn" onclick="openFeedback()">機能の要望・バグ報告を送る</button>
-    </div>
-    <div class="card">
-      <h2>ベータ版について</h2>
-      <button class="btn" onclick="openDocPage('beta.html')">テスターの方へ(使い方と注意)</button>
-      <button class="btn ghost" onclick="openDocPage('privacy.html')">プライバシーポリシー</button>
-      <button class="btn ghost" onclick="openDocPage('updates.html')">アップデート履歴</button>
-      <button class="btn ghost" onclick="openDocPage('terms.html')">利用規約</button>
-    </div>
-    <button class="btn" onclick="openHelp()">使い方を見る</button>
-    <button class="btn" onclick="openDocPage('about.html')">このアプリについて</button>
-    <div class="card">
-      <h2>初期化${infoBtn("reset")}</h2>
-      <button class="btn danger-ghost" style="width:100%" onclick="resetAllData()">この端末のデータを全て削除</button>
-    </div>
-    <div class="app-copyright">© 2026 PYGMIX</div>`;
-}
-
 window.setLanguage = (language) => {
   state.settings.language = language === "en" ? "en" : "ja";
   saveState(); render();
