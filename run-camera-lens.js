@@ -35,19 +35,26 @@
   const isHighQuality = () => read(QUALITY_KEY, "std") === "high";
   window.runVideoBitrate = () => (isHighQuality() ? HIGH_BPS : STD_BPS);
 
+  // 超広角かどうかの手がかり。ラベルは端末と言語で変わるので断定はしない
+  const looksUltraWide = (label) => /ultra|超広角|0\.5/i.test(label || "");
+  // Dual / Triple は複数レンズをまとめた仮想デバイス。既定で撮影中に切り替わるため、
+  // 通しの途中で画角が変わる。構成を見比べる用途には使えないので選択肢から外す。
+  const looksCombined = (label) => /dual|triple|デュアル|トリプル/i.test(label || "");
+
   const facing = () => (read(FACING_KEY, "user") === "environment" ? "environment" : "user");
-  const savedLens = () => read(LENS_KEY, "");
+  // Dual/Triple を選んだ状態が残っていたら捨てる。
+  // 撮影中にレンズが変わるため、一覧から外したものを裏で使い続けない。
+  const savedLens = () => {
+    const value = read(LENS_KEY, "");
+    if (value && looksCombined(value)) { write(LENS_KEY, ""); return ""; }
+    return value;
+  };
   const isRear = () => facing() === "environment";
 
   window.runCameraIsRear = isRear;
   window.runCameraFacingLabel = () =>
     isRear() ? t("背面カメラ", "Rear camera") : t("インカメ", "Front camera");
 
-  // 超広角かどうかの手がかり。ラベルは端末と言語で変わるので断定はしない
-  const looksUltraWide = (label) => /ultra|超広角|0\.5/i.test(label || "");
-  // Dual / Triple は複数レンズをまとめた仮想デバイス。既定で自動的に切り替わるため、
-  // 通しの途中で画角が変わりうる。構成を見比べる用途には向かない。
-  const looksCombined = (label) => /dual|triple|デュアル|トリプル/i.test(label || "");
   const looksFront = (label) => /front|前面|face ?time|self/i.test(label || "");
 
   // 一覧は控えておく。開く直前に await を挟むと、Safariが操作起点と見なさず許可が出ない。
@@ -245,7 +252,8 @@
 
   window.sheetPickRunCameraLens = async (routineId) => {
     const list = await refreshVideoDevices();
-    const named = list.filter((d) => d.label);
+    const 全部 = list.filter((d) => d.label);
+    const named = 全部.filter((d) => !looksCombined(d.label));
     const lens = savedLens();
 
     const auto = (value, label, note) => `<div class="pick-trick-row ${
@@ -255,13 +263,11 @@
     const rows = named.map((d) => `<div class="pick-trick-row ${lens === d.label ? "is-on" : ""}"
       onclick="pickRunCamera('${looksFront(d.label) ? "user" : "environment"}','${esc(d.label)}','${routineId}')">
       <span class="nm">${esc(d.label)}</span>
-      <span class="kn">${looksCombined(d.label)
-        ? t("自動で切替", "Auto switching")
-        : looksUltraWide(d.label) ? t("超広角", "Ultra wide") : ""}</span></div>`).join("");
+      <span class="kn">${looksUltraWide(d.label) ? t("超広角", "Ultra wide") : ""}</span></div>`).join("");
 
-    const combined = named.some((d) => looksCombined(d.label)) ? `<div class="rcl-note">${t(
-      "「Dual」「Triple」は複数のレンズをまとめたもので、撮影中に自動で切り替わります。通しの途中で画角が変わるため、レンズ1本を選ぶほうが確実です。",
-      "“Dual” and “Triple” combine several lenses and switch automatically mid-take, changing the framing. Pick a single lens instead.")}</div>` : "";
+    const combined = 全部.length > named.length ? `<div class="rcl-note">${t(
+      "「Dual」「Triple」は複数のレンズをまとめたもので、撮影中に自動で切り替わります。通しの途中で画角が変わるため、一覧には出していません。",
+      "“Dual” and “Triple” combine several lenses and switch mid-take, so they are not listed.")}</div>` : "";
 
     const permission = named.length ? "" : `<div class="rcl-note">${t(
       "レンズの一覧は、カメラを一度許可すると出せます。",

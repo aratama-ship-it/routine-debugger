@@ -386,6 +386,9 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || !/window\.closeRunCameraPicker = \(routineId\)/.test(runCameraLens)
     // Dual/Triple は撮影中に勝手にレンズが変わる。選ばせる前に知らせる
     || !/const looksCombined = \(label\) =>/.test(runCameraLens)
+    // Dual/Triple は撮影中にレンズが変わる。一覧に出さず、保存済みの値も捨てる
+    || !/const named = 全部\.filter\(\(d\) => !looksCombined\(d\.label\)\)/.test(runCameraLens)
+    || !/if \(value && looksCombined\(value\)\) \{ write\(LENS_KEY, ""\)/.test(runCameraLens)
     // レンズ名指しで縦横の希望が無視されることがある。開いた直後に実測して直す
     || !/window\.correctRunCameraStream = async \(stream, profile\)/.test(runCameraLens)
     || !/stream = await correctRunCameraStream\(stream, profile\)/.test(app)
@@ -625,7 +628,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 14_800], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_500], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 15_200], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_100], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
