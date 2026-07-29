@@ -393,6 +393,10 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || !/window\.correctRunCameraStream = async \(stream, profile\)/.test(runCameraLens)
     || !/stream = await correctRunCameraStream\(stream, profile\)/.test(app)
     || !/run-camera-frame/.test(app)
+    // プレビューは実フレームの縦横のまま、切り取らずに見せる
+    || !/window\.runCameraFrameRatioCss = \(cap, fallback\)/.test(runCameraLens)
+    || !/runCameraFrameRatioCss\(runCamera, selectedProfile\.cssRatio\)/.test(app)
+    || !/\.run-camera-preview \{[\s\S]*?object-fit: contain/.test(css)
     // 合成は録れたファイルの寸法を守る。引き伸ばして絵を潰さない
     || !/positive\(videoMeta\.width\) \|\| positive\(capture\.captureWidth\)/.test(runVideoComposition)
     || !/run-video-size/.test(runVideoReview)
@@ -628,7 +632,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 15_200], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_100], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000],
+  ["app.js", 352_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 15_600], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_100], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 49_500],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

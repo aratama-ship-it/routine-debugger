@@ -133,6 +133,14 @@
     return stream;
   };
 
+  // プレビューの縦横は、実際に返ってきた映像そのものに合わせる。
+  // 画角の中に自分がいるかを見るためのものなので、切り取ってはいけない。
+  window.runCameraFrameRatioCss = (cap, fallback) => {
+    const w = Number(cap && cap.frameWidth) || 0;
+    const h = Number(cap && cap.frameHeight) || 0;
+    return w > 0 && h > 0 ? `${w} / ${h}` : fallback;
+  };
+
   // ---------- カウントダウンの音 ----------
   // 背面で撮ると画面が見えない。既定は「背面のときだけ鳴らす」
   let beepCtx = null;

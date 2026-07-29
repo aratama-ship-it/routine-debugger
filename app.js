@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v313"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v314"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1271,7 +1271,8 @@ function runCameraConfirmBody(routineId, status = "") {
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
     </div>
     ${ready ? `<video id="run-camera-preview" class="run-camera-preview${
-      typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${selectedProfile.cssRatio}" autoplay playsinline muted></video>` : ""}
+      typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${typeof runCameraFrameRatioCss === "function"
+      ? runCameraFrameRatioCss(runCamera, selectedProfile.cssRatio) : selectedProfile.cssRatio}" autoplay playsinline muted></video>` : ""}
     ${status ? `<div class="run-camera-status" role="status">${esc(status)}</div>` : ""}
     <button type="button" class="btn ${ready ? "ghost" : ""}" id="run-camera-toggle"
       ${prepareBlocked ? "disabled aria-disabled=\"true\"" : ""}
@@ -3616,7 +3617,9 @@ function renderRecord() {
         ${practiceNowDockHtml()}
         ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
           <video id="run-camera-live-preview" class="run-camera-live-preview${
-            typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
+            typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${typeof runCameraFrameRatioCss === "function"
+              ? runCameraFrameRatioCss(runCamera, runCameraProfile(runCamera.profileId).cssRatio)
+              : runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
             aria-label="${isEnglish() ? "Live camera preview" : `撮影中の${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}プレビュー`}"></video>
           <div class="run-video-live-copy">
             <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>

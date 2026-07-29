@@ -1290,7 +1290,7 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-camera-orientation.is-ready { color: #426b48; }
 .run-camera-preview {
   display: block; width: min(360px, 100%); aspect-ratio: var(--run-camera-aspect, 4/3); margin: 0 auto 10px;
-  border: 2px solid var(--text); border-radius: 4px; background: #090909; object-fit: cover;
+  border: 2px solid var(--text); border-radius: 4px; background: #090909; object-fit: contain;
   transform: scaleX(-1);
 }
 .run-camera-confirm .btn { min-height: 46px; margin: 0 0 8px; }
@@ -1331,7 +1331,7 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-video-live-dot { width: 10px; height: 10px; border-radius: 50%; background: #c83f38; box-shadow: 0 0 0 3px rgba(200,63,56,.14); }
 .run-camera-live-preview {
   flex: 0 0 auto; width: 96px; aspect-ratio: var(--run-camera-aspect, 4/3); border: 1px solid #7f2c29; border-radius: 3px;
-  background: #090909; object-fit: cover; transform: scaleX(-1);
+  background: #090909; object-fit: contain; transform: scaleX(-1);
 }
 .run-video-live-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 7px; }
 .run-video-live-copy > div { display: flex; align-items: center; gap: 8px; }
