@@ -13,7 +13,7 @@ window.renderSettings = function renderSettings() {
   setTimeout(refreshStorageInfo, 0); // 容量・永続化の取得は非同期なので描画後に埋める
   setTimeout(renderAccountCard, 0);  // アカウント欄は account.js が埋める
   return `
-    <div class="topbar"><button class="back-btn" onclick="returnFromGlobalSettings()" aria-label="戻る" title="戻る">◀</button><h1>グローバル設定</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="returnFromGlobalSettings()" aria-label="戻る" title="戻る"></button><h1>グローバル設定</h1></div>
     <div class="card" id="account-card"></div>
     <div class="card">
       <h2>${isEnglish() ? "Language" : "表示言語"}</h2>

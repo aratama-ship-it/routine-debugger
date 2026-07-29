@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v289"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v290"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -2256,7 +2256,7 @@ function renderRunVideos() {
     : (english ? "No performance videos yet.<br>Prepare the front camera before starting a full run."
       : "演技映像はまだありません。<br>通し練習の開始前にインカメを準備すると、終了後に保存できます。");
   return `
-    <div class="topbar"><button class="back-btn" onclick="${backAction}" aria-label="戻る" title="戻る">◀</button><h1 data-user-text>${esc(pageTitle)}</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="${backAction}" aria-label="戻る" title="戻る"></button><h1 data-user-text>${esc(pageTitle)}</h1></div>
     <section class="card run-video-library-card" aria-labelledby="run-video-library-title">
       <div class="run-video-library-heading">
         <div><h2 id="run-video-library-title">${headingTitle}</h2><p>${headingCopy}</p></div>
@@ -2281,7 +2281,7 @@ function renderRunVideos() {
 function renderRoutines() {
   const rows = state.routines.map((rt) => routineCardHtml(rt)).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る"></button>
       <h1>ルーティン一覧</h1></div>
     <section class="routine-stack-list" aria-labelledby="routine-stack-title">
       <h2 id="routine-stack-title">登録済みのルーティン</h2>
@@ -2778,7 +2778,7 @@ function renderEdit() {
       <input type="file" id="music-file" accept="audio/*" class="hidden" onchange="attachMusic(this)">
     </div>`;
   return `
-    <div class="topbar"><button class="back-btn" onclick="editorBack()" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="editorBack()" aria-label="戻る" title="戻る"></button>
       <h1>${rt ? "ルーティン編集" : "新規ルーティン"}</h1>${routineMenuAction(rt ? rt.id : "")}</div>
     ${draft._restoredFromVersion ? `<div class="version-restore-notice">
       <span><b>v${draft._restoredFromVersion}</b> の構成を編集中です</span>
@@ -3552,7 +3552,7 @@ function renderRecord() {
   }).join("");
 
   return `
-    <div class="topbar"><button class="back-btn" onclick="endSessionAsk('${rt.id}')" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="endSessionAsk('${rt.id}')" aria-label="戻る" title="戻る"></button>
       <h1 class="record-mode-head"><span>通し練習モード</span><small>${esc(routineDisplayName(rt))}</small></h1>
       ${routineMenuAction(rt.id, `<span class="sub">v${rt.versions.length}</span>`)}</div>
     <div class="tablet-practice-layout tablet-record-layout">
@@ -3898,7 +3898,7 @@ function renderStats() {
 
   if (st.total === 0) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る">◀</button>
+      <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る"></button>
         <h1>${esc(routineDisplayName(rt))} 分析</h1>${routineMenuAction(rt.id)}</div>
       ${verSelect}
       <div class="empty">v${verIndex} の通し記録はまだありません。<br>「通し練習」からクリーン、失敗、実施できなかったシーケンスを記録すると、ここに偏りが表示されます。</div>`;
@@ -4024,7 +4024,7 @@ function renderStats() {
     `<div class="bd-row"><span class="k">${esc(t)}</span><span class="v">${c}回</span></div>`).join("");
 
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る"></button>
       <h1>${esc(routineDisplayName(rt))} 分析</h1>${routineMenuAction(rt.id, `<span class="sub">v${verIndex}</span>`)}</div>
     ${verSelect}
     ${overview}
@@ -4327,7 +4327,7 @@ function renderPart() {
   if (!rt) return renderHome();
   if (!rt.music) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る">◀</button>
+      <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る"></button>
         <h1>${esc(routineDisplayName(rt))} パート練習</h1>${routineMenuAction(rt.id)}</div>
       <div class="empty">パート練習は登録した楽曲の一部をループ再生する機能です。<br>まず「編集」から音源(MP3等)を添付してください。</div>
       <button class="btn" onclick="go('edit',{id:'${rt.id}'})">編集画面へ</button>`;
@@ -4355,7 +4355,7 @@ function renderPart() {
       <button class="btn small" onclick="partSetPoint('${which}')">今の位置</button>
     </div>`;
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="go('routines')" aria-label="戻る" title="戻る"></button>
       <h1>${esc(routineDisplayName(rt))} パート練習</h1>${routineMenuAction(rt.id)}</div>
     <div class="tablet-practice-layout tablet-part-layout">
       <aside class="tablet-practice-side" aria-label="${isEnglish() ? "Sequence preview" : "シーケンスのプレビュー"}">
@@ -4495,7 +4495,7 @@ function renderStepDetail() {
   }).join("") : "";
 
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}',versionId:'${ver.id}'})" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}',versionId:'${ver.id}'})" aria-label="戻る" title="戻る"></button>
       <h1>${esc(detailStepName)}</h1>${routineMenuAction(rt.id)}</div>
     <div class="stat-overview" style="grid-template-columns:1fr 1fr">
       <div class="stat-box"><div class="v">${attemptedRuns}</div><div class="l">実施回数</div></div>
@@ -4524,7 +4524,7 @@ function renderHistory() {
     .filter((s) => s.routineId === rt.id)
     .sort((a, b) => b.startedAt - a.startedAt);
   if (!sessions.length) {
-    return `<div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})" aria-label="戻る" title="戻る">◀</button>
+    return `<div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})" aria-label="戻る" title="戻る"></button>
       <h1>履歴</h1>${routineMenuAction(rt.id)}</div><div class="empty">まだセッションがありません</div>`;
   }
   const blocks = sessions.map((sess) => {
@@ -4570,7 +4570,7 @@ function renderHistory() {
     </div>`;
   }).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})" aria-label="戻る" title="戻る">◀</button>
+    <div class="topbar"><button class="back-btn" onclick="go('stats',{id:'${rt.id}'})" aria-label="戻る" title="戻る"></button>
       <h1>${esc(routineDisplayName(rt))} 履歴</h1>${routineMenuAction(rt.id)}</div>
     ${blocks}
     `;
@@ -4849,7 +4849,7 @@ function renderAudios() {
       </div>
     </div>`).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る">◀</button><h1>音源ライブラリ</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る"></button><h1>音源ライブラリ</h1></div>
     <div class="row-2">
       <button class="btn primary" style="margin-bottom:12px" onclick="audioRecToggle()">${audioRec ? `■ 停止 <span id="arec-elapsed" style="font-weight:400">0:00.0</span>` : "● マイクで録音"}</button>
       <button class="btn" onclick="document.getElementById('audio-file').click()">＋ 音源を登録(MP3等)</button>
@@ -5569,7 +5569,7 @@ function renderTricks() {
       </div>
     </div>`).join("");
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る">◀</button><h1>${TRICK_LIBRARY_LABEL}</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る"></button><h1>${TRICK_LIBRARY_LABEL}</h1></div>
     <div class="row-2">
       <button class="btn primary" style="margin-bottom:12px" onclick="go('trickrec')">● カメラで撮影</button>
       <button class="btn" onclick="document.getElementById('trick-file').click()">＋ 動画を登録</button>
@@ -6072,14 +6072,14 @@ function renderTrickRec() {
   if (!trickCam) setTimeout(initTrickCam, 0);
   if (trickCam && trickCam.error) {
     return `
-      <div class="topbar"><button class="back-btn" onclick="go('tricks')" aria-label="戻る" title="戻る">◀</button><h1>シーケンスを撮影</h1></div>
+      <div class="topbar"><button class="back-btn" onclick="go('tricks')" aria-label="戻る" title="戻る"></button><h1>シーケンスを撮影</h1></div>
       <div class="empty">この環境ではアプリ内カメラを使えません。<br>カメラアプリで撮影して「動画を登録」から取り込んでください。</div>
       <button class="btn" onclick="document.getElementById('trick-file2').click()">＋ 動画を登録</button>
       <input type="file" id="trick-file2" accept="video/*" capture="environment" class="hidden" onchange="trickImport(this)">`;
   }
   const reviewing = trickCam && trickCam.blob;
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('tricks')" aria-label="戻る" title="戻る">◀</button><h1>シーケンスを撮影</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('tricks')" aria-label="戻る" title="戻る"></button><h1>シーケンスを撮影</h1></div>
     ${reviewing ? `
       <video class="trick-video main" src="${trickCam.objUrl}" controls autoplay playsinline loop></video>
       <div class="row-2" style="margin-top:12px">

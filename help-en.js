@@ -6,7 +6,7 @@
  */
 window.renderHelpEnglish = function renderHelpEnglish() {
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="Back" title="Back">◀</button><h1>Guide</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="Back" title="Back"></button><h1>Guide</h1></div>
     <div class="card help-tutorial-card"><h2>Tutorial</h2>
       <p>Use the sample act to go from recording a run to deciding what to practise next (about 5 minutes).</p>
       <button class="btn primary" onclick="tutorialStart()">Start the tutorial</button>
@@ -36,7 +36,7 @@ window.renderHelpEnglish = function renderHelpEnglish() {
 window.renderHelp = function renderHelp() {
   if (isEnglish()) return renderHelpEnglish();
   return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る">◀</button><h1>使い方</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る"></button><h1>使い方</h1></div>
     <div class="card help-tutorial-card"><h2>チュートリアル</h2>
       <p>サンプルの演目で、記録から次の練習を決めるところまでを試します(5分ほど)。</p>
       <button class="btn primary" onclick="tutorialStart()">チュートリアルを始める</button>
