@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v292"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v293"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -3394,10 +3394,13 @@ window.startRunCountdown = (routineId) => {
   // (Web Audio経由だと muted か volume の片方では消えない)。
   if (rt.music && musicPlayer.src && !musicMissing) {
     ensureAudioGraph();
-    const restoreVolume = musicPlayer.volume;
+    // 2回目以降はWeb Audioのグラフが既にあり、音量はGainNodeが持っている。
+    // element側のmuted/volumeだけでは経路が違って鳴るので、GainNodeも0にする。
     musicPlayer.muted = true;
     musicPlayer.volume = 0;
-    const unmute = () => { musicPlayer.muted = false; musicPlayer.volume = restoreVolume; };
+    if (gainNode) gainNode.gain.value = 0;
+    // 戻すのは musicVolume 基準。現在値を控えると、二重に呼ばれたとき0が焼き付く
+    const unmute = () => { musicPlayer.muted = false; musicSetVolume(musicVolume); };
     const priming = musicPlayer.play();
     if (priming && priming.then) {
       priming.then(() => { musicPlayer.pause(); musicSetTime(0); }).catch(() => {}).then(unmute);

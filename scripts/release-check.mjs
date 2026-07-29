@@ -367,6 +367,11 @@ if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*20/.test(runVideoDelay)
     || !/syncAudioDelaySeconds:\s*runVideoDesiredAudioDelay\(pending\)/.test(app)
     || !/\.run-video-sync-adjust/.test(css)) {
   failures.push("演技直後の同期補正(実測±1秒)を試聴・保存し、次回録画へ反映できません");
+// カウントダウン中の再生権限取りは、Web Audio側も含めて完全に無音であること
+if (!/if \(gainNode\) gainNode\.gain\.value = 0;/.test(app)
+    || !/const unmute = \(\) => \{ musicPlayer\.muted = false; musicSetVolume\(musicVolume\); \};/.test(app)) {
+  failures.push("カウントダウン中の再生権限取りが無音になっていません");
+}
 }
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/stoppedRunVideoCapture\s*!==\s*capture/.test(runVideoSync)
