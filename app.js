@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v281"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v282"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -3777,15 +3777,19 @@ window.undo = async () => {
 window.endSessionAsk = (routineId) => {
   const sess = activeSession(routineId);
   if (!sess) return go("routines");
-  if (openRun && openRun.routineId === routineId) {
-    return toast("続行中の通しがあります。「完走」か失敗記録で確定してください");
-  }
-  if (activeFullRunRoutineId === routineId) {
+  // 通しの最中に終了を押す場面はよくある。最後まで演って「完走」を押し忘れただけの
+  // ことが多いので、まず完走かどうかを聞く。押し忘れで記録が消えるのが一番惜しい。
+  if ((openRun && openRun.routineId === routineId) || activeFullRunRoutineId === routineId) {
+    const withMiss = !!(openRun && openRun.routineId === routineId);
     return showSheet(`
-      <h3>この通しを中断しますか？</h3>
-      <div class="sheet-sub">まだ結果を記録していません。中断した通しは分析に入りません。</div>
-      <button class="btn danger-ghost" style="width:100%" onclick="abandonActiveRun('${routineId}')">この通しを記録せず中断</button>
-      <button class="btn ghost" onclick="hideSheet()">通し練習を続ける</button>`);
+      <h3>完走しましたか？</h3>
+      <div class="sheet-sub">${withMiss
+        ? "崩れた場所は記録されています。最後まで演れていれば「はい」で残せます。"
+        : "最後まで演れていれば「はい」で記録します。"}</div>
+      <button class="btn primary" onclick="${withMiss ? "finishOpenRun()" : "recordClean()"}">はい（完走として記録）</button>
+      <button class="btn ghost" onclick="hideSheet()">いいえ（画面に戻る）</button>
+      <div style="height:6px"></div>
+      <button class="btn danger-ghost" style="width:100%" onclick="abandonActiveRun('${routineId}')">この通しは記録せず中断</button>`);
   }
   showSheet(`
     <h3>セッション終了</h3>
