@@ -23,10 +23,14 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v301"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v302"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
-const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
+const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
+// 画質は run-camera-lens.js の設定に従う。モジュールが無い場合は標準のまま
+function runVideoBps() {
+  return typeof runVideoBitrate === "function" ? runVideoBitrate() : RUN_VIDEO_BPS;
+}
 // 横も縦もセンサーの画角をそのまま使う(4:3 / 3:4)。切り落とさないので、
 // 撮ったあとで見返すときに端が欠けない。
 const RUN_CAMERA_PROFILES = {
@@ -1439,7 +1443,7 @@ function startRunVideoCapture(routineId) {
     : MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9"
       : MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "";
   try {
-    const options = { videoBitsPerSecond: RUN_VIDEO_BPS };
+    const options = { videoBitsPerSecond: runVideoBps() };
     if (mime) options.mimeType = mime;
     const rec = new MediaRecorder(cap.stream, options);
     cap.chunks = [];
@@ -1710,7 +1714,7 @@ window.savePendingRunVideo = async (replaceId = "") => {
     const composed = await composeRunVideoAfterCapture({
       capture: pending,
       musicBlob: pendingRunVideoMusicBlob,
-      videoBitsPerSecond: RUN_VIDEO_BPS,
+      videoBitsPerSecond: runVideoBps(),
       signal: runVideoPostCompositionController.signal,
       onProgress: updateRunVideoCompositionProgress,
     });

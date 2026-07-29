@@ -18,6 +18,12 @@
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
   const t = (ja, eng) => (en() ? eng : ja);
 
+  // 画質。既定は標準のまま。上げると合成が重くなり、5本の保存枠も早く埋まる
+  const QUALITY_KEY = "rd_run_video_quality";
+  const HIGH_SCALE = 2;              // 960x720 → 1920x1440 を要求する
+  const STD_BPS = 1_500_000;
+  const HIGH_BPS = 4_000_000;
+
   const FACING_KEY = "rd_run_camera_facing";
   const LENS_KEY = "rd_run_camera_lens";
   const BEEP_KEY = "rd_countdown_beep";
@@ -26,6 +32,9 @@
     try { return localStorage.getItem(key) || fallback; } catch (_) { return fallback; }
   };
   const write = (key, value) => { try { localStorage.setItem(key, value); } catch (_) {} };
+
+  const isHighQuality = () => read(QUALITY_KEY, "std") === "high";
+  window.runVideoBitrate = () => (isHighQuality() ? HIGH_BPS : STD_BPS);
 
   const facing = () => (read(FACING_KEY, "user") === "environment" ? "environment" : "user");
   const savedLens = () => read(LENS_KEY, "");
@@ -59,8 +68,9 @@
 
   // deviceId は保存せず、控えた一覧からレンズ名で引き当てる(同期のまま)
   window.runCameraVideoConstraints = (profile) => {
+    const scale = isHighQuality() ? HIGH_SCALE : 1;
     const base = {
-      width: { ideal: profile.width }, height: { ideal: profile.height },
+      width: { ideal: profile.width * scale }, height: { ideal: profile.height * scale },
       aspectRatio: { ideal: profile.ratio },
       resizeMode: profile.resizeMode,
       frameRate: { ideal: 24, max: 30 },
@@ -196,6 +206,31 @@
     </div>`;
   }
 
+  function qualityRow(routineId) {
+    const high = isHighQuality();
+    const chip = (value, label) => `<button type="button" class="rcl-chip ${
+      (value === "high") === high ? "on" : ""}" onclick="setRunVideoQuality('${value}','${routineId}')">${label}</button>`;
+    return `<div class="rcl-beep">
+      <b>${t("画質", "Video quality")}</b>
+      <div class="rcl-chips">
+        ${chip("std", t("標準", "Standard"))}
+        ${chip("high", t("高画質", "High"))}
+      </div>
+      <small>${t(
+        "高画質は端末が返せる最大を要求します。そのぶん保存容量が増え、保存時の合成にも時間がかかります。実際に撮れた大きさは撮影ONのときに出ます。",
+        "High asks for the largest size the device offers. Files get bigger and composing takes longer.")}</small>
+    </div>`;
+  }
+
+  window.setRunVideoQuality = async (value, routineId) => {
+    write(QUALITY_KEY, value);
+    const wasReady = typeof runCameraReady === "function" && runCameraReady(routineId)
+      && !(runCamera && runCamera.recording);
+    if (wasReady) stopRunCameraNow();
+    sheetPickRunCameraLens(routineId);
+    if (wasReady) await prepareRunCamera(routineId);
+  };
+
   window.setRunCountdownBeep = (value, routineId) => {
     write(BEEP_KEY, value);
     window.runCountdownBeep(1);       // 選んだ音をその場で確かめられるように
@@ -249,6 +284,7 @@
       ${rows}
       ${combined}
       ${permission}
+      ${qualityRow(routineId)}
       ${chipRow(routineId)}
       <button class="btn ghost" onclick="closeRunCameraPicker('${routineId}')">${
         t("戻る", "Back")}</button>`);
