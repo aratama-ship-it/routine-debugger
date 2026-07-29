@@ -286,7 +286,7 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
     || !/addEventListener\("resize", scheduleRunCameraOrientationUi\)/.test(app)
     || !/addEventListener\("orientationchange", scheduleRunCameraOrientationUi\)/.test(app)
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
-    || !/画角は端末の向きに合わせます。カメラを準備する前に、撮る向きへ回してください。/.test(app)
+    || !/画角は端末の向きに合わせます。撮る向きへ回すと切り替わります。/.test(app)
     || !/function selectedRunCameraProfileId\(\)[\s\S]*?width >= height \? "wide" : "vertical"/.test(app)
     || !/async function syncRunCameraProfileToOrientation\(routineId\)[\s\S]*?runCamera\.profileId === want/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
@@ -386,6 +386,8 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || !/window\.closeRunCameraPicker = \(routineId\)/.test(runCameraLens)
     || !/<div id="run-camera-lens">\$\{/.test(app)
     || !/runCameraLensRowHtml\(routineId\)/.test(app)
+    // 撮影OFFのうちは「ONにする」だけを見せる
+    || !/\$\{ready \? `<div id="run-camera-lens">/.test(app)
     || !/renderRunCameraLensRow\(routineId\)/.test(app)
     || !/\.run-camera-preview\.is-rear/.test(updateCss)) {
   failures.push("背面カメラ・レンズの選択ができません");

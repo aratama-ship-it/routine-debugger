@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v297"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v299"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1128,11 +1128,11 @@ function runCameraOrientationCopy(orientation, ready) {
   if (orientation.frameKnown && !orientation.frameLandscape) {
     return isEnglish()
       ? { title: "The camera feed is still portrait", body: "Keep the iPhone sideways, stop the camera, then prepare it again." }
-      : { title: "カメラ映像がまだ縦向きです", body: "横向きのまま撮影をやめ、もう一度インカメを準備してください。" };
+      : { title: "カメラ映像がまだ縦向きです", body: `横向きのまま撮影をやめ、もう一度${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
   }
   return isEnglish()
     ? { title: ready ? "Landscape feed confirmed" : "Landscape orientation confirmed", body: ready ? "Keep the iPhone sideways throughout recording." : "Keep this orientation and prepare the front camera." }
-    : { title: ready ? "横長の映像を確認しました" : "横向きを確認しました", body: ready ? "撮影中もiPhoneを横向きのまま固定してください。" : "この向きのままインカメを準備してください。" };
+    : { title: ready ? "横長の映像を確認しました" : "横向きを確認しました", body: ready ? "撮影中もiPhoneを横向きのまま固定してください。" : `この向きのまま${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
 }
 function syncRunCameraOrientationUi(routineId) {
   const ready = runCameraReady(routineId);
@@ -1158,7 +1158,7 @@ function syncRunCameraOrientationUi(routineId) {
     toggle.setAttribute("aria-disabled", String(orientation.blocked));
     toggle.textContent = uiText(orientation.blocked
       ? (isEnglish() ? "Rotate to prepare camera" : "横向きにして準備")
-      : "インカメを準備");
+      : `${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備`);
   }
   const start = document.getElementById("run-confirm-start");
   const blockStart = ready && orientation.blocked;
@@ -1247,14 +1247,14 @@ function runCameraConfirmBody(routineId, status = "") {
         <span>${audioCopy}</span></div>
       <span class="run-video-capacity">保存 ${count}/${RUN_VIDEO_LIMIT}本</span>
     </div>
-    <div id="run-camera-lens">${
+    ${ready ? `<div id="run-camera-lens">${
       typeof runCameraLensRowHtml === "function" ? runCameraLensRowHtml(routineId) : ""}</div>
     <div class="run-camera-profile" role="status" aria-label="撮影画角">
       <span class="selected">${selectedProfile.label}</span>
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
       ? "The framing follows how you hold the device. Turn it before starting the camera."
-      : "画角は端末の向きに合わせます。カメラを準備する前に、撮る向きへ回してください。"}</p>
+      : "画角は端末の向きに合わせます。撮る向きへ回すと切り替わります。"}</p>` : ""}
     <div id="run-camera-orientation" class="run-camera-orientation ${orientation.blocked ? "is-blocked" : "is-ready"}"
       role="status" ${orientation.requiresLandscape ? "" : "hidden"}>
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
@@ -1265,13 +1265,13 @@ function runCameraConfirmBody(routineId, status = "") {
     <button type="button" class="btn ${ready ? "ghost" : ""}" id="run-camera-toggle"
       ${prepareBlocked ? "disabled aria-disabled=\"true\"" : ""}
       onclick="toggleRunCamera('${routineId}')">${ready ? (isEnglish() ? "Turn recording OFF" : "撮影をOFFにする") : (isEnglish() ? "Turn recording ON" : "撮影をONにする")}</button>
-    <small>${routine && routine.music
+    ${ready ? `<small>${routine && routine.music
       ? (isEnglish()
         ? `The selected framing is used throughout. During the run, only the camera image is recorded. When you save, the app music is combined into one video. The camera microphone is not used. Sync correction: ${recordingDelay.toFixed(2)} sec.`
         : `選んだ画角を確認映像・撮影中・保存後まで維持します。撮影中はカメラ映像だけを記録し、保存時にアプリ音源を1本の映像へ合成します。カメラのマイク音は入りません。同期補正は${recordingDelay.toFixed(2)}秒です。`)
       : (isEnglish()
         ? "The selected framing is used throughout. With no music assigned, the app records video only."
-        : "選んだ画角を確認映像・撮影中・保存後まで維持します。音源未設定のため映像のみ撮影します。")}</small>`;
+        : "選んだ画角を確認映像・撮影中・保存後まで維持します。音源未設定のため映像のみ撮影します。")}</small>` : ""}`;
 }
 function updateRunCameraConfirm(routineId, status = "") {
   const area = document.getElementById("run-camera-area");
@@ -2262,9 +2262,9 @@ function renderRunVideos() {
       : "すべてのルーティンの映像を、再生確認・書き出し・削除できます。");
   const emptyCopy = routineFilter
     ? (english ? "No videos have been recorded for this routine yet.<br>Prepare the front camera before starting a full run."
-      : "このルーティンの演技映像はまだありません。<br>通し練習の開始前にインカメを準備すると、終了後に保存できます。")
+      : `このルーティンの演技映像はまだありません。<br>通し練習の開始前に${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備すると、終了後に保存できます。`)
     : (english ? "No performance videos yet.<br>Prepare the front camera before starting a full run."
-      : "演技映像はまだありません。<br>通し練習の開始前にインカメを準備すると、終了後に保存できます。");
+      : `演技映像はまだありません。<br>通し練習の開始前に${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備すると、終了後に保存できます。`);
   return `
     <div class="topbar"><button class="back-btn" onclick="${backAction}" aria-label="戻る" title="戻る"></button><h1 data-user-text>${esc(pageTitle)}</h1></div>
     <section class="card run-video-library-card" aria-labelledby="run-video-library-title">
@@ -3576,12 +3576,12 @@ function renderRecord() {
         ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
           <video id="run-camera-live-preview" class="run-camera-live-preview${
             typeof runCameraIsRear === "function" && runCameraIsRear() ? " is-rear" : ""}" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
-            aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
+            aria-label="${isEnglish() ? "Live camera preview" : `撮影中の${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}プレビュー`}"></video>
           <div class="run-video-live-copy">
             <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
             <small>${isEnglish()
               ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
-              : `${runCameraProfile(runCamera.profileId).label}・インカメ・${runVideoAudioLabel(runCamera)}`}</small>
+              : `${runCameraProfile(runCamera.profileId).label}・${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}・${runVideoAudioLabel(runCamera)}`}</small>
           </div>
         </div>` : ""}
         <button class="run-start-btn ${runActive ? "active" : ""}" onclick="confirmRunStart('${rt.id}')"
