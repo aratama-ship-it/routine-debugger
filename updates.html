@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>アップデート履歴 — ルーティンノート ベータ</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --ok:#3F7A4A; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .lead { font-size:16px; color:var(--ink); }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  h3 { font-size:16px; margin:22px 0 6px; }
+  p, li { font-size:15.5px; }
+  ul, ol { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.strong { border-left:5px solid var(--accent); }
+  .card.warn { border-left:5px solid var(--warn); }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps li { counter-increment:step; position:relative; padding:12px 12px 12px 52px; margin:10px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .steps li::before { content:counter(step); position:absolute; left:14px; top:12px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .steps b { display:block; margin-bottom:2px; }
+  .steps .why { font-size:13.5px; color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    padding:13px 26px; border-radius:8px; font-weight:700; margin:8px 0; }
+  .feature { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--ink);
+    border-radius:10px; padding:13px 17px; margin:12px 0; font-size:15.5px; }
+  /* 見出しだけをブロックにする。li内の<b>まで対象にすると本文が改行されてしまう */
+  .feature > b:first-child { display:block; font-size:16.5px; margin-bottom:6px; }
+  .feature ul { margin:0; padding-left:20px; }
+  .feature li { margin:5px 0; font-size:15px; }
+  a { color:var(--accent); }
+  code { background:#E3DAC2; padding:2px 6px; border-radius:4px; font-size:14px; }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+
+  .log { border-left: 3px solid var(--line); padding: 2px 0 2px 16px; margin: 0 0 18px; }
+  .log-head { display: flex; align-items: baseline; gap: 10px; }
+  .log-head b { font-size: 16px; color: var(--accent); }
+  .log-head span { font-size: 12.5px; color: var(--muted); }
+  .log ul { margin: 6px 0 0; padding-left: 20px; }
+  .log li { margin: 4px 0; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">ROUTINE NOTE — UPDATES</div>
+  <h1>アップデート履歴</h1>
+  <p class="lead">ベータ版で変わったところを、新しい順に載せています。</p>
+  <div class="meta">最終更新: 2026年7月29日</div>
+</header>
+
+<div class="card">
+  アプリの版は、ホーム画面の左上（<code>SHEET 00 / HOME · v280</code>）で確認できます。
+  古い版のままのときは、しばらく待つと「新しい版があります」と出るので、そこから更新してください。
+</div>
+
+<div class="log">
+  <div class="log-head"><b>v279</b><span>2026-07-29</span></div>
+  <ul><li>端末を横にすると、撮影も横向きに切り替わるようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v277</b><span>2026-07-29</span></div>
+  <ul><li>撮影の画角を、端末の向きに合わせて自動で選ぶようにしました</li><li>「撮影される / されない」を見出しではっきり出すようにしました</li><li>撮影中のプレビューを、中央に大きく映すようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v276</b><span>2026-07-29</span></div>
+  <ul><li>演技映像から起こすとき、区切りごとに名前を付けられるようにしました</li><li>再生位置を0.1秒単位で送れるようにしました</li><li>区切るたびに映像が止まってしまう不具合を直しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v273</b><span>2026-07-29</span></div>
+  <ul><li>撮ってある演技映像を見ながら区切りを打って、構成を起こせるようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v272</b><span>2026-07-29</span></div>
+  <ul><li>新しいルーティンは、先に名前を決めてから作るようにしました</li><li>縦向きの撮影を3:4にして、画面の端が切れないようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v271</b><span>2026-07-28</span></div>
+  <ul><li>プレビュー動画を、通し練習・パート練習・編集それぞれで切り替えられるようにしました</li><li>ホームからは削除できないようにしました(削除はルーティン一覧から)</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v269</b><span>2026-07-28</span></div>
+  <ul><li>パート練習で、よく使うループ区間を5つまで保存できるようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v267</b><span>2026-07-28</span></div>
+  <ul><li>「技」という呼び方を「シーケンス」に統一しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v266</b><span>2026-07-28</span></div>
+  <ul><li>空間やマイナス区間を、前後どちらを動かして直すか選べるようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v264</b><span>2026-07-28</span></div>
+  <ul><li>画面下から出るシートを、持ち手を下へ払って閉じられるようにしました</li><li>「このアプリについて」を追加しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v260</b><span>2026-07-28</span></div>
+  <ul><li>ルーティン編集で戻るとき、保存するか確認するようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v257</b><span>2026-07-28</span></div>
+  <ul><li>音源を決める前に試し聴きできるようにしました</li><li>秒数を打つときに、入力欄がキーボードで隠れないようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v255</b><span>2026-07-28</span></div>
+  <ul><li>消えたサンプル動画が元に戻らなくなる不具合を直しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v252</b><span>2026-07-27</span></div>
+  <ul><li>初回チュートリアルを追加しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v247</b><span>2026-07-27</span></div>
+  <ul><li>バックアップを、アカウント同期と完全バックアップ(ZIP)の二択に整理しました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v245</b><span>2026-07-27</span></div>
+  <ul><li>記録が消えにくくなる「データの保護」を自動で有効にするようにしました</li><li>ホーム画面への追加を案内するようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v237</b><span>2026-07-26</span></div>
+  <ul><li>ログインすると、ルーティンと練習の記録を端末間で同期できるようにしました</li></ul>
+</div>
+<div class="log">
+  <div class="log-head"><b>v220</b><span>2026-07-25</span></div>
+  <ul><li>動画・音源まで含めた完全バックアップ(ZIP)を追加しました</li></ul>
+</div>
+
+<div class="card">
+  <b>不具合や要望があれば</b><br>
+  「設定 → ご意見・機能の要望」から送れます。いただいた内容は、この履歴に反映していきます。
+</div>
+
+<footer>
+  <div class="nav">
+    <a href="./">アプリを開く</a>
+    <a href="about.html">このアプリについて</a>
+    <a href="beta.html">ベータ版ガイド</a>
+    <a href="backup.html">データの守り方</a>
+  </div>
+  <div style="margin-top:12px">© 2026 PYGMIX. 無断複製・再配布を禁じます。</div>
+</footer>
+</div>
+</body>
+</html>

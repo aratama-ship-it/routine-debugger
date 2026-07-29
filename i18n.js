@@ -276,6 +276,7 @@
     ["要望・バグ報告を送る", "Send feedback or a bug report"],
     ["データの守り方", "Keeping your data safe"],
     ["チュートリアルを始める", "Start the tutorial"],
+    ["アップデート履歴", "Update history"],
     ["このアプリについて", "About this app"],
     ["空間", "Gap"],
     ["バックアップを作成中…", "Creating backup…"], ["記録を書き出し中…", "Exporting records…"],
