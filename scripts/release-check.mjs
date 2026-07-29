@@ -387,7 +387,8 @@ if (!/function runVideoReviewStepContext\(video,[\s\S]*?found\.sess\.versionId/.
     || !/\.run-video-current-step/.test(css)) {
   failures.push("保存済み通し映像で、撮影時の構成とA/B選択に基づく実施中のシーケンスを文字だけで追従表示できません");
 }
-if (!/preserveRunVideoMusicSnapshots/.test(runVideoSync)
+if (!/function preserveMediaPitch\(media\)/.test(runVideoSync)
+    || !/preserveRunVideoMusicSnapshots/.test(runVideoSync)
     || !/deleteRunVideoMusicBlobIfUnused/.test(runVideoSync)) {
   failures.push("映像が参照する対象音源の保持・解放処理がありません");
 }

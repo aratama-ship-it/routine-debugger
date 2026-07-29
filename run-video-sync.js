@@ -172,6 +172,18 @@ function stopRunVideoAudioSync() {
   runVideoSyncState = null;
   stopRunVideoEmbeddedAudioDelay();
 }
+// 速度を変えても音程を保つ。music-playback.js の同名処理はモジュール内に閉じていて
+// ここからは呼べないため、同じ内容をこちらにも置く。
+// ★これが無いまま呼んでいたため、確認画面の音声同期が初期化の時点で例外になり、
+//   楽曲が一度も鳴らなかった(保存後の映像は音を埋め込み済みなので気づきにくい)。
+function preserveMediaPitch(media) {
+  if (!media) return;
+  for (const key of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
+    if (!(key in media)) continue;
+    try { media[key] = true; } catch (_) {}
+  }
+}
+
 function bindRunVideoAudioSync(music, sourceVideo = null) {
   stopRunVideoAudioSync();
   const video = document.getElementById("run-video-player");
