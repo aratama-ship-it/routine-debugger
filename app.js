@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v285"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v287"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -936,7 +936,18 @@ musicPlayback.bindEvents({
   },
   // 音が鳴り始めた時点で録画する。
   onPlaying: () => {
-    if (!activeFullRunRoutineId || !runCameraArmed || !runCameraReady(activeFullRunRoutineId)) return;
+    if (!activeFullRunRoutineId) return;
+    // 先に「もう回っているか」を見る。撮影を始めた時点で armed は下ろされるため、
+    // armed を先に判定すると、この差の記録に永久に到達しない。
+    if (runCamera && runCamera.recording && runCamera.routineId === activeFullRunRoutineId) {
+      // 曲が鳴るまでの差を一度だけ控える(止めて再開しても最初のずれが正しい)
+      if (runCamera.audioStartedAt) return;
+      runCamera.audioStartedAt = Date.now();
+      runCamera.recordingAudioDelaySeconds =
+        Math.max(0, Math.round((runCamera.audioStartedAt - runCamera.startedAt) / 100) / 10);
+      return;
+    }
+    if (!runCameraArmed || !runCameraReady(activeFullRunRoutineId)) return;
     if (startRunVideoCapture(activeFullRunRoutineId)) render();
   },
 });
@@ -3368,10 +3379,13 @@ window.startRunCountdown = (routineId) => {
   clearRunCountdown();
   musicResetForNextRun();
 
-  // ユーザー操作の直後に一度再生権限を取得し、カウント終了時の自動再生成功率を上げる。
-  // ★この一瞬の再生が聞こえてしまい、カウントダウン中に曲が鳴っていた。
-  //   権限を取るのが目的なので、その間は音を出さない。
-  //   要素の muted と volume を両方落とす(Web Audio経由だと片方では消えないため)。
+  // カウントダウン中から回す。構えるところまで残る。
+  // 曲は遅れて始まるので、その差を控えて合成時に音をずらす。
+  if (runCameraArmed) startRunVideoCapture(routineId);
+
+  // カウント終了時の自動再生を通すため、操作直後に一度だけ再生権限を取る。
+  // この一瞬が聞こえていたので、その間は無音にする
+  // (Web Audio経由だと muted か volume の片方では消えない)。
   if (rt.music && musicPlayer.src && !musicMissing) {
     ensureAudioGraph();
     const restoreVolume = musicPlayer.volume;
@@ -3416,7 +3430,8 @@ window.startRunCountdown = (routineId) => {
       runCountdownFinishTimer = null;
       removeRunCountdownOverlay();
       const hasPlayableMusic = !!(rt.music && musicPlayer.src && !musicMissing);
-      if (!hasPlayableMusic) startRunVideoCapture(routineId);
+      // カウントダウン開始時に回し損ねていた場合の保険
+      if (!runCamera || !runCamera.recording) startRunVideoCapture(routineId);
       render();
       if (hasPlayableMusic) {
         ensureAudioGraph(); musicSetTime(0);
