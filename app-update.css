@@ -605,3 +605,5 @@ body:has(#run-camera-live-preview) .run-video-live {
 
 /* 実際に返ってきた映像サイズ。端末で食い違うことがあるので隠さず出す */
 .run-camera-frame { margin-left: 8px; color: var(--muted); font-size: 11px; font-weight: 700; }
+
+.run-video-size { display: block; margin: 5px 0 0; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; }

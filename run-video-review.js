@@ -186,3 +186,23 @@ window.runVideoDownload = async (id) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast("映像を書き出しました");
 };
+
+// 保存された映像そのものの大きさを出す。カメラの申告と食い違うことがあり、
+// 数字が見えないと「なぜ横で再生されるのか」を切り分けられない。
+new MutationObserver(() => {
+  const player = document.getElementById("run-video-player");
+  if (!player || player.dataset.sizeShown) return;
+  player.dataset.sizeShown = "1";
+  const show = () => {
+    if (!player.videoWidth || !player.videoHeight) return;
+    let tag = player.nextElementSibling;
+    if (!tag || !tag.classList || !tag.classList.contains("run-video-size")) {
+      tag = document.createElement("small");
+      tag.className = "run-video-size";
+      player.insertAdjacentElement("afterend", tag);
+    }
+    tag.textContent = `${isEnglish() ? "This video" : "この映像"} ${player.videoWidth}×${player.videoHeight}`;
+  };
+  player.addEventListener("loadedmetadata", show);
+  show();
+}).observe(document.body, { childList: true, subtree: true });

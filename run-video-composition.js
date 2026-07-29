@@ -109,8 +109,10 @@ function createRunVideoPostCompositionPlan(capture = {}, videoMeta = {}, audioMe
     ? Math.max(trimStart, Math.min(Number.isFinite(rawTrimEnd) ? rawTrimEnd : audioDuration, audioDuration))
     : Math.max(trimStart, Number.isFinite(rawTrimEnd) ? rawTrimEnd : trimStart + duration);
   return {
-    width: Math.max(2, Math.round(positive(capture.captureWidth) || positive(videoMeta.width) || 960)),
-    height: Math.max(2, Math.round(positive(capture.captureHeight) || positive(videoMeta.height) || 720)),
+    // 実際に録れたファイルの寸法を先に見る。カメラの申告を優先すると、
+    // 食い違ったときに横長の絵を縦長の枠へ引き伸ばして潰してしまう。
+    width: Math.max(2, Math.round(positive(videoMeta.width) || positive(capture.captureWidth) || 960)),
+    height: Math.max(2, Math.round(positive(videoMeta.height) || positive(capture.captureHeight) || 720)),
     duration,
     trimStart,
     trimEnd,

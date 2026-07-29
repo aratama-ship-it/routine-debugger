@@ -390,6 +390,9 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || !/window\.correctRunCameraStream = async \(stream, profile\)/.test(runCameraLens)
     || !/stream = await correctRunCameraStream\(stream, profile\)/.test(app)
     || !/run-camera-frame/.test(app)
+    // 合成は録れたファイルの寸法を守る。引き伸ばして絵を潰さない
+    || !/positive\(videoMeta\.width\) \|\| positive\(capture\.captureWidth\)/.test(runVideoComposition)
+    || !/run-video-size/.test(runVideoReview)
     // 画質は本人が選ぶ。上げると合成も保存も重くなるため既定は標準
     || !/const QUALITY_KEY = "rd_run_video_quality"/.test(runCameraLens)
     || !/read\(QUALITY_KEY, "std"\) === "high"/.test(runCameraLens)
@@ -592,7 +595,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 15_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_200], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 15_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_200], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_600], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_400], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
