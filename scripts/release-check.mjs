@@ -384,6 +384,8 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || /await runCameraVideoConstraints/.test(app)
     || !/refreshRunCameraDevices\(\)/.test(app)
     || !/window\.closeRunCameraPicker = \(routineId\)/.test(runCameraLens)
+    // Dual/Triple は撮影中に勝手にレンズが変わる。選ばせる前に知らせる
+    || !/const looksCombined = \(label\) =>/.test(runCameraLens)
     || !/<div id="run-camera-lens">\$\{/.test(app)
     || !/runCameraLensRowHtml\(routineId\)/.test(app)
     // 撮影OFFのうちは「ONにする」だけを見せる
@@ -581,7 +583,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 10_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 11_400], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_200], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
