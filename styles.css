@@ -87,9 +87,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
 .head-settings-btn.current { background: var(--accent); color: var(--on-accent); }
 .head-settings-btn:active { background: var(--card3); transform: scale(.97); }
 .back-btn { background: none; border: none; color: var(--accent); font-size: 17px;
-  padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 2px; }
-.back-btn::before { content: "‹"; font-size: 28px; line-height: 1; font-weight: 500;
-  margin-top: -3px; }
+  padding: 6px 8px; display: flex; align-items: center; justify-content: center; }
+.back-btn::before { content: "‹"; font-size: 28px; line-height: 1; font-weight: 500; }
 .nav-action { background: none; border: none; color: var(--accent); font-size: 17px; padding: 6px 8px; }
 
 button { font-family: inherit; cursor: pointer; border: none; color: var(--text); }

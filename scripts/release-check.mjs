@@ -357,6 +357,8 @@ if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*20/.test(runVideoDelay)
     // つまみは実測値を中心に置き、前後1秒だけ動かす
     || !/const centre = runVideoEstimatedAudioDelay\(video\)/.test(runVideoDelay)
     || !/min="\$\{min\}" max="\$\{max\}" step="0\.05"/.test(runVideoDelay)
+    || !/runVideoStepSyncDelay\('\$\{target\}','\$\{esc\(id\)\}',-0\.1\)/.test(runVideoDelay)
+    || !/\.run-video-sync-step/.test(updateCss)
     || !/function bindRunVideoEmbeddedAudioDelay\(video\)[\s\S]*?createMediaElementSource\(player\)[\s\S]*?createDelay/.test(runVideoSync)
     || !/runVideoSyncDelayMarkup\(capture, "stopped"\)/.test(runVideoSync)
     || !/audioDelaySeconds:\s*normalizeRunVideoAudioDelay\(capture\.syncAudioDelaySeconds/.test(runVideoComposition)
@@ -545,7 +547,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-video-delay.js", 9_000], ["run-video-composition.js", 24_000], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

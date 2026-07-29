@@ -566,3 +566,12 @@ body:has(#run-camera-live-preview) .run-video-live {
 /* REC表示は映像の邪魔をしない大きさに留める */
 .run-video-live .run-video-live-copy > div > span:not(.run-video-live-dot) { font-size: 13px; }
 .run-video-live small { font-size: 10px; }
+
+/* 同期補正の0.1秒送り。つまみは大づかみ、ここは狙った値で止めるため */
+.run-video-sync-step { display: flex; gap: 8px; margin-top: 9px; }
+.run-video-sync-step button {
+  flex: 1; min-height: 38px; border-radius: 6px; border: 1px solid var(--sep);
+  background: var(--card); color: var(--accent); font-family: inherit;
+  font-size: 14px; font-weight: 800; box-shadow: 0 2px 0 var(--paper-shadow);
+}
+.run-video-sync-step button:active { transform: translateY(2px); box-shadow: none; }

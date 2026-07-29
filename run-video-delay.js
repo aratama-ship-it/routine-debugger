@@ -4,10 +4,10 @@
  * その差を測って曲の開始位置にし、耳で合わないぶんを本人が前後へずらす。
  *
  * 値の役割:
- *   estimated … アプリが実測したカウントダウン分。つまみの中心。動かしても揺れない
+ *   estimated … 実測したカウントダウン分。つまみの中心。動かしても揺れない
  *   offset    … 本人の微調整。中心からの前後で、負にもなる
  *   desired   … 中心＋微調整。合成でここから曲を鳴らす
- *   recorded  … すでにファイルへ焼き込んだ分。ここから先は再生時補正でしか動かせない
+ *   recorded  … ファイルへ焼き込んだ分。ここから先は再生時補正でしか動かせない
  *
  * run-video-composition.js より先に読み込む(定数を参照するため)。
  */
@@ -69,14 +69,16 @@ function setRunVideoDesiredAudioDelay(video, value) {
   return { desired, recorded, playback, belowRecorded: desired < recorded };
 }
 
+// 旧キーには補正の総量が入っている。カウントダウンを実測する今それを足すと
+// 二重に効いてずれるので、キーごと分ける。
 function preferredRunVideoAudioDelay() {
-  try { return normalizeRunVideoAudioOffset(localStorage.getItem("rd_run_video_audio_delay")); }
+  try { return normalizeRunVideoAudioOffset(localStorage.getItem("rd_run_video_audio_offset")); }
   catch (_) { return 0; }
 }
 
 function savePreferredRunVideoAudioDelay(value) {
   const normalized = normalizeRunVideoAudioOffset(value);
-  try { localStorage.setItem("rd_run_video_audio_delay", String(normalized)); } catch (_) {}
+  try { localStorage.setItem("rd_run_video_audio_offset", String(normalized)); } catch (_) {}
   return normalized;
 }
 
@@ -120,6 +122,10 @@ function runVideoSyncDelayMarkup(video, target, id = "") {
       aria-label="${isEnglish() ? "Delay recorded music" : "収録音源を遅らせる"}"
       oninput="runVideoSetSyncDelay('${target}','${esc(id)}',this.value)">
     <div class="run-video-sync-adjust-scale"><span>${isEnglish() ? "Music earlier" : "音源を早める"} ${min.toFixed(2)}</span><b>${isEnglish() ? "Estimate" : "推定"} ${centre.toFixed(2)}</b><span>${isEnglish() ? "Later" : "遅らせる"} ${max.toFixed(2)}</span></div>
+    <div class="run-video-sync-step">
+      <button type="button" onclick="runVideoStepSyncDelay('${target}','${esc(id)}',-0.1)">−0.1${isEnglish() ? "s" : "秒"}</button>
+      <button type="button" onclick="runVideoStepSyncDelay('${target}','${esc(id)}',0.1)">＋0.1${isEnglish() ? "s" : "秒"}</button>
+    </div>
     <small id="run-video-sync-delay-note">${esc(runVideoSyncDelayNote(video))}</small>
   </section>`;
 }
@@ -155,5 +161,17 @@ const runVideoSetSyncDelay = (target, id, value) => {
   }
 };
 
+const runVideoStepSyncDelay = (target, id, step) => {
+  const el = document.getElementById("run-video-sync-delay");
+  if (!el) return;
+  const next = Math.min(Number(el.max), Math.max(Number(el.min),
+    Math.round((Number(el.value) + step) * 20) / 20));
+  el.value = next;
+  runVideoSetSyncDelay(target, id, next);
+};
+
 // 計算だけを使う場面でも読めるよう、公開はブラウザのときだけ
-if (typeof window !== "undefined") window.runVideoSetSyncDelay = runVideoSetSyncDelay;
+if (typeof window !== "undefined") {
+  window.runVideoSetSyncDelay = runVideoSetSyncDelay;
+  window.runVideoStepSyncDelay = runVideoStepSyncDelay;
+}
