@@ -536,3 +536,33 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
   from { transform: translate(-50%, -10px); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
 }
+
+/* ===== 撮影中は、自分の姿を画面の真ん中で確かめられるように ===== */
+/* 演技の合間に一瞬だけ目をやる用途なので、探さずに済む位置と大きさにする。
+   画面に貼り付けて、スクロール位置に関係なく常に見えるようにした */
+body:has(#run-camera-live-preview) .run-video-live {
+  position: sticky;
+  top: calc(6px + var(--safe-top, 0px));
+  z-index: 25;
+  margin: 0 auto 12px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(20, 18, 16, .92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* 一瞬目をやるためのものなので、画面を占有させない。
+   高さで抑え、幅は画角から決める。ミス記録の操作を押し出さないことが優先 */
+.run-video-live .run-camera-live-preview {
+  height: min(30vh, 260px);
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+/* 画角の端を意識できるよう、枠を細く見せる */
+.run-video-live .run-camera-live-preview {
+  border-color: rgba(255, 255, 255, .35);
+}
+/* REC表示は映像の邪魔をしない大きさに留める */
+.run-video-live .run-video-live-copy > div > span:not(.run-video-live-dot) { font-size: 13px; }
+.run-video-live small { font-size: 10px; }

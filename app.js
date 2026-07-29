@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v284"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v285"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -3537,6 +3537,16 @@ function renderRecord() {
     <div class="tablet-practice-layout tablet-record-layout">
       <aside class="tablet-practice-side" aria-label="${isEnglish() ? "Run controls" : "通し練習の操作"}">
         ${practiceNowDockHtml()}
+        ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
+          <video id="run-camera-live-preview" class="run-camera-live-preview" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
+            aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
+          <div class="run-video-live-copy">
+            <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
+            <small>${isEnglish()
+              ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
+              : `${runCameraProfile(runCamera.profileId).label}・インカメ・${runVideoAudioLabel(runCamera)}`}</small>
+          </div>
+        </div>` : ""}
         <button class="run-start-btn ${runActive ? "active" : ""}" onclick="confirmRunStart('${rt.id}')"
           ${runActive ? "disabled aria-disabled=\"true\"" : ""}>
           <small>${runActive ? "IN PROGRESS" : "START"}</small>
@@ -3550,16 +3560,7 @@ function renderRecord() {
           <span class="stat">${isEnglish() ? `Clean <b>${runProgress.todayClean}</b>` : `クリーン <b>${runProgress.todayClean}</b>`}</span>
           ${sess ? `<span class="stat">${isEnglish() ? "Condition" : "体調"} <b>${uiText((FEELINGS.find((f) => f.v === sess.feeling) || {}).label || "-")}</b></span>` : ""}
         </div>
-        ${runCamera && runCamera.recording ? `<div class="run-video-live" role="status" aria-live="polite">
-          <video id="run-camera-live-preview" class="run-camera-live-preview" style="--run-camera-aspect:${runCameraProfile(runCamera.profileId).cssRatio}" autoplay playsinline muted
-            aria-label="${isEnglish() ? "Live front camera preview" : "撮影中のインカメプレビュー"}"></video>
-          <div class="run-video-live-copy">
-            <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
-            <small>${isEnglish()
-              ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
-              : `${runCameraProfile(runCamera.profileId).label}・インカメ・${runVideoAudioLabel(runCamera)}`}</small>
-          </div>
-        </div>` : ""}
+
         ${stoppedRunVideoCapture && stoppedRunVideoCapture.routineId === rt.id ? `<div class="run-video-stopped" role="status">
           <span aria-hidden="true">■</span><div><b>撮影終了・すぐ確認できます</b><small>音源の停止に合わせて終了しました。結果を記録する前でも、何度でも映像を確認できます。</small></div>
           <button type="button" class="btn run-video-instant-preview" onclick="previewStoppedRunVideo('${rt.id}')">▶ 今撮った映像を見る</button>
