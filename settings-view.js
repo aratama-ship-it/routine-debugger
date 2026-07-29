@@ -23,6 +23,18 @@ window.renderSettings = function renderSettings() {
       </div>
     </div>
     <div class="card">
+      <h2>${isEnglish() ? "Appearance" : "見た目"}</h2>
+      <div class="segmented" id="skin-seg" role="group" aria-label="${isEnglish() ? "Appearance" : "見た目"}">
+        <button class="choice ${currentRoutineSkin() !== "blackboard" ? "selected" : ""}" onclick="chooseRoutineSkin('')">${
+          isEnglish() ? "Loose-leaf" : "ルーズリーフ"}</button>
+        <button class="choice ${currentRoutineSkin() === "blackboard" ? "selected" : ""}" onclick="chooseRoutineSkin('blackboard')">${
+          isEnglish() ? "Blackboard" : "黒板"}</button>
+      </div>
+      <small>${isEnglish()
+        ? "Colours only. The layout and wording stay the same. Saved on this device."
+        : "変わるのは色と枠だけで、配置や文言はそのままです。この端末にだけ保存します。"}</small>
+    </div>
+    <div class="card">
       <h2>データ</h2>
       <div class="bd-row"><span class="k">ルーティン</span><span class="v">${state.routines.length}</span></div>
       <div class="bd-row"><span class="k">セッション</span><span class="v">${state.sessions.length}</span></div>

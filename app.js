@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v305"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v312"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1860,6 +1860,31 @@ window.showInfo = (key) => {
 // 現在のUIはルーズリーフの単一デザイン。過去データにtheme値が残っていても適用しない。
 function applySingleDesign() { delete document.body.dataset.theme; }
 
+// スキンは外観だけの着せ替え。本体は識別属性を付けるところまでを担当する。
+// 選択UI・初期値・同期範囲は本人の確認前に決めない(いまは開発用の切り替えのみ)。
+const ROUTINE_SKINS = ["", "blackboard"];
+function applyRoutineSkin() {
+  let skin = "";
+  try { skin = localStorage.getItem("rd_skin") || ""; } catch (_) {}
+  if (!ROUTINE_SKINS.includes(skin)) skin = "";
+  if (skin) document.body.dataset.skin = skin;
+  else delete document.body.dataset.skin;
+}
+function currentRoutineSkin() {
+  let skin = "";
+  try { skin = localStorage.getItem("rd_skin") || ""; } catch (_) {}
+  return ROUTINE_SKINS.includes(skin) ? skin : "";
+}
+window.setRoutineSkin = (skin = "") => {
+  try { localStorage.setItem("rd_skin", ROUTINE_SKINS.includes(skin) ? skin : ""); } catch (_) {}
+  applyRoutineSkin();
+};
+// 全体設定から選ぶ。端末内にだけ保存し、アカウント同期の対象にはしない
+window.chooseRoutineSkin = (skin = "") => {
+  setRoutineSkin(skin);
+  render();
+};
+
 const DEFAULT_RUN_COUNTDOWN = 5;
 const MAX_RUN_COUNTDOWN = 15;
 function normalizeRunCountdown(value) {
@@ -2018,7 +2043,8 @@ function render() {
     trickbatch: renderBatchSequenceImport, audios: renderAudios, runvideos: renderRunVideos }[view.name];
   document.body.dataset.view = view.name;
   $app.innerHTML = r ? r() : renderHome();
-  applySingleDesign(); // 過去のスキン値に関係なく、常にルーズリーフデザインへ固定
+  applySingleDesign(); // 過去のテーマ値に関係なく、常にルーズリーフデザインへ固定
+  applyRoutineSkin();
   ensureGlobalSettingsAction();
   applyUiLanguage($app);
   if (view.name === "edit") requestAnimationFrame(syncEditorSequenceDurations);

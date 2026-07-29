@@ -12,8 +12,8 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runCameraLens, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"),
+const [app, runVideoOrientation, runCameraLens, skinBlackboard, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView, sync] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"), read("sync.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
@@ -415,6 +415,36 @@ if (!/window\.runCountdownBeep = \(remaining\)/.test(runCameraLens)
     || !/runCountdownBeep\(seconds\)/.test(app)) {
   failures.push("カウントダウンを音で知らせられません");
 }
+// スキンは外観だけ。文言・DOM・配置・寸法を変える指定が混ざっていないこと
+// (詳細は app-dev/routine-note-skin-lab/blackboard-v1/SKIN_CONTRACT.md)
+{
+  const skinBody = skinBlackboard.replace(/\/\*[\s\S]*?\*\//g, "");
+  const allowed = new Set(["accent-color", "background", "background-color", "background-image",
+    "background-position", "background-repeat", "background-size", "border", "border-bottom-color",
+    "border-color", "border-left-color", "border-radius", "border-right-color", "border-top-color",
+    "box-shadow", "caret-color", "color", "color-scheme", "font-family", "outline-color",
+    "text-decoration-color"]);
+  const bad = [];
+  for (const block of skinBody.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const declaration of block[2].split(";")) {
+      const trimmed = declaration.trim();
+      if (!trimmed) continue;
+      const property = trimmed.slice(0, trimmed.indexOf(":")).trim();
+      if (!property || property.startsWith("--") || allowed.has(property)) continue;
+      bad.push(`${block[1].trim()}: ${property}`);
+    }
+  }
+  if (/@media\b|@container\b|@supports\b/.test(skinBody)) bad.push("スキン専用のメディアクエリ");
+  if (/\bcontent\s*:/.test(skinBody)) bad.push("疑似要素での文字追加");
+  if (!/body\[data-skin="blackboard"\]/.test(skinBody)) bad.push("スキン識別セレクタが無い");
+  if (!/function applyRoutineSkin\(\)/.test(app)) bad.push("本体でスキン属性を付けていない");
+  // 既定はルーズリーフ。選択は全体設定にあり、端末内にだけ保存する
+  if (!/const ROUTINE_SKINS = \["", "blackboard"\]/.test(app)) bad.push("既定がルーズリーフでない");
+  if (!/localStorage\.setItem\("rd_skin"/.test(app)) bad.push("選択を端末内に保存していない");
+  if (/rd_skin/.test(sync)) bad.push("スキンを同期対象にしている");
+  if (!/chooseRoutineSkin\('blackboard'\)/.test(settingsView)) bad.push("全体設定に選択が無い");
+  if (bad.length) failures.push(`黒板スキンが外観の範囲を超えています: ${bad.join(" / ")}`);
+}
 }
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/stoppedRunVideoCapture\s*!==\s*capture/.test(runVideoSync)
@@ -595,7 +625,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 1_800], ["run-camera-lens.js", 15_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_400], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_600], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_400], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 14_800], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_500], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
@@ -604,12 +634,10 @@ for (const [name, max] of budgets) {
 }
 const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-// 2026-07-29: 背面カメラまわり(レンズ選択・カウントダウン音・画質設定・
-// 向きの取り直し)の追加で 180KB→184KB→186KB と二度引き上げた。
-// ★同じ日に二度上げている。次は上げずに、まず減らすこと。
-//   候補: styles.css(125KB)の未使用規則、i18n.js(41KB)の重複文言、
-//   app.js から機能単位でのモジュール切り出し。
-if (gzipShell > 186_000) failures.push(`主要コードのgzip概算が186KBを超えています (${gzipShell})`);
+// 2026-07-29: 背面カメラまわりの追加で 180KB→184KB→186KB と引き上げたあと、
+// 旧テーマ(和/サイバー/マット白)のCSSと専用背景を撤去して 178KB まで戻した。
+// 次に当たったら、まず減らすこと。app.js から機能単位で切り出す余地がある。
+if (gzipShell > 182_000) failures.push(`主要コードのgzip概算が182KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

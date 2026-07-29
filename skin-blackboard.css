@@ -1,0 +1,170 @@
+/* ルーティンノート — 黒板スキン
+ *
+ * 出発点は app-dev/routine-note-skin-lab/blackboard-v1/blackboard-theme.tokens.css。
+ * 制約の正は同フォルダの SKIN_CONTRACT.md。
+ *
+ * 変えてよいのは色・font-family・枠・角丸・影・背景テクスチャだけ。
+ * 文言・DOM・余白・寸法・配置・字間・遷移は一切変えない。
+ * (雰囲気モックの blackboard-skin.css は実装仕様ではない。持ち込まない)
+ *
+ * 検査: node scripts/check-skin-contract.mjs skin-blackboard.css
+ */
+body[data-skin="blackboard"] {
+  color-scheme: dark;
+
+  --bg: #0b120e;
+  --card: #17231d;
+  --card2: #1d2b24;
+  --card3: #26382e;
+  --sep: rgba(232, 239, 232, .26);
+  --text: #f3f0e6;
+  --muted: rgba(224, 232, 225, .74);
+  --muted2: rgba(224, 232, 225, .48);
+
+  /* 主操作は黄墨。暗い面では、暗い緑を文字色に使うと読めない */
+  --accent: #e8bd63;
+  --accent-tint: rgba(130, 190, 184, .14);
+  --blue: #82beb8;
+  --ok: #96c990;
+  --ok-tint: rgba(150, 201, 144, .15);
+  --danger: #e18779;
+  --warn: #e8bd63;
+
+  --nav-bg: #101914;
+  --sheet-bg: #101914;
+  --on-accent: #101914;
+  --on-ok: #101914;
+  --seg-selected: #26382e;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans",
+    "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  --font-head: var(--font-ui);
+
+  --app-bg-layer:
+    radial-gradient(circle at 18% 22%, rgba(243, 240, 230, .035) 0 .6px, transparent .8px),
+    radial-gradient(circle at 72% 64%, rgba(243, 240, 230, .025) 0 .6px, transparent .8px),
+    repeating-linear-gradient(3deg, rgba(243, 240, 230, .008) 0 1px, transparent 1px 7px);
+  --app-bg-size: 11px 13px, 17px 19px, auto;
+  --app-bg-repeat: repeat;
+
+  --sheet-paper: #101914;
+  --sheet-paper-raised: #17231d;
+  --sheet-ink: #f3f0e6;
+  --sheet-muted: #b4bfb6;
+  --sheet-rule: rgba(220, 232, 221, .14);
+  --sheet-margin: rgba(232, 189, 99, .20);
+  --sheet-tab-blue: #82beb8;
+  --sheet-tab-rust: #e18779;
+  --sheet-accent: #21352b;
+  --sheet-accent-edge: #e8bd63;
+  --run-shu: #e18779;
+  --run-shu-edge: #743c35;
+  --sheet-shadow: #040705;
+
+  --paper-rail: #28251f;
+  --paper-hole: #858f87;
+  --paper-line: rgba(220, 232, 221, .14);
+  --paper-margin: rgba(232, 189, 99, .20);
+  --paper-shadow: #040705;
+  --paper-header: #101914;
+}
+
+body[data-skin="blackboard"] .home-simple-shell {
+  color: var(--sheet-ink);
+  background-color: var(--bg);
+}
+
+body[data-skin="blackboard"] .home-practice-button {
+  color: var(--sheet-ink);
+}
+
+body[data-skin="blackboard"] .home-library-copy small,
+body[data-skin="blackboard"] .home-library-grid .home-button-arrow {
+  color: var(--sheet-muted);
+}
+
+body[data-skin="blackboard"] .home-library-grid .home-library-videos::before {
+  background-color: var(--sheet-tab-blue);
+}
+
+body[data-skin="blackboard"] .home-simple-shell button:focus-visible {
+  outline-color: var(--sheet-accent-edge);
+}
+
+body[data-skin="blackboard"] .card,
+body[data-skin="blackboard"] .routine-row,
+body[data-skin="blackboard"] #sheet {
+  border-color: var(--sep);
+  box-shadow: 0 3px 0 var(--paper-shadow);
+}
+
+/* 本体の各所で var(--paper) 等が使われているが、これらは :root に定義が無く、
+ * 標準スキンはCSS側のフォールバック色で描かれている。
+ * ここで定義しても標準スキンの見た目は変わらず、黒板側だけが暗色になる。 */
+body[data-skin="blackboard"] {
+  --paper: #17231d;
+  --rule: rgba(232, 239, 232, .26);
+  --ink: #f3f0e6;
+  --ink-soft: rgba(224, 232, 225, .74);
+}
+
+/* --ink は文字色としても背景としても使われている。
+ * 更新バーは暗い面に明るい文字なので、背景側だけ暗いまま据え置く。 */
+body[data-skin="blackboard"] #update-banner {
+  background: #101914;
+  border: 1px solid var(--sep);
+}
+
+/* 明るい面に白文字を重ねている箇所。黄墨の上では暗い文字にする */
+body[data-skin="blackboard"] .beta-tag {
+  color: var(--on-accent);
+}
+
+/* ベタ書きの焦茶。暗い面では沈んで読めないので黄墨へ寄せる */
+body[data-skin="blackboard"] .home-practice-copy > small {
+  color: var(--sheet-accent-edge);
+}
+
+/* 用紙のノンブル。黒板では白墨の消し跡くらいの薄さにする */
+body[data-skin="blackboard"] .home-paper-space {
+  color: rgba(232, 239, 232, .16);
+}
+
+/* 空間・マイナス区間のボタン。明るい紙色がベタ書きで残っており、
+ * 盤面の上では白い板に黄墨の文字となって読めない。盤面側の色へ寄せる。 */
+body[data-skin="blackboard"] .cue-gap-actions button,
+body[data-skin="blackboard"] .cue-overlap-actions button {
+  background: rgba(16, 25, 20, .72);
+  color: var(--text);
+  border-color: currentColor;
+}
+
+/* 空間・マイナス区間の帯。文字が本文色になったので、面も少し落ち着かせる */
+body[data-skin="blackboard"] .cue-interval-alert.gap {
+  background: rgba(232, 189, 99, .12);
+}
+body[data-skin="blackboard"] .cue-interval-alert.overlap {
+  background: rgba(225, 135, 121, .12);
+}
+
+/* 選択中のチップ。薄い塗りだけでは、盤面の上でどちらが選ばれているか分からない。
+ * 黄墨で塗りつぶし、文字を暗くして反転させる。 */
+body[data-skin="blackboard"] .choice.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+body[data-skin="blackboard"] .choice.selected .d {
+  color: var(--on-accent);
+}
+body[data-skin="blackboard"] .choice.abort.selected {
+  background: var(--danger);
+  color: var(--on-accent);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+/* ステップ一覧を囲む枠。紙色38%がベタ書きで、盤面の上では灰色の帯になる。
+ * 盤面より少しだけ明るい程度に落とし、区切りは分かるまま暗くする。 */
+body[data-skin="blackboard"] .card:has(> .editor-step) {
+  background: rgba(243, 240, 230, .06);
+}

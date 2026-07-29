@@ -189,6 +189,7 @@ window.runVideoDownload = async (id) => {
 
 // 保存された映像そのものの大きさを出す。カメラの申告と食い違うことがあり、
 // 数字が見えないと「なぜ横で再生されるのか」を切り分けられない。
+if (typeof MutationObserver === "function" && typeof document !== "undefined" && document.body) {
 new MutationObserver(() => {
   const player = document.getElementById("run-video-player");
   if (!player || player.dataset.sizeShown) return;
@@ -206,3 +207,4 @@ new MutationObserver(() => {
   player.addEventListener("loadedmetadata", show);
   show();
 }).observe(document.body, { childList: true, subtree: true });
+}
