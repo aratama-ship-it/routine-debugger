@@ -64,6 +64,15 @@
     facing(target) === "environment" ? t("背面カメラ", "Rear camera") : t("インカメ", "Front camera");
 
   const looksFront = (label) => /front|前面|face ?time|self/i.test(label || "");
+  const looksTele = (label) => /tele|望遠/i.test(label || "");
+  // 端末が返す英語ラベルのままでは選びにくい。役割の名前に言い換える。
+  // 元のラベルは併記して、同じ名前が並んだときに見分けられるようにする。
+  const 役割名 = (label) => {
+    if (looksFront(label)) return t("インカメ", "Front");
+    if (looksUltraWide(label)) return t("超広角", "Ultra wide");
+    if (looksTele(label)) return t("望遠", "Telephoto");
+    return t("広角", "Wide");
+  };
 
   // 一覧は控えておく。開く直前に await を挟むと、Safariが操作起点と見なさず許可が出ない。
   let cachedDevices = [];
@@ -187,7 +196,7 @@
   // 初回描画は app.js のテンプレートから直接埋める(あとから差し込むと一瞬空になる)
   window.runCameraLensRowHtml = (routineId, target = "run") => {
     const lens = savedLens(target);
-    const name = lens || window.runCameraFacingLabel(target);
+    const name = lens ? 役割名(lens) : window.runCameraFacingLabel(target);
     const beep = target !== "run" ? t("シーケンスの撮影に使います", "Used for sequence clips")
       : beepEnabled() ? t("カウントダウンを音で知らせます", "The countdown beeps")
         : t("カウントダウンの音は鳴りません", "The countdown is silent");
@@ -278,8 +287,8 @@
 
     const rows = named.map((d) => `<div class="pick-trick-row ${lens === d.label ? "is-on" : ""}"
       onclick="pickRunCamera('${looksFront(d.label) ? "user" : "environment"}','${esc(d.label)}','${routineId}','${target}')">
-      <span class="nm">${esc(d.label)}</span>
-      <span class="kn">${looksUltraWide(d.label) ? t("超広角", "Ultra wide") : ""}</span></div>`).join("");
+      <span class="nm">${役割名(d.label)}</span>
+      <span class="kn">${esc(d.label)}</span></div>`).join("");
 
     const combined = 全部.length > named.length ? `<div class="rcl-note">${t(
       "「Dual」「Triple」は複数のレンズをまとめたもので、撮影中に自動で切り替わります。通しの途中で画角が変わるため、一覧には出していません。",
@@ -295,9 +304,8 @@
       <div class="sheet-sub">${t(
         "三脚に立てて撮るなら背面カメラ。超広角は、高く投げる技も切らずに収まります。",
         "Use the rear camera on a tripod. Ultra wide keeps high throws in frame.")}</div>
-      ${auto("user", t("インカメ", "Front camera"), t("自分で見ながら", "See yourself"))}
-      ${auto("environment", t("背面カメラ", "Rear camera"), t("画質がよい", "Better image"))}
-      ${rows}
+      ${named.length ? rows : `${auto("user", t("インカメ", "Front camera"), t("自分で見ながら", "See yourself"))}
+      ${auto("environment", t("背面カメラ", "Rear camera"), t("画質がよい", "Better image"))}`}
       ${combined}
       ${permission}
       ${target === "run" ? qualityRow(routineId) + chipRow(routineId) : ""}
@@ -322,8 +330,8 @@
       closeRunCameraPicker(routineId, target);
       // 開いているカメラを閉じて開き直す。次の描画で新しい設定が使われる
       if (typeof releaseTrickCam === "function") { releaseTrickCam(); render(); }
-      return toast(t(`${lensLabel || window.runCameraFacingLabel(target)} を使います`,
-        `Using ${lensLabel || window.runCameraFacingLabel(target)}`));
+      const 名 = lensLabel ? 役割名(lensLabel) : window.runCameraFacingLabel(target);
+      return toast(t(`${名} を使います`, `Using ${名}`));
     }
     const wasReady = typeof runCameraReady === "function" && runCameraReady(routineId)
       && !(runCamera && runCamera.recording);
@@ -331,7 +339,7 @@
     closeRunCameraPicker(routineId, target);
     // 開いている最中だったなら、新しいカメラで開き直す
     if (wasReady) await prepareRunCamera(routineId);
-    toast(t(`${lensLabel || window.runCameraFacingLabel(target)} を使います`,
-      `Using ${lensLabel || window.runCameraFacingLabel(target)}`));
+    const 表示 = lensLabel ? 役割名(lensLabel) : window.runCameraFacingLabel(target);
+    toast(t(`${表示} を使います`, `Using ${表示}`));
   };
 })();

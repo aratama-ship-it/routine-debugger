@@ -396,6 +396,9 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || !/runCameraFrameRatioCss\(runCamera, selectedProfile\.cssRatio\)/.test(app)
     // 技の撮影でも同じ仕組みでカメラを選べる(設定は通し練習と別)
     || !/rd_trick_camera_lens/.test(runCameraLens)
+    // 名前の取れたレンズがあるときは、包括的な2項目を出さない(同じものが二重に並ぶ)
+    || !/\$\{named\.length \? rows :/.test(runCameraLens)
+    || !/const 役割名 = \(label\) =>/.test(runCameraLens)
     || !/runCameraVideoConstraints\(画質, "trick"\)/.test(app)
     || !/runCameraLensRowHtml\("", "trick"\)/.test(app)
     || !/\.run-camera-preview \{[\s\S]*?object-fit: contain/.test(css)
@@ -634,7 +637,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 351_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 16_800], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 49_500],
+  ["app.js", 350_800], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 49_300],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
