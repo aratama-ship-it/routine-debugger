@@ -23,8 +23,11 @@
   const STD_BPS = 1_500_000;
   const HIGH_BPS = 4_000_000;
 
-  const FACING_KEY = "rd_run_camera_facing";
-  const LENS_KEY = "rd_run_camera_lens";
+  // 用途ごとに別の設定。通し練習は三脚、技の撮影は手元と、据え方が違う
+  const KEYS = {
+    run: { facing: "rd_run_camera_facing", lens: "rd_run_camera_lens", 既定: "user" },
+    trick: { facing: "rd_trick_camera_facing", lens: "rd_trick_camera_lens", 既定: "environment" },
+  };
   const BEEP_KEY = "rd_countdown_beep";
 
   const read = (key, fallback) => {
@@ -41,19 +44,24 @@
   // 通しの途中で画角が変わる。構成を見比べる用途には使えないので選択肢から外す。
   const looksCombined = (label) => /dual|triple|デュアル|トリプル/i.test(label || "");
 
-  const facing = () => (read(FACING_KEY, "user") === "environment" ? "environment" : "user");
+  const 鍵 = (target) => KEYS[target] || KEYS.run;
+  const facing = (target = "run") => {
+    const k = 鍵(target);
+    return read(k.facing, k.既定) === "environment" ? "environment" : "user";
+  };
   // Dual/Triple を選んだ状態が残っていたら捨てる。
   // 撮影中にレンズが変わるため、一覧から外したものを裏で使い続けない。
-  const savedLens = () => {
-    const value = read(LENS_KEY, "");
-    if (value && looksCombined(value)) { write(LENS_KEY, ""); return ""; }
+  const savedLens = (target = "run") => {
+    const k = 鍵(target);
+    const value = read(k.lens, "");
+    if (value && looksCombined(value)) { write(k.lens, ""); return ""; }
     return value;
   };
-  const isRear = () => facing() === "environment";
+  const isRear = (target = "run") => facing(target) === "environment";
 
   window.runCameraIsRear = isRear;
-  window.runCameraFacingLabel = () =>
-    isRear() ? t("背面カメラ", "Rear camera") : t("インカメ", "Front camera");
+  window.runCameraFacingLabel = (target = "run") =>
+    facing(target) === "environment" ? t("背面カメラ", "Rear camera") : t("インカメ", "Front camera");
 
   const looksFront = (label) => /front|前面|face ?time|self/i.test(label || "");
 
@@ -71,7 +79,7 @@
   window.refreshRunCameraDevices = refreshVideoDevices;
 
   // deviceId は保存せず、控えた一覧からレンズ名で引き当てる(同期のまま)
-  window.runCameraVideoConstraints = (profile) => {
+  window.runCameraVideoConstraints = (profile, target = "run") => {
     const scale = isHighQuality() ? HIGH_SCALE : 1;
     const base = {
       width: { ideal: profile.width * scale }, height: { ideal: profile.height * scale },
@@ -79,13 +87,13 @@
       resizeMode: profile.resizeMode,
       frameRate: { ideal: 24, max: 30 },
     };
-    const want = savedLens();
+    const want = savedLens(target);
     if (want) {
       const hit = cachedDevices.find((d) => d.label === want);
       // exact にしないと、iOSが撮影中に別のレンズへ移ることがある
       if (hit && hit.deviceId) return { ...base, deviceId: { exact: hit.deviceId } };
     }
-    return { ...base, facingMode: { ideal: facing() } };
+    return { ...base, facingMode: { ideal: facing(target) } };
   };
 
   // ---------- 開いたあとの向きの取り直し ----------
@@ -94,7 +102,7 @@
   const frameIsLandscape = (settings) =>
     (Number(settings.width) || 0) >= (Number(settings.height) || 0);
 
-  window.correctRunCameraStream = async (stream, profile) => {
+  window.correctRunCameraStream = async (stream, profile, target = "run") => {
     const track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
     if (!track || typeof track.getSettings !== "function") return stream;
     const first = track.getSettings();
@@ -111,11 +119,11 @@
     if (frameIsLandscape(track.getSettings()) === wantLandscape) return stream;
 
     // レンズ指定が原因のことがある。指定を外してもう一度だけ開く
-    if (!savedLens()) return stream;
+    if (!savedLens(target)) return stream;
     try {
       const retry = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: facing() },
+          facingMode: { ideal: facing(target) },
           width: { ideal: profile.width }, height: { ideal: profile.height },
           aspectRatio: { ideal: profile.ratio },
           resizeMode: profile.resizeMode,
@@ -177,23 +185,23 @@
 
   // ---------- 開始カードの1行 ----------
   // 初回描画は app.js のテンプレートから直接埋める(あとから差し込むと一瞬空になる)
-  window.runCameraLensRowHtml = (routineId) => {
-    const lens = savedLens();
-    const name = lens || window.runCameraFacingLabel();
-    const beep = beepEnabled()
-      ? t("カウントダウンを音で知らせます", "The countdown beeps")
-      : t("カウントダウンの音は鳴りません", "The countdown is silent");
-    return `<button type="button" class="rcl-row" onclick="sheetPickRunCameraLens('${routineId}')">
+  window.runCameraLensRowHtml = (routineId, target = "run") => {
+    const lens = savedLens(target);
+    const name = lens || window.runCameraFacingLabel(target);
+    const beep = target !== "run" ? t("シーケンスの撮影に使います", "Used for sequence clips")
+      : beepEnabled() ? t("カウントダウンを音で知らせます", "The countdown beeps")
+        : t("カウントダウンの音は鳴りません", "The countdown is silent");
+    return `<button type="button" class="rcl-row" onclick="sheetPickRunCameraLens('${routineId}','${target}')">
       <span class="rcl-key">${t("使うカメラ", "Camera")}</span>
       <b class="rcl-val">${esc(name)}</b>
       <span class="rcl-sub">${beep}</span>
       <span class="rcl-go" aria-hidden="true">›</span></button>`;
   };
 
-  window.renderRunCameraLensRow = (routineId) => {
+  window.renderRunCameraLensRow = (routineId, target = "run") => {
     const slot = document.getElementById("run-camera-lens");
     if (!slot) return;
-    const html = window.runCameraLensRowHtml(routineId);
+    const html = window.runCameraLensRowHtml(routineId, target);
     if (slot.innerHTML !== html) slot.innerHTML = html;
   };
 
@@ -246,7 +254,7 @@
     sheetPickRunCameraLens(routineId);
   };
 
-  window.requestRunCameraPermission = async (routineId) => {
+  window.requestRunCameraPermission = async (routineId, target = "run") => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach((track) => track.stop());
@@ -255,21 +263,21 @@
         "The camera is unavailable. Check the permission settings."));
     }
     await refreshVideoDevices();
-    sheetPickRunCameraLens(routineId);
+    sheetPickRunCameraLens(routineId, target);
   };
 
-  window.sheetPickRunCameraLens = async (routineId) => {
+  window.sheetPickRunCameraLens = async (routineId, target = "run") => {
     const list = await refreshVideoDevices();
     const 全部 = list.filter((d) => d.label);
     const named = 全部.filter((d) => !looksCombined(d.label));
-    const lens = savedLens();
+    const lens = savedLens(target);
 
     const auto = (value, label, note) => `<div class="pick-trick-row ${
-      !lens && facing() === value ? "is-on" : ""}" onclick="pickRunCamera('${value}','','${routineId}')">
+      !lens && facing(target) === value ? "is-on" : ""}" onclick="pickRunCamera('${value}','','${routineId}','${target}')">
       <span class="nm">${label}</span><span class="kn">${note}</span></div>`;
 
     const rows = named.map((d) => `<div class="pick-trick-row ${lens === d.label ? "is-on" : ""}"
-      onclick="pickRunCamera('${looksFront(d.label) ? "user" : "environment"}','${esc(d.label)}','${routineId}')">
+      onclick="pickRunCamera('${looksFront(d.label) ? "user" : "environment"}','${esc(d.label)}','${routineId}','${target}')">
       <span class="nm">${esc(d.label)}</span>
       <span class="kn">${looksUltraWide(d.label) ? t("超広角", "Ultra wide") : ""}</span></div>`).join("");
 
@@ -280,7 +288,7 @@
     const permission = named.length ? "" : `<div class="rcl-note">${t(
       "レンズの一覧は、カメラを一度許可すると出せます。",
       "Lens names appear once you allow the camera.")}</div>
-      <button class="btn primary" onclick="requestRunCameraPermission('${routineId}')">${
+      <button class="btn primary" onclick="requestRunCameraPermission('${routineId}','${target}')">${
         t("カメラを許可してレンズを出す", "Allow the camera and list lenses")}</button>`;
 
     showSheet(`<h3>${t("使うカメラを選ぶ", "Choose a camera")}</h3>
@@ -292,31 +300,38 @@
       ${rows}
       ${combined}
       ${permission}
-      ${qualityRow(routineId)}
-      ${chipRow(routineId)}
-      <button class="btn ghost" onclick="closeRunCameraPicker('${routineId}')">${
+      ${target === "run" ? qualityRow(routineId) + chipRow(routineId) : ""}
+      <button class="btn ghost" onclick="closeRunCameraPicker('${routineId}','${target}')">${
         t("戻る", "Back")}</button>`);
   };
 
   // この一覧は開始シートの上へ出しているので、閉じると開始シートごと消える。
   // 選んだあとは必ず開始シートへ戻す。
-  window.closeRunCameraPicker = (routineId) => {
-    if (typeof confirmRunStart === "function" && routineId && routineId !== "undefined") {
+  window.closeRunCameraPicker = (routineId, target = "run") => {
+    if (target === "run" && typeof confirmRunStart === "function" && routineId && routineId !== "undefined") {
       return confirmRunStart(routineId);
     }
     hideSheet();
   };
 
-  window.pickRunCamera = async (facingValue, lensLabel, routineId) => {
-    write(FACING_KEY, facingValue === "environment" ? "environment" : "user");
-    write(LENS_KEY, lensLabel || "");
+  window.pickRunCamera = async (facingValue, lensLabel, routineId, target = "run") => {
+    const k = 鍵(target);
+    write(k.facing, facingValue === "environment" ? "environment" : "user");
+    write(k.lens, lensLabel || "");
+    if (target !== "run") {
+      closeRunCameraPicker(routineId, target);
+      // 開いているカメラを閉じて開き直す。次の描画で新しい設定が使われる
+      if (typeof releaseTrickCam === "function") { releaseTrickCam(); render(); }
+      return toast(t(`${lensLabel || window.runCameraFacingLabel(target)} を使います`,
+        `Using ${lensLabel || window.runCameraFacingLabel(target)}`));
+    }
     const wasReady = typeof runCameraReady === "function" && runCameraReady(routineId)
       && !(runCamera && runCamera.recording);
     if (wasReady) stopRunCameraNow();
-    closeRunCameraPicker(routineId);
+    closeRunCameraPicker(routineId, target);
     // 開いている最中だったなら、新しいカメラで開き直す
     if (wasReady) await prepareRunCamera(routineId);
-    toast(t(`${lensLabel || window.runCameraFacingLabel()} を使います`,
-      `Using ${lensLabel || window.runCameraFacingLabel()}`));
+    toast(t(`${lensLabel || window.runCameraFacingLabel(target)} を使います`,
+      `Using ${lensLabel || window.runCameraFacingLabel(target)}`));
   };
 })();

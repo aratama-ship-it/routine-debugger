@@ -268,7 +268,6 @@ if (!/getUserMedia\(\{[\s\S]*?facingMode:\s*"user"[\s\S]*?audio:\s*false[\s\S]*?
 }
 if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/\s*3/.test(app)
     || !/vertical:\s*\{[\s\S]*?ratio:\s*3\s*\/\s*4/.test(app)
-    || !/selectRunCameraProfile/.test(app)
     || !/function runVideoAspect\(video\)[\s\S]*?RUN_CAMERA_PROFILES\[video\?\.cameraProfile\]/.test(app)
     || !/\.run-camera-preview\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)
     || !/\.run-camera-live-preview\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)
@@ -288,7 +287,6 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
     || !/iPhoneを縦に構えても、映像は横長で記録されます。/.test(app)
     || !/function selectedRunCameraProfileId\(\) \{\s*return "wide";/.test(app)
-    || !/async function syncRunCameraProfileToOrientation\(routineId\)[\s\S]*?runCamera\.profileId === want/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
   failures.push("横長固定の撮影と、実映像が横長のときだけ開始する保護がありません");
 }
@@ -396,6 +394,10 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     // プレビューは実フレームの縦横のまま、切り取らずに見せる
     || !/window\.runCameraFrameRatioCss = \(cap, fallback\)/.test(runCameraLens)
     || !/runCameraFrameRatioCss\(runCamera, selectedProfile\.cssRatio\)/.test(app)
+    // 技の撮影でも同じ仕組みでカメラを選べる(設定は通し練習と別)
+    || !/rd_trick_camera_lens/.test(runCameraLens)
+    || !/runCameraVideoConstraints\(画質, "trick"\)/.test(app)
+    || !/runCameraLensRowHtml\("", "trick"\)/.test(app)
     || !/\.run-camera-preview \{[\s\S]*?object-fit: contain/.test(css)
     // 合成は録れたファイルの寸法を守る。引き伸ばして絵を潰さない
     || !/positive\(videoMeta\.width\) \|\| positive\(capture\.captureWidth\)/.test(runVideoComposition)
@@ -632,7 +634,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 15_600], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 119_100], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 49_500],
+  ["app.js", 351_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 16_800], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 49_500],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

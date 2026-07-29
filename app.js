@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v314"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v315"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1363,18 +1363,6 @@ async function prepareRunCamera(routineId) {
   }
 }
 
-// 端末を回したら、その向きでカメラを開き直す。
-// 録画中は触らない(途中で作り直すと、その通しが失われる)。
-window.selectRunCameraProfile = async (routineId, profileId) => {
-  if (!RUN_CAMERA_PROFILES[profileId]) return;
-  if (!runCameraReady(routineId) || (runCamera && runCamera.recording)) {
-    return updateRunCameraConfirm(routineId);
-  }
-  stopRunCameraNow();
-  updateRunCameraConfirm(routineId, "この向きでカメラを準備中…");
-  await prepareRunCamera(routineId);
-};
-
 window.toggleRunCamera = async (routineId) => {
   if (runCameraReady(routineId)) {
     stopRunCameraNow();
@@ -1389,37 +1377,17 @@ let runCameraOrientationUiRaf = 0;
 function scheduleRunCameraOrientationUi() {
   const area = document.getElementById("run-camera-area");
   if (!area) return;
-  // rAFは画面が描画されていない間は止まる。向きの追従は取りこぼすと
-  // 「横にしたのに縦で録れる」に直結するので、タイマーで確実に回す。
-  // 回している最中の連続発火は、直前の予約を取り消してまとめる。
+  // 回している最中の連続発火は、直前の予約を取り消してまとめる
   if (runCameraOrientationUiRaf) clearTimeout(runCameraOrientationUiRaf);
   runCameraOrientationUiRaf = setTimeout(() => {
     runCameraOrientationUiRaf = 0;
     const routineId = area.dataset.routineId;
     if (routineId && document.getElementById("run-camera-area") === area) {
       syncRunCameraOrientationUi(routineId);
-      syncRunCameraProfileToOrientation(routineId);
     }
-  }, 120); // 回している途中の中間状態で開き直さないよう、少し待つ
+  }, 120);
 }
 
-// 端末を回したら、その向きの画角でカメラを開き直す。
-// 表示だけ変えても、実際に録れる映像は開いたときの向きのままなので、
-// 「横にしたのに縦で録れる」ことになる。開き直して初めて追従する。
-let runCameraReprofiling = false;
-async function syncRunCameraProfileToOrientation(routineId) {
-  if (runCameraReprofiling) return;
-  if (!runCameraReady(routineId)) return;
-  if (runCamera && runCamera.recording) return; // 録画中に作り直すと、その通しが失われる
-  const want = selectedRunCameraProfileId();
-  if (!runCamera || runCamera.profileId === want) return;
-  runCameraReprofiling = true;
-  try {
-    stopRunCameraNow();
-    updateRunCameraConfirm(routineId, isEnglish() ? "Preparing for this orientation…" : "この向きでカメラを準備中…");
-    await prepareRunCamera(routineId);
-  } finally { runCameraReprofiling = false; }
-}
 window.addEventListener("resize", scheduleRunCameraOrientationUi);
 window.addEventListener("orientationchange", scheduleRunCameraOrientationUi);
 
@@ -6066,8 +6034,12 @@ function releaseTrickCam() {
 async function initTrickCam() {
   if (!navigator.mediaDevices || !window.MediaRecorder) { trickCam = { error: true }; render(); return; }
   try {
+    const 画質 = { width: { ideal: videoProfile().maxH * 4 / 3 }, height: { ideal: videoProfile().maxH },
+      ratio: 4 / 3, resizeMode: "none" };
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", height: { ideal: videoProfile().maxH }, frameRate: { ideal: 24, max: 30 } },
+      video: typeof runCameraVideoConstraints === "function"
+        ? runCameraVideoConstraints(画質, "trick")
+        : { facingMode: "environment", height: { ideal: videoProfile().maxH }, frameRate: { ideal: 24, max: 30 } },
       audio: false,
     });
     trickCam = { stream, chunks: [], recording: false };
@@ -6147,6 +6119,8 @@ function renderTrickRec() {
         <button class="btn" style="margin:0" onclick="trickRecRetake()">撮り直す</button>
       </div>` : `
       <video id="cam-preview" class="trick-video main" autoplay playsinline muted></video>
+      <div id="run-camera-lens">${typeof runCameraLensRowHtml === "function"
+        ? runCameraLensRowHtml("", "trick") : ""}</div>
       <div class="center" style="margin:10px 0 14px">
         <span class="rec-timer" id="trickrec-time">${trickCam && trickCam.recording ? "" : `0:00.0 / 0:${TRICK_MAX_SEC}.0`}</span>
       </div>
