@@ -2,16 +2,17 @@
 "use strict";
 
 // Web版はカメラ映像だけを先に記録し、保存時にCanvas＋Web Audioで音源を合成する。
-// 将来のiOS／Android版は、このレシピをネイティブの撮影後合成へ渡し、
-// 同じ完成形式（音源入りの単一動画）を返す。
+// 将来のiOS／Android版は、このレシピをネイティブ側へ渡し同じ完成形式を返す。
 const RUN_VIDEO_COMPOSITION_VERSION = 1;
-const RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS = 1;
+// 遅れ = 手動の微調整(つまみ0〜1秒) + カウントダウン分。1秒で頭打ちだと曲が頭から鳴る。
+const RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS = 20;
+const RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX = 1;
 
 function normalizeRunVideoAudioDelay(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
   const clamped = Math.max(0, Math.min(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS, number));
-  return Math.round(clamped * 20) / 20; // UIと同じ0.05秒刻み
+  return Math.round(clamped * 20) / 20; // つまみと同じ0.05秒刻み
 }
 
 function runVideoRecordingAudioDelay(video) {

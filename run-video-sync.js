@@ -351,14 +351,16 @@ function runVideoSyncDelayMarkup(video, target, id = "") {
   const postSavePending = video && video.composition && video.composition.engine === "web-post-save-pending"
     && (target === "pending" || target === "stopped");
   if (!runVideoHasEmbeddedAudio(video) && !postSavePending) return "";
-  const value = runVideoDesiredAudioDelay(video);
+  // つまみが動かすのは「収録済みの遅れに足す分」だけ。
+  // カウントダウンから回した秒数まで一緒に動かすと、曲が映像の頭へ戻ってしまう。
+  const value = runVideoPlaybackAudioDelay(video);
   return `<section class="run-video-sync-adjust" aria-labelledby="run-video-sync-delay-title">
     <div class="run-video-sync-adjust-head">
       <div><b id="run-video-sync-delay-title">${isEnglish() ? "Audio sync correction" : "映像と音源の同期補正"}</b>
         <span>${isEnglish() ? "If the video looks late, move the music later." : "映像が遅く見えるとき、音源を後ろへ送ります。"}</span></div>
       <output id="run-video-sync-delay-value">${value.toFixed(2)}${isEnglish() ? " sec" : "秒"}</output>
     </div>
-    <input id="run-video-sync-delay" type="range" min="0" max="${RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS}" step="0.05" value="${value.toFixed(2)}"
+    <input id="run-video-sync-delay" type="range" min="0" max="${RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX}" step="0.05" value="${value.toFixed(2)}"
       aria-label="${isEnglish() ? "Delay recorded music" : "収録音源を遅らせる"}"
       oninput="runVideoSetSyncDelay('${target}','${esc(id)}',this.value)">
     <div class="run-video-sync-adjust-scale"><span>${isEnglish() ? "No correction" : "補正なし"}</span><span>${isEnglish() ? "Music +1.00 sec" : "音源を1.00秒遅らせる"}</span></div>
@@ -378,11 +380,12 @@ window.runVideoSetSyncDelay = (target, id, value) => {
   const postSavePending = video && video.composition && video.composition.engine === "web-post-save-pending"
     && (target === "pending" || target === "stopped");
   if (!video || (!runVideoHasEmbeddedAudio(video) && !postSavePending)) return;
-  const result = setRunVideoDesiredAudioDelay(video, value);
-  savePreferredRunVideoAudioDelay(result.desired);
+  const recorded = runVideoRecordingAudioDelay(video);
+  const result = setRunVideoDesiredAudioDelay(video, recorded + (Number(value) || 0));
+  savePreferredRunVideoAudioDelay(result.playback);
   if (target === "saved") saveState();
   const output = document.getElementById("run-video-sync-delay-value");
-  if (output) output.textContent = `${result.desired.toFixed(2)}${isEnglish() ? " sec" : "秒"}`;
+  if (output) output.textContent = `${result.playback.toFixed(2)}${isEnglish() ? " sec" : "秒"}`;
   const note = document.getElementById("run-video-sync-delay-note");
   if (note) note.textContent = runVideoSyncDelayNote(video);
   if (postSavePending && runVideoSyncState && runVideoSyncState.sourceVideo === video) {

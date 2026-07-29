@@ -346,14 +346,15 @@ if (!/function runVideoPlaybackAudioMarkup\(video, music, musicAvailable\)/.test
     || !/runVideoPlaybackAudioMarkup\(video, music/.test(runVideoReview)) {
   failures.push("音源入り映像を単一プレイヤーで再生し、旧別音源方式だけ同期処理へ戻せません");
 }
-if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*1/.test(runVideoComposition)
+if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*20/.test(runVideoComposition)
+    || !/RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX\s*=\s*1/.test(runVideoComposition)
     || !/function normalizeRunVideoAudioDelay\(value\)/.test(runVideoComposition)
     || !/cap\.requestedAudioDelaySeconds\s*=\s*preferredRunVideoAudioDelay\(\)/.test(app)
     || !/audioDelaySeconds:\s*normalizeRunVideoAudioDelay\(capture\.syncAudioDelaySeconds/.test(runVideoComposition)
     || !/requestedAudioDelaySeconds:\s*cap\.requestedAudioDelaySeconds/.test(app)
     || !/composition\.engine === "web-post-save-pending"/.test(runVideoSync)
     || !/function runVideoSyncDelayMarkup\(video, target/.test(runVideoSync)
-    || !/max="\$\{RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\}"\s+step="0\.05"/.test(runVideoSync)
+    || !/max="\$\{RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX\}"\s+step="0\.05"/.test(runVideoSync)
     || !/function bindRunVideoEmbeddedAudioDelay\(video\)[\s\S]*?createMediaElementSource\(player\)[\s\S]*?createDelay/.test(runVideoSync)
     || !/runVideoSyncDelayMarkup\(capture, "stopped"\)/.test(runVideoSync)
     || !/runVideoSyncDelayMarkup\(pending, "pending"\)/.test(app)

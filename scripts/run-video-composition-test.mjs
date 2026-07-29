@@ -23,7 +23,10 @@ assert.equal(recipe.audio.microphone, false, "camera microphone should stay excl
 assert.equal(recipe.timeline.trimStartSeconds, 3.5);
 assert.equal(recipe.timeline.trimEndSeconds, 93.5);
 assert.equal(recipe.timeline.recordingAudioDelaySeconds, 0.35);
-assert.equal(context.normalizeRunVideoAudioDelay(2), 1, "sync correction should be capped at one second");
+// 手動の微調整は0〜1秒だが、カウントダウンから回した分は秒単位で入る。
+// ここで1秒に丸めると、曲が映像の頭から鳴ってしまう。
+assert.equal(context.normalizeRunVideoAudioDelay(2), 2, "countdown gap should survive");
+assert.equal(context.normalizeRunVideoAudioDelay(999), 20, "absurd values are still capped");
 assert.equal(context.savePreferredRunVideoAudioDelay(0.27), 0.25, "the device preference should use 0.05-second steps");
 assert.equal(context.preferredRunVideoAudioDelay(), 0.25);
 

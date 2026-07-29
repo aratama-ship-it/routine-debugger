@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v288"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v289"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1511,7 +1511,12 @@ async function stopRunVideoCaptureAtMusicStop() {
       audioEmbedded: !!cap.audioEmbedded,
       recordingAudioDelaySeconds: cap.recordingAudioDelaySeconds,
       requestedAudioDelaySeconds: cap.requestedAudioDelaySeconds,
-      syncAudioDelaySeconds: cap.requestedAudioDelaySeconds,
+      // カウントダウンから回した分、映像は曲より先に始まっている。
+      // その実測ぶんを土台にし、本人の微調整を足す。
+      // ここを手動値だけにすると、曲が映像の頭から鳴ってしまう。
+      syncAudioDelaySeconds: Math.round((
+        (Number(cap.recordingAudioDelaySeconds) || 0) + (Number(cap.requestedAudioDelaySeconds) || 0)
+      ) * 10) / 10,
     });
     render();
     return true;
