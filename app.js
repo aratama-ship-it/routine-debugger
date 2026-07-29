@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v276"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v277"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1072,10 +1072,11 @@ let pendingRunVideoReplaceId = "";
 let runVideoPostCompositionController = null;
 let runVideoPostCompositionBusy = false;
 
+// 画角は端末の向きから決める。持ち方と設定が食い違うと、
+// 「横で構えているのに縦で録れている」といった事故が起きるため、選ばせない。
 function selectedRunCameraProfileId() {
-  let stored = "";
-  try { stored = localStorage.getItem("rd_run_camera_profile") || ""; } catch (_) {}
-  return RUN_CAMERA_PROFILES[stored] ? stored : "wide";
+  const { width, height } = runCameraViewportSize();
+  return width >= height ? "wide" : "vertical";
 }
 function runCameraProfile(profileId = selectedRunCameraProfileId()) {
   return RUN_CAMERA_PROFILES[profileId] || RUN_CAMERA_PROFILES.wide;
@@ -1221,18 +1222,20 @@ function runCameraConfirmBody(routineId, status = "") {
     : (isEnglish() ? "Video only · until the run ends" : "映像のみ・通し終了まで");
   return `
     <div class="run-camera-head">
-      <div><b>インカメで撮影</b><span>${audioCopy}</span></div>
+      <div><b>インカメで撮影 <span class="run-camera-state ${ready ? "on" : "off"}">${
+        ready ? (isEnglish() ? "ON" : "ON") : (isEnglish() ? "OFF" : "OFF")}</span></b>
+        <span>${ready
+          ? (isEnglish() ? "This run will be recorded." : "この通しは撮影されます")
+          : (isEnglish() ? "This run will not be recorded." : "この通しは撮影されません")}</span>
+        <span>${audioCopy}</span></div>
       <span class="run-video-capacity">保存 ${count}/${RUN_VIDEO_LIMIT}本</span>
     </div>
-    <div class="run-camera-profile" role="group" aria-label="撮影画角">
-      ${Object.values(RUN_CAMERA_PROFILES).map((profile) => `<button type="button"
-        class="${selectedProfile.id === profile.id ? "selected" : ""}"
-        aria-pressed="${selectedProfile.id === profile.id}"
-        onclick="selectRunCameraProfile('${routineId}','${profile.id}')">${profile.label}</button>`).join("")}
+    <div class="run-camera-profile" role="status" aria-label="撮影画角">
+      <span class="selected">${selectedProfile.label}</span>
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
-      ? "For 4:3 landscape, hold the iPhone sideways. For 3:4 portrait, hold it upright."
-      : "4:3横長はiPhoneを横向きに、3:4縦長は縦向きにして撮影します。"}</p>
+      ? "The framing follows how you hold the device. Turn it before starting the camera."
+      : "画角は端末の向きに合わせます。カメラを準備する前に、撮る向きへ回してください。"}</p>
     <div id="run-camera-orientation" class="run-camera-orientation ${orientation.blocked ? "is-blocked" : "is-ready"}"
       role="status" ${orientation.requiresLandscape ? "" : "hidden"}>
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
@@ -1241,7 +1244,7 @@ function runCameraConfirmBody(routineId, status = "") {
     ${status ? `<div class="run-camera-status" role="status">${esc(status)}</div>` : ""}
     <button type="button" class="btn ${ready ? "ghost" : ""}" id="run-camera-toggle"
       ${prepareBlocked ? "disabled aria-disabled=\"true\"" : ""}
-      onclick="toggleRunCamera('${routineId}')">${ready ? "撮影をやめる" : prepareBlocked ? (isEnglish() ? "Rotate to prepare camera" : "横向きにして準備") : "インカメを準備"}</button>
+      onclick="toggleRunCamera('${routineId}')">${ready ? (isEnglish() ? "Turn recording OFF" : "撮影をOFFにする") : (isEnglish() ? "Turn recording ON" : "撮影をONにする")}</button>
     <small>${routine && routine.music
       ? (isEnglish()
         ? `The selected framing is used throughout. During the run, only the camera image is recorded. When you save, the app music is combined into one video. The camera microphone is not used. Sync correction: ${recordingDelay.toFixed(2)} sec.`
@@ -1317,13 +1320,15 @@ async function prepareRunCamera(routineId) {
   }
 }
 
+// 端末を回したら、その向きでカメラを開き直す。
+// 録画中は触らない(途中で作り直すと、その通しが失われる)。
 window.selectRunCameraProfile = async (routineId, profileId) => {
   if (!RUN_CAMERA_PROFILES[profileId]) return;
-  const restart = runCameraReady(routineId);
-  try { localStorage.setItem("rd_run_camera_profile", profileId); } catch (_) {}
-  if (!restart) return updateRunCameraConfirm(routineId);
+  if (!runCameraReady(routineId) || (runCamera && runCamera.recording)) {
+    return updateRunCameraConfirm(routineId);
+  }
   stopRunCameraNow();
-  updateRunCameraConfirm(routineId, "選んだ画角でカメラを準備中…");
+  updateRunCameraConfirm(routineId, "この向きでカメラを準備中…");
   await prepareRunCamera(routineId);
 };
 
@@ -6105,36 +6110,6 @@ window.openHelp = () => {
   if (!$sheet.classList.contains("hidden")) hideSheet();
   go("help");
 };
-
-function renderHelp() {
-  if (isEnglish()) return renderHelpEnglish();
-  return `
-    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>使い方</h1></div>
-    <div class="card help-tutorial-card"><h2>チュートリアル</h2>
-      <p>サンプルの演目で、記録から次の練習を決めるところまでを試します(5分ほど)。</p>
-      <button class="btn primary" onclick="tutorialStart()">チュートリアルを始める</button>
-    </div>
-    <div class="card help-guide-card"><h2>まずはこの流れ</h2>
-      <ol class="help-quick-steps">
-        <li><span class="help-step-no">01</span><span><b>ルーティンを組み立てる。</b>楽曲を選び、シーケンスを並べる。必要なシーケンスは参考動画を撮影・登録する。</span></li>
-        <li><span class="help-step-no">02</span><span><b>練習する。</b>通し練習で全体を試す、またはパート練習で区間を繰り返す。</span></li>
-        <li><span class="help-step-no">03</span><span><b>振り返り、細かく練習する。</b>通しの分析で傾向を見つけ、気になる区間を集中的に整える。</span></li>
-        <li><span class="help-step-no">04</span><span><b>次の練習へつなげる。</b>必要なら構成を調整し、またこの流れを繰り返して精度を高める。</span></li>
-      </ol>
-    </div>
-    <div class="card help-guide-card"><h2>2つの練習モード</h2>
-      <div class="help-body">
-        <div class="help-topic-line"><b>通し練習</b>は結果を分析に残します。インカメ撮影もでき、保存時に楽曲を合成。映像はアプリ全体で5本までです。</div>
-        <div class="help-topic-line"><b>パート練習</b>はA〜Bを、速度と戻る間隔（初期3秒）を変えてループします。結果は分析に入りません。</div>
-      </div></div>
-    <div class="card help-guide-card"><h2>ルーティンを編集する</h2>
-      <div class="help-body"><b>編集</b>でシーケンスの順番、楽曲の位置、参考動画を設定します。保存時は、分析を分けて残す<b>新しいバージョン</b>か、現在版の上書きを選べます。<b>個別設定</b>ではリスク・A/B・プレビュー動画・構成履歴を管理できます。</div></div>
-    <div class="card help-guide-card"><h2>分析と記録</h2>
-      <div class="help-body">分析では、シーケンス別の問題回数と割合を確認します。<b>実施できなかった</b>は失敗率の分母から除き、別に集計します。履歴ではメモの編集や、誤記録した通しの集計除外ができます。</div></div>
-    <div class="card help-guide-card"><h2>データを守る</h2>
-      <div class="help-body">記録はこのブラウザ内に保存されます。アカウントを作ると、動画・音源以外は他の端末と同期されます。<b>動画・音源まで残せるのは完全バックアップ(ZIP)だけ</b>です。</div>
-      <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button></div>`;
-}
 
 // ========== 設定(バックアップ) ==========
 function renderSettings() {

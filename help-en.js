@@ -1,8 +1,8 @@
-/* ルーティンノート — 使い方(英語版)
+/* ルーティンノート — 使い方(日本語版・英語版)
  *
- * 日本語版と同じ内容の英訳。文章がまとまって長く、app.js の容量を圧迫していたため
- * こちらへ移した。表示の入口は app.js の renderHelp() で、英語のときだけ呼ばれる。
- * 日本語版を書き換えたら、必ずこちらも直す(片方だけ古くなるのが一番困る)。
+ * 使い方の本文はどちらも長く、app.js の容量を圧迫していたためこちらへ移した。
+ * 呼び出し元は app.js の render()。日本語版が英語版を呼び分ける。
+ * 片方だけ直すと内容がずれるので、必ず両方そろえて書き換える。
  */
 window.renderHelpEnglish = function renderHelpEnglish() {
   return `
@@ -31,4 +31,34 @@ window.renderHelpEnglish = function renderHelpEnglish() {
     <div class="card help-guide-card"><h2>Keep your data safe</h2>
       <div class="help-body">Records are stored in this browser. With an account, everything except videos and audio syncs across devices. <b>Only a full backup (ZIP) keeps your videos and audio.</b></div>
       <button class="btn ghost" onclick="openDocPage('backup.html')">Read: keeping your data safe</button></div>`;
+};
+
+window.renderHelp = function renderHelp() {
+  if (isEnglish()) return renderHelpEnglish();
+  return `
+    <div class="topbar"><button class="back-btn" onclick="go('home')">戻る</button><h1>使い方</h1></div>
+    <div class="card help-tutorial-card"><h2>チュートリアル</h2>
+      <p>サンプルの演目で、記録から次の練習を決めるところまでを試します(5分ほど)。</p>
+      <button class="btn primary" onclick="tutorialStart()">チュートリアルを始める</button>
+    </div>
+    <div class="card help-guide-card"><h2>まずはこの流れ</h2>
+      <ol class="help-quick-steps">
+        <li><span class="help-step-no">01</span><span><b>ルーティンを組み立てる。</b>楽曲を選び、シーケンスを並べる。必要なシーケンスは参考動画を撮影・登録する。</span></li>
+        <li><span class="help-step-no">02</span><span><b>練習する。</b>通し練習で全体を試す、またはパート練習で区間を繰り返す。</span></li>
+        <li><span class="help-step-no">03</span><span><b>振り返り、細かく練習する。</b>通しの分析で傾向を見つけ、気になる区間を集中的に整える。</span></li>
+        <li><span class="help-step-no">04</span><span><b>次の練習へつなげる。</b>必要なら構成を調整し、またこの流れを繰り返して精度を高める。</span></li>
+      </ol>
+    </div>
+    <div class="card help-guide-card"><h2>2つの練習モード</h2>
+      <div class="help-body">
+        <div class="help-topic-line"><b>通し練習</b>は結果を分析に残します。インカメ撮影もでき、保存時に楽曲を合成。映像はアプリ全体で5本までです。</div>
+        <div class="help-topic-line"><b>パート練習</b>はA〜Bを、速度と戻る間隔（初期3秒）を変えてループします。結果は分析に入りません。</div>
+      </div></div>
+    <div class="card help-guide-card"><h2>ルーティンを編集する</h2>
+      <div class="help-body"><b>編集</b>でシーケンスの順番、楽曲の位置、参考動画を設定します。保存時は、分析を分けて残す<b>新しいバージョン</b>か、現在版の上書きを選べます。<b>個別設定</b>ではリスク・A/B・プレビュー動画・構成履歴を管理できます。</div></div>
+    <div class="card help-guide-card"><h2>分析と記録</h2>
+      <div class="help-body">分析では、シーケンス別の問題回数と割合を確認します。<b>実施できなかった</b>は失敗率の分母から除き、別に集計します。履歴ではメモの編集や、誤記録した通しの集計除外ができます。</div></div>
+    <div class="card help-guide-card"><h2>データを守る</h2>
+      <div class="help-body">記録はこのブラウザ内に保存されます。アカウントを作ると、動画・音源以外は他の端末と同期されます。<b>動画・音源まで残せるのは完全バックアップ(ZIP)だけ</b>です。</div>
+      <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button></div>`;
 };

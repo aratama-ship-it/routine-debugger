@@ -476,3 +476,46 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
   padding: 7px 9px; font-size: 13.5px; border-radius: 7px;
 }
 .frv-mark .frv-time { flex: 0 0 auto; font-size: 12px; }
+
+/* ===== 撮影中は、自分の姿を大きく見せる ===== */
+/* 96pxの小窓では、構図に入れているかどうかが分からない。
+   通しの最中に確かめたいのは「ちゃんと写っているか」なので、中央に大きく置く。
+   ミス記録のボタンを塞がないよう、画面を覆うのではなく列を縦に組み替える */
+.run-video-live {
+  display: block !important;
+  text-align: center;
+}
+.run-video-live .run-camera-live-preview {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 8px;
+  display: block;
+  border-radius: 10px;
+  border-width: 2px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+}
+.run-video-live .run-video-live-copy {
+  align-items: center;
+  gap: 4px;
+}
+.run-video-live .run-video-live-copy > div { justify-content: center; }
+
+/* 撮影のON/OFFを、見出しで言い切る。準備しただけで撮れていると思われていた */
+.run-camera-state {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  vertical-align: 2px;
+}
+.run-camera-state.on { background: var(--danger, #a6402c); color: #fff; }
+.run-camera-state.off { background: var(--card3, #ddd6c4); color: var(--muted, #6b675c); }
+/* 画角は選ばせず、いまの向きを見せるだけにした */
+.run-camera-profile .selected {
+  display: inline-block; padding: 4px 12px; border-radius: 999px;
+  background: var(--card2, #f4efe2); border: 1px solid var(--rule, #c9c2ae);
+  font-size: 12.5px; font-weight: 700;
+}

@@ -181,16 +181,16 @@ if (/stepsSignature/.test(app)
     || !/current\.steps = cloneRoutineSteps\(draft\.steps\)/.test(app)
     || !/現在のv\$\{currentNo\}には通し\$\{runCount\}本の記録/.test(app)
     || !/保存時に、新しいバージョンとして残すか/.test(app)
-    || !/分析を分けて残す<b>新しいバージョン<\/b>か、現在版の上書き/.test(app)) {
+    || !/分析を分けて残す<b>新しいバージョン<\/b>か、現在版の上書き/.test(helpEn)) {
   failures.push("既存ルーティンの保存時に、新バージョン保存と現在版の上書きを影響説明付きで選べません");
 }
 // 英語版の使い方は help-en.js にある(app.js の容量上限のため分離した)
 if (!/renderHelpEnglish = function renderHelpEnglish\(\)[\s\S]*?Start here[\s\S]*?Keep your data safe/.test(helpEn)
-    || !/function renderHelp\(\)[\s\S]*?まずはこの流れ[\s\S]*?データを守る/.test(app)
+    || !/renderHelp = function renderHelp\(\)[\s\S]*?まずはこの流れ[\s\S]*?データを守る/.test(helpEn)
     || !/Build the routine\.[\s\S]*?Review and refine\.[\s\S]*?repeat the cycle/.test(helpEn)
-    || !/ルーティンを組み立てる。[\s\S]*?振り返り、細かく練習する。[\s\S]*?またこの流れを繰り返して精度を高める/.test(app)
+    || !/ルーティンを組み立てる。[\s\S]*?振り返り、細かく練習する。[\s\S]*?またこの流れを繰り返して精度を高める/.test(helpEn)
     || ((app + helpEn).match(/class="card help-guide-card"/g) || []).length !== 10
-    || !/class="help-quick-steps"/.test(app)
+    || !/class="help-quick-steps"/.test(helpEn)
     || !/\.help-quick-steps li/.test(css)) {
   failures.push("使い方が日英とも、準備・練習・振り返り・次の練習の循環として整理されていません");
 }
@@ -285,9 +285,10 @@ if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeig
     || !/addEventListener\("resize", scheduleRunCameraOrientationUi\)/.test(app)
     || !/addEventListener\("orientationchange", scheduleRunCameraOrientationUi\)/.test(app)
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
-    || !/4:3横長はiPhoneを横向きに、3:4縦長は縦向きにして撮影します/.test(app)
+    || !/画角は端末の向きに合わせます。カメラを準備する前に、撮る向きへ回してください。/.test(app)
+    || !/function selectedRunCameraProfileId\(\)[\s\S]*?width >= height \? "wide" : "vertical"/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
-  failures.push("4:3横長撮影を画面・実カメラ双方の横向き確認後だけ開始する保護がありません");
+  failures.push("撮影の画角が端末の向きに追従し、横向き確認後だけ開始する保護がありません");
 }
 if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
   failures.push("通し練習中のインカメプレビューがありません");
