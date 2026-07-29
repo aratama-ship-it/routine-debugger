@@ -74,6 +74,52 @@
     return { ...base, facingMode: { ideal: facing() } };
   };
 
+  // ---------- 開いたあとの向きの取り直し ----------
+  // レンズをdeviceIdで名指しすると、iOSが縦横の希望を無視して
+  // センサー本来の横長フレームを返すことがある。開いた直後に実測し、
+  // 食い違っていれば制約で直し、それでも駄目ならレンズ指定を外して開き直す。
+  const frameIsLandscape = (settings) =>
+    (Number(settings.width) || 0) >= (Number(settings.height) || 0);
+
+  window.correctRunCameraStream = async (stream, profile) => {
+    const track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+    if (!track || typeof track.getSettings !== "function") return stream;
+    const first = track.getSettings();
+    if (!first.width || !first.height) return stream;
+    const wantLandscape = profile.ratio >= 1;
+    if (frameIsLandscape(first) === wantLandscape) return stream;
+
+    try {
+      await track.applyConstraints({
+        width: { ideal: profile.width }, height: { ideal: profile.height },
+        aspectRatio: { ideal: profile.ratio },
+      });
+    } catch (_) {}
+    if (frameIsLandscape(track.getSettings()) === wantLandscape) return stream;
+
+    // レンズ指定が原因のことがある。指定を外してもう一度だけ開く
+    if (!savedLens()) return stream;
+    try {
+      const retry = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: facing() },
+          width: { ideal: profile.width }, height: { ideal: profile.height },
+          aspectRatio: { ideal: profile.ratio },
+          resizeMode: profile.resizeMode,
+          frameRate: { ideal: 24, max: 30 },
+        },
+        audio: false,
+      });
+      const retryTrack = retry.getVideoTracks()[0];
+      if (retryTrack && frameIsLandscape(retryTrack.getSettings()) === wantLandscape) {
+        stream.getTracks().forEach((tr) => tr.stop());
+        return retry;
+      }
+      retry.getTracks().forEach((tr) => tr.stop());
+    } catch (_) {}
+    return stream;
+  };
+
   // ---------- カウントダウンの音 ----------
   // 背面で撮ると画面が見えない。既定は「背面のときだけ鳴らす」
   let beepCtx = null;

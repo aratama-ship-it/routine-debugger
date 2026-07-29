@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v300"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v301"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1247,10 +1247,17 @@ function runCameraConfirmBody(routineId, status = "") {
         <span>${audioCopy}</span></div>
       <span class="run-video-capacity">保存 ${count}/${RUN_VIDEO_LIMIT}本</span>
     </div>
+    ${ready && runCamera.frameWidth && runCamera.frameHeight
+      && (runCamera.frameWidth >= runCamera.frameHeight) !== (selectedProfile.ratio >= 1)
+      ? `<div class="rcl-note">${isEnglish()
+        ? `The camera returns ${runCamera.frameWidth}×${runCamera.frameHeight}, which does not match the framing above. Try another lens.`
+        : `このカメラは ${runCamera.frameWidth}×${runCamera.frameHeight} を返しており、上の画角と向きが違います。別のレンズをお試しください。`}</div>` : ""}
     ${ready ? `<div id="run-camera-lens">${
       typeof runCameraLensRowHtml === "function" ? runCameraLensRowHtml(routineId) : ""}</div>
     <div class="run-camera-profile" role="status" aria-label="撮影画角">
       <span class="selected">${selectedProfile.label}</span>
+      ${ready && runCamera.frameWidth && runCamera.frameHeight
+        ? `<span class="run-camera-frame">実際 ${runCamera.frameWidth}×${runCamera.frameHeight}</span>` : ""}
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
       ? "The framing follows how you hold the device. Turn it before starting the camera."
@@ -1311,7 +1318,7 @@ async function prepareRunCamera(routineId) {
   if (button) { button.disabled = true; button.dataset.loading = "true"; button.textContent = uiText("カメラを準備中…"); }
   const requestGeneration = ++runCameraRequestGeneration;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    let stream = await navigator.mediaDevices.getUserMedia({
       // ここで await を挟むと、Safariが操作直後の呼び出しと見なさず許可が出ない
       video: typeof runCameraVideoConstraints === "function"
         ? runCameraVideoConstraints(profile)
@@ -1327,6 +1334,10 @@ async function prepareRunCamera(routineId) {
     if (requestGeneration !== runCameraRequestGeneration || !document.getElementById("run-camera-area")) {
       stream.getTracks().forEach((track) => track.stop());
       return false;
+    }
+    // レンズを名指しすると縦横の希望が無視されることがある。実測して直す
+    if (typeof correctRunCameraStream === "function") {
+      stream = await correctRunCameraStream(stream, profile);
     }
     const videoTrack = stream.getVideoTracks()[0];
     const settings = videoTrack && typeof videoTrack.getSettings === "function" ? videoTrack.getSettings() : {};
