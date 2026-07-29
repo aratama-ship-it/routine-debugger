@@ -379,7 +379,11 @@ if (!/localStorage\.getItem\(key\)/.test(runCameraLens)
     || /setItem\("rd_run_camera_device_id"/.test(runCameraLens)
     || !/deviceId: \{ exact: hit\.deviceId \}/.test(runCameraLens)
     || !/facingMode: \{ ideal: facing\(\) \}/.test(runCameraLens)
-    || !/await runCameraVideoConstraints\(profile\)/.test(app)
+    || !/\? runCameraVideoConstraints\(profile\)/.test(app)
+    // 許可の確認は操作直後にしか出ない。ここにawaitが戻ると出なくなる
+    || /await runCameraVideoConstraints/.test(app)
+    || !/refreshRunCameraDevices\(\)/.test(app)
+    || !/window\.closeRunCameraPicker = \(routineId\)/.test(runCameraLens)
     || !/<div id="run-camera-lens">\$\{/.test(app)
     || !/runCameraLensRowHtml\(routineId\)/.test(app)
     || !/renderRunCameraLensRow\(routineId\)/.test(app)
@@ -575,7 +579,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 9_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
+  ["app.js", 352_000], ["run-video-orientation.js", 3_000], ["run-camera-lens.js", 10_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 23_100], ["run-video-sync.js", 22_500], ["run-video-review.js", 12_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 32_000], ["styles.css", 128_000], ["batch-sequence-import.css", 8_000], ["tablet.css", 15_000], ["i18n.js", 50_000], ["assets/wa-bg.svg", 100_000],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

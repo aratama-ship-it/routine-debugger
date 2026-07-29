@@ -40,16 +40,22 @@
   const looksUltraWide = (label) => /ultra|超広角|0\.5/i.test(label || "");
   const looksFront = (label) => /front|前面|face ?time|self/i.test(label || "");
 
-  async function listVideoDevices() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return [];
+  // 一覧は控えておく。カメラを開く直前に await を挟むと、Safariが
+  // 「操作から始まった呼び出し」と見なさず、許可の確認そのものが出なくなる。
+  let cachedDevices = [];
+
+  async function refreshVideoDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return cachedDevices;
     try {
       const all = await navigator.mediaDevices.enumerateDevices();
-      return all.filter((d) => d.kind === "videoinput");
-    } catch (_) { return []; }
+      cachedDevices = all.filter((d) => d.kind === "videoinput");
+    } catch (_) {}
+    return cachedDevices;
   }
+  window.refreshRunCameraDevices = refreshVideoDevices;
 
-  // deviceId は保存せず、開くたびにレンズ名で引き当てる
-  window.runCameraVideoConstraints = async (profile) => {
+  // deviceId は保存せず、控えた一覧からレンズ名で引き当てる(同期のまま)
+  window.runCameraVideoConstraints = (profile) => {
     const base = {
       width: { ideal: profile.width }, height: { ideal: profile.height },
       aspectRatio: { ideal: profile.ratio },
@@ -58,7 +64,7 @@
     };
     const want = savedLens();
     if (want) {
-      const hit = (await listVideoDevices()).find((d) => d.label === want);
+      const hit = cachedDevices.find((d) => d.label === want);
       // exact にしないと、iOSが撮影中に別のレンズへ移ることがある
       if (hit && hit.deviceId) return { ...base, deviceId: { exact: hit.deviceId } };
     }
@@ -147,8 +153,20 @@
     sheetPickRunCameraLens(routineId);
   };
 
+  window.requestRunCameraPermission = async (routineId) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (_) {
+      return toast(t("カメラを使えません。端末の許可設定をご確認ください",
+        "The camera is unavailable. Check the permission settings."));
+    }
+    await refreshVideoDevices();
+    sheetPickRunCameraLens(routineId);
+  };
+
   window.sheetPickRunCameraLens = async (routineId) => {
-    const list = await listVideoDevices();
+    const list = await refreshVideoDevices();
     const named = list.filter((d) => d.label);
     const lens = savedLens();
 
@@ -162,8 +180,10 @@
       <span class="kn">${looksUltraWide(d.label) ? t("超広角", "Ultra wide") : ""}</span></div>`).join("");
 
     const permission = named.length ? "" : `<div class="rcl-note">${t(
-      "レンズの一覧は、カメラを一度許可したあとに出せます。撮影をONにしてから開き直してください。",
-      "Lens names appear after you allow the camera once. Turn recording ON, then reopen.")}</div>`;
+      "レンズの一覧は、カメラを一度許可すると出せます。",
+      "Lens names appear once you allow the camera.")}</div>
+      <button class="btn primary" onclick="requestRunCameraPermission('${routineId}')">${
+        t("カメラを許可してレンズを出す", "Allow the camera and list lenses")}</button>`;
 
     showSheet(`<h3>${t("使うカメラを選ぶ", "Choose a camera")}</h3>
       <div class="sheet-sub">${t(
@@ -174,21 +194,28 @@
       ${rows}
       ${permission}
       ${chipRow(routineId)}
-      <button class="btn ghost" onclick="hideSheet()">${t("閉じる", "Close")}</button>`);
+      <button class="btn ghost" onclick="closeRunCameraPicker('${routineId}')">${
+        t("戻る", "Back")}</button>`);
+  };
+
+  // この一覧は開始シートの上へ出しているので、閉じると開始シートごと消える。
+  // 選んだあとは必ず開始シートへ戻す。
+  window.closeRunCameraPicker = (routineId) => {
+    if (typeof confirmRunStart === "function" && routineId && routineId !== "undefined") {
+      return confirmRunStart(routineId);
+    }
+    hideSheet();
   };
 
   window.pickRunCamera = async (facingValue, lensLabel, routineId) => {
     write(FACING_KEY, facingValue === "environment" ? "environment" : "user");
     write(LENS_KEY, lensLabel || "");
-    hideSheet();
-    // 開いている最中なら開き直す。録画中は触らない(その通しが失われる)
-    if (typeof runCameraReady === "function" && runCameraReady(routineId)
-        && !(runCamera && runCamera.recording)) {
-      stopRunCameraNow();
-      await prepareRunCamera(routineId);
-    } else if (typeof updateRunCameraConfirm === "function") {
-      updateRunCameraConfirm(routineId);
-    }
+    const wasReady = typeof runCameraReady === "function" && runCameraReady(routineId)
+      && !(runCamera && runCamera.recording);
+    if (wasReady) stopRunCameraNow();
+    closeRunCameraPicker(routineId);
+    // 開いている最中だったなら、新しいカメラで開き直す
+    if (wasReady) await prepareRunCamera(routineId);
     toast(t(`${lensLabel || window.runCameraFacingLabel()} を使います`,
       `Using ${lensLabel || window.runCameraFacingLabel()}`));
   };

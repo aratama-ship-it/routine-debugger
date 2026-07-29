@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v296"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v297"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -1312,8 +1312,9 @@ async function prepareRunCamera(routineId) {
   const requestGeneration = ++runCameraRequestGeneration;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
+      // ここで await を挟むと、Safariが操作直後の呼び出しと見なさず許可が出ない
       video: typeof runCameraVideoConstraints === "function"
-        ? await runCameraVideoConstraints(profile)
+        ? runCameraVideoConstraints(profile)
         : {
           facingMode: "user",
           width: { ideal: profile.width }, height: { ideal: profile.height },
@@ -1333,6 +1334,8 @@ async function prepareRunCamera(routineId) {
       routineId, stream, chunks: [], recording: false, profileId: profile.id, generation: requestGeneration,
       frameWidth: Number(settings.width) || 0, frameHeight: Number(settings.height) || 0,
     };
+    // 許可が下りた今なら、レンズ名の入った一覧を取れる
+    if (typeof refreshRunCameraDevices === "function") refreshRunCameraDevices();
     updateRunCameraConfirm(routineId, `${
       typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}の準備ができました`);
     return true;
