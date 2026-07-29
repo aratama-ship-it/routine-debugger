@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v283"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v284"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 通し映像は振り返りやすさと容量のバランスを取り、約720pで記録
@@ -371,13 +371,15 @@ function defaultRoutineFeatures() {
     previewRecord: true,
     previewPart: true,
     previewEdit: true,
+    askFeeling: true,
+    askCondition: true,
   };
 }
 
 function routineFeatureEnabled(rt, key, settingsOverride = null) {
   const settings = settingsOverride || (rt && rt.featureSettings);
   if (settings && Object.prototype.hasOwnProperty.call(settings, key)) return !!settings[key];
-  if (key === "showPracticeVideo" || key.startsWith("preview")) return true;
+  if (key === "showPracticeVideo" || key.startsWith("preview") || key.startsWith("ask")) return true;
   return !!(state.settings && state.settings[key]);
 }
 
@@ -1804,16 +1806,6 @@ const INFO = {
   feedback: { t: "ご意見・機能の要望", b: "「こんな機能がほしい」「ここが使いにくい」などを開発者に直接送れます。いただいた要望は今後の改善に使わせてもらいます。" },
   reset: { t: "初期化", b: "まっさらな状態から試し直したいとき・サンプル一式を入れ直したいときに。ルーティン・記録・シーケンスと通しの動画・録音・楽曲・設定がすべて消えます(元に戻せません)。" },
 };
-const INFO_EN = {
-  steps: { t: "Reordering, pins, and FIT", b: "Drag the ⠿ handle below the step number to change the order.<br><br>Pin a step to keep that sequence at the same music position when reordering or automatically setting cues. FIT aligns its cue with the end of the previous sequence." },
-  audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is never synced. Use a full backup (ZIP) to keep it." },
-  editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
-  videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
-  fullBackup: { t: "Full backup (ZIP)", b: "Exports everything — routines, records, settings, <b>plus sequence videos, run videos, audio, and recordings</b> — as a single ZIP file. Use this when changing devices or recovering lost data.<br><br>The ZIP stores a SHA-256 checksum for every file, so a restore verifies the contents automatically. If even one file is damaged, the restore stops and your current data is left untouched.<br><br><b>Verify a ZIP</b> checks the contents without restoring. Check your backups this way from time to time.<br><br>Files are large because video is included. Store the exported ZIP <b>off this device</b>, for example in iCloud or on a computer." },
-  csv: { t: "Export records (for spreadsheets)", b: "Exports your practice records as CSV, for your own analysis in a spreadsheet.<br><br><b>This is not a backup.</b> CSV cannot be loaded back into the app. Use Full backup (ZIP) to keep your data." },
-  feedback: { t: "Feedback and requests", b: "Send feature requests or usability feedback directly to the developer." },
-  reset: { t: "Reset", b: "Deletes all routines, practice records, sequence videos, recordings, audio, and settings on this device. This cannot be undone." },
-};
 const infoBtn = (key) => `<button class="info-btn" onclick="event.stopPropagation();showInfo('${key}')" aria-label="説明">?</button>`;
 window.showInfo = (key) => {
   const it = (isEnglish() ? INFO_EN : INFO)[key]; if (!it) return;
@@ -1906,6 +1898,8 @@ window.showRoutineMenu = (routineId) => {
         ${routineSwitchRow("プレビュー動画(通し練習)", isEnglish() ? "During a full run" : "通しの最中に表示する", "previewRecord", routineId, settings)}
         ${routineSwitchRow("プレビュー動画(パート練習)", isEnglish() ? "While looping a section" : "区間を繰り返す間に表示する", "previewPart", routineId, settings)}
         ${routineSwitchRow("プレビュー動画(編集)", isEnglish() ? "While editing" : "構成を組む間に表示する", "previewEdit", routineId, settings)}
+        ${routineSwitchRow("体調を記録", isEnglish() ? "Ask before a session" : "セッション開始時に聞く", "askFeeling", routineId, settings)}
+        ${routineSwitchRow("条件メモを記録", isEnglish() ? "Ask before a session" : "セッション開始時に聞く", "askCondition", routineId, settings)}
       </div>
       <div class="routine-menu-note">OFFにしても登録済みの値は消えません</div>
     </section>
@@ -3375,12 +3369,19 @@ window.startRunCountdown = (routineId) => {
   musicResetForNextRun();
 
   // ユーザー操作の直後に一度再生権限を取得し、カウント終了時の自動再生成功率を上げる。
+  // ★この一瞬の再生が聞こえてしまい、カウントダウン中に曲が鳴っていた。
+  //   権限を取るのが目的なので、その間は音を出さない。
+  //   要素の muted と volume を両方落とす(Web Audio経由だと片方では消えないため)。
   if (rt.music && musicPlayer.src && !musicMissing) {
     ensureAudioGraph();
+    const restoreVolume = musicPlayer.volume;
+    musicPlayer.muted = true;
+    musicPlayer.volume = 0;
+    const unmute = () => { musicPlayer.muted = false; musicPlayer.volume = restoreVolume; };
     const priming = musicPlayer.play();
     if (priming && priming.then) {
-      priming.then(() => { musicPlayer.pause(); musicSetTime(0); }).catch(() => {});
-    }
+      priming.then(() => { musicPlayer.pause(); musicSetTime(0); }).catch(() => {}).then(unmute);
+    } else unmute();
   }
 
   document.body.insertAdjacentHTML("beforeend", `
@@ -3584,6 +3585,11 @@ function renderRecord() {
 }
 
 function sheetStartSession(rt) {
+  // 聞く項目が両方とも無いなら、確認だけの画面になる。押させる意味がないので飛ばす。
+  // 練習前の一手が減るのは、その場に立っている人にとって大きい。
+  if (!routineFeatureEnabled(rt, "askFeeling") && !routineFeatureEnabled(rt, "askCondition")) {
+    return startSession(rt.id);
+  }
   // 前回セッションの振り返り/次回試すことを冒頭に出す(記録を次の行動につなげる)
   const last = state.sessions
     .filter((s) => s.routineId === rt.id && s.endedAt)
@@ -3600,13 +3606,13 @@ function sheetStartSession(rt) {
     <h3>セッション開始</h3>
     <div class="sheet-sub">${esc(routineDisplayName(rt))} / ${today()}</div>
     ${recap}
-    <div class="tag-label">今日の体調(開始時の主観)</div>
+    ${routineFeatureEnabled(rt, "askFeeling") ? `<div class="tag-label">今日の体調(開始時の主観)</div>
     <div class="segmented" id="feel-grid">
       ${FEELINGS.map((f) => `<button class="choice ${f.v === 2 ? "selected" : ""}" data-v="${f.v}"
         onclick="selectOne('feel-grid',this)">${f.label}</button>`).join("")}
-    </div>
-    <label class="fld">条件メモ(任意: 会場・道具・風など)</label>
-    <input type="text" id="sess-note" placeholder="例: 屋外、やや風あり">
+    </div>` : ""}
+    ${routineFeatureEnabled(rt, "askCondition") ? `<label class="fld">条件メモ(任意: 会場・道具・風など)</label>
+    <input type="text" id="sess-note" placeholder="例: 屋外、やや風あり">` : ""}
     <div style="height:14px"></div>
     <button class="btn primary" onclick="startSession('${rt.id}')">セッションを準備する</button>
     <button class="btn ghost" onclick="hideSheet();go('routines')">やめる</button>`);
@@ -3621,7 +3627,7 @@ window.startSession = (routineId) => {
   state.sessions.push({
     id: uid(), routineId, versionId: latestVersion(rt).id, date: today(),
     startedAt: Date.now(), endedAt: null, feeling: feel,
-    note: document.getElementById("sess-note").value.trim(), runs: [],
+    note: (document.getElementById("sess-note")?.value || "").trim(), runs: [],
   });
   activeFullRunRoutineId = null;
   saveState(); hideSheet(); render();
@@ -6255,7 +6261,9 @@ window.toggleRoutineFeature = (routineId, key, val) => {
   const label = key === "showRisk" ? "リスク度" : key === "showSlots" ? "A/B分岐"
     : key === "previewRecord" ? "プレビュー動画(通し練習)"
     : key === "previewPart" ? "プレビュー動画(パート練習)"
-    : key === "previewEdit" ? "プレビュー動画(編集)" : "表示設定";
+    : key === "previewEdit" ? "プレビュー動画(編集)"
+    : key === "askFeeling" ? "体調を記録"
+    : key === "askCondition" ? "条件メモを記録" : "表示設定";
   toast(`${label}をこのルーティンで${val ? "ON" : "OFF"}にしました`);
 };
 

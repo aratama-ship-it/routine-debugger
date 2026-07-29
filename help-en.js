@@ -1,4 +1,4 @@
-/* ルーティンノート — 使い方(日本語版・英語版)
+/* ルーティンノート — 使い方(日本語版・英語版)と、?説明の英語版
  *
  * 使い方の本文はどちらも長く、app.js の容量を圧迫していたためこちらへ移した。
  * 呼び出し元は app.js の render()。日本語版が英語版を呼び分ける。
@@ -61,4 +61,17 @@ window.renderHelp = function renderHelp() {
     <div class="card help-guide-card"><h2>データを守る</h2>
       <div class="help-body">記録はこのブラウザ内に保存されます。アカウントを作ると、動画・音源以外は他の端末と同期されます。<b>動画・音源まで残せるのは完全バックアップ(ZIP)だけ</b>です。</div>
       <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button></div>`;
+};
+
+// 「?」ボタンの説明(英語版)。日本語版は app.js の INFO にある。
+// 片方だけ直すと内容がずれるので、必ず両方そろえて書き換える。
+window.INFO_EN = {
+  steps: { t: "Reordering, pins, and FIT", b: "Drag the ⠿ handle below the step number to change the order.<br><br>Pin a step to keep that sequence at the same music position when reordering or automatically setting cues. FIT aligns its cue with the end of the previous sequence." },
+  audioLib: { t: "Audio Library", b: "Reuse audio here from Routine Edit or Timeline. Audio is stored only on this device and is never synced. Use a full backup (ZIP) to keep it." },
+  editorFeatures: { t: "Routine features", b: "Risk rating compares your expectation with the observed issue rate. A/B branch lets you choose between two sequences for a run. Change these for the current routine from Routine Settings. Turning features off does not erase saved values." },
+  videoQuality: { t: "Sequence video quality", b: "Videos are compressed to save storage. Data saver uses less space with lower image quality. This affects future recordings and uploads only." },
+  fullBackup: { t: "Full backup (ZIP)", b: "Exports everything — routines, records, settings, <b>plus sequence videos, run videos, audio, and recordings</b> — as a single ZIP file. Use this when changing devices or recovering lost data.<br><br>The ZIP stores a SHA-256 checksum for every file, so a restore verifies the contents automatically. If even one file is damaged, the restore stops and your current data is left untouched.<br><br><b>Verify a ZIP</b> checks the contents without restoring. Check your backups this way from time to time.<br><br>Files are large because video is included. Store the exported ZIP <b>off this device</b>, for example in iCloud or on a computer." },
+  csv: { t: "Export records (for spreadsheets)", b: "Exports your practice records as CSV, for your own analysis in a spreadsheet.<br><br><b>This is not a backup.</b> CSV cannot be loaded back into the app. Use Full backup (ZIP) to keep your data." },
+  feedback: { t: "Feedback and requests", b: "Send feature requests or usability feedback directly to the developer." },
+  reset: { t: "Reset", b: "Deletes all routines, practice records, sequence videos, recordings, audio, and settings on this device. This cannot be undone." },
 };
