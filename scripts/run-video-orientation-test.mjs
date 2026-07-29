@@ -27,7 +27,6 @@ const verticalProfile = context.runCameraOrientationState("vertical", 390, 844, 
 assert.equal(verticalProfile.blocked, false, "the portrait profile must remain available in portrait");
 
 const invalidDimensions = context.runCameraOrientationState("wide", Number.NaN, -1, 0, Infinity);
-assert.equal(invalidDimensions.viewportKnown, false);
 assert.equal(invalidDimensions.frameKnown, false);
 
 console.log("Run-video orientation test passed");

@@ -216,7 +216,7 @@ if (!/function failureRateClass\(item\)[\s\S]*?rate >= 0\.5[\s\S]*?failure-rate-
     || !/\.failure-rate-yellow/.test(css) || !/\.failure-rate-orange/.test(css) || !/\.failure-rate-red/.test(css)
     || !/SAMPLE_HISTORY_SCHEMA\s*=\s*3/.test(app)
     || !/Array\.isArray\(fail\[0\]\) \? fail : \[fail\]/.test(app)
-    || !/4ボールは半数で乱れ/.test(app)) {
+    || !/ミルズメス風は半数で乱れ/.test(app)) {
   failures.push("失敗率10%・30%・50%の背景色分けと、それを確認できるサンプル履歴がありません");
 }
 if (!/SAMPLE_SEQUENCE_SCHEMA\s*=\s*2/.test(app)
@@ -225,10 +225,9 @@ if (!/SAMPLE_SEQUENCE_SCHEMA\s*=\s*2/.test(app)
     || !/sampleSequenceSchema:\s*SAMPLE_SEQUENCE_SCHEMA/.test(app)
     || !/["']コラムス["']/.test(app)
     || !/["']ミルズメス風["']/.test(app)
-    || !/["']サークルトス["']/.test(app)
     || !/v3 A\/B分岐とシーケンスを追加/.test(app)
     || !/A\/B分岐とシーケンスを追加/.test(i18n)) {
-  failures.push("サンプルv3が10シーケンス構成へ移行できません");
+  failures.push("旧サンプルをv3構成へ移行できません");
 }
 if (!/SAMPLE_TRANSITION_COLOR_SCHEMA\s*=\s*1/.test(app)
     || !/function ensureSampleTransitionColors\(rt\)/.test(app)
@@ -275,7 +274,7 @@ if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/
   failures.push("通し映像の4:3横長／3:4縦長選択と各プレビューへの反映がありません");
 }
 if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeight, frameWidth = 0, frameHeight = 0\)/.test(runVideoOrientation)
-    || !/blocked:\s*requiresLandscape\s*&&\s*frameKnown\s*&&\s*!frameLandscape/.test(runVideoOrientation)
+    || !/blocked:\s*requiresLandscape\s*&&\s*frameKnown\s*&&\s*fw < fh/.test(runVideoOrientation)
     || !/wide:\s*\{[\s\S]*?orientation:\s*"landscape"/.test(app)
     || !/id="run-camera-orientation"/.test(app)
     || !/id="run-confirm-start"/.test(app)
@@ -637,7 +636,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 350_800], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 49_300],
+  ["app.js", 351_200], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_900],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
@@ -646,10 +645,11 @@ for (const [name, max] of budgets) {
 }
 const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-// 2026-07-29: 背面カメラまわりの追加で 180KB→184KB→186KB と引き上げたあと、
-// 旧テーマ(和/サイバー/マット白)のCSSと専用背景を撤去して 178KB まで戻した。
+// 経緯: 背面カメラまわりの追加で 180KB→186KB へ上げたあと、旧テーマの撤去で
+// 182KB まで締め直した。2026-07-30のサンプル差し替えでは、先に到達不能コード
+// (画角切替・向き追従・viewport判定・旧サンプルの移行)を削ってから 183KB とした。
 // 次に当たったら、まず減らすこと。app.js から機能単位で切り出す余地がある。
-if (gzipShell > 182_000) failures.push(`主要コードのgzip概算が182KBを超えています (${gzipShell})`);
+if (gzipShell > 183_000) failures.push(`主要コードのgzip概算が183KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

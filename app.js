@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v316"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v317"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -237,7 +237,7 @@ function migrateState() {
   // v1→v2→v3の構成変更と、版ごとに分かれた分析を初回から体験できるようにする。
   for (const rt of state.routines || []) {
     if (rt.sampleSet && rt.memo == null) {
-      rt.memo = "次回は4ボール前の呼吸を一定にし、A/Bを同じ本数ずつ試す。";
+      rt.memo = "次回は5ボール準備の間を一定にし、A/Bを同じ本数ずつ試す。";
       sampleDataChanged = true;
     }
     const sampleSequenceUpgrade = ensureSampleSequenceDemo(rt);
@@ -4686,9 +4686,8 @@ const fmtBytes = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}GB` : n >= 1e6 ? `${(
 // サンプルシーケンス(ボール軌道のループアニメ)。samples/ に同梱、http(s)配信時のみ読み込み可
 const SAMPLE_TRICKS = [
   { f: "samples/s1.mp4", n: "3ボールカスケード" }, { f: "samples/s2.mp4", n: "リバースカスケード" },
-  { f: "samples/s3.mp4", n: "シャワー" },           { f: "samples/s4.mp4", n: "4ボールファウンテン" },
-  { f: "samples/s5.mp4", n: "コラムス" },           { f: "samples/s6.mp4", n: "ミルズメス風" },
-  { f: "samples/s7.mp4", n: "5ボールハイトス" },    { f: "samples/s8.mp4", n: "サークルトス" },
+  { f: "samples/s3.mp4", n: "シャワー" },           { f: "samples/s5.mp4", n: "コラムス" },
+  { f: "samples/s6.mp4", n: "ミルズメス風" },       { f: "samples/s7.mp4", n: "5ボールハイトス" },
   { f: "samples/s9.mp4", n: "5ボールカスケード" },
 ];
 // サンプル楽曲(開発者本人の楽曲)。ルーティン編集/タイムラインの「サンプル曲から」でも使う
@@ -5287,7 +5286,6 @@ function ensureSampleSequenceDemo(rt) {
   const additions = [
     { name: "コラムス", kind: "trick", risk: 2, cue: 12, before: (step) => step.kind === "transition" && !String(step.name || "").includes("フィニッシュ") },
     { name: "ミルズメス風", kind: "trick", risk: 3, cue: 24, before: (step) => isSlot(step) },
-    { name: "サークルトス", kind: "trick", risk: 3, cue: 36, before: (step) => String(step.name || "").includes("5ボールカスケード") },
   ];
   let stepsAdded = false;
   for (const addition of additions) {
@@ -5345,7 +5343,7 @@ function buildSampleHistoricalVersions(rt) {
   const three = findName("3ボール");
   const reverse = findName("リバース");
   const transition = source.find((s) => s.kind === "transition" && !String(s.name || "").includes("フィニッシュ"));
-  const four = findName("4ボール");
+  const mills = findName("ミルズメス");
   const slot = source.find(isSlot);
   const five = findName("5ボールカスケード");
   const finish = findName("フィニッシュ") || source[source.length - 1];
@@ -5356,9 +5354,9 @@ function buildSampleHistoricalVersions(rt) {
   const now = Math.min(Date.now(), currentCreatedAt);
   return [
     { id: uid(), createdAt: now - 35 * dayMs, label: "基本構成",
-      steps: cloneAll([three, reverse, four, directChoice, finish]) },
+      steps: cloneAll([three, reverse, mills, directChoice, finish]) },
     { id: uid(), createdAt: now - 18 * dayMs, label: "移行を追加",
-      steps: cloneAll([three, reverse, transition, four, directChoice, five, finish]) },
+      steps: cloneAll([three, reverse, transition, mills, directChoice, five, finish]) },
   ];
 }
 function ensureSampleVersionDemo(rt) {
@@ -5388,13 +5386,16 @@ function sampleFailureStepIndex(ver, key) {
   const match = (s) => {
     const name = String(s.name || "");
     if (key === "reverse") return name.includes("リバース");
-    if (key === "four") return name.includes("4ボール");
-    if (key === "choice") return isSlot(s) || name.includes("5ボールハイトス") || name.includes("シャワー");
+    if (key === "mills") return name.includes("ミルズメス");
+    if (key === "columns") return name.includes("コラムス");
+    if (key === "choice") return isSlot(s) || name.includes("5ボールハイトス");
     if (key === "five") return name.includes("5ボールカスケード");
     return false;
   };
   let index = steps.findIndex(match);
   if (index < 0 && key === "five") index = steps.findIndex((s) => String(s.name || "").includes("5ボール"));
+  // 構成を変えたときに、当てが外れたまま末尾へ落ちるのを防ぐ
+  if (index < 0) index = steps.findIndex((s) => s.kind !== "transition");
   return index >= 0 ? index : Math.max(0, steps.length - 1);
 }
 // 分析画面の読み方まで試せるよう、サンプルの3バージョンに5日・40本のデモ通し履歴を分けて付ける。
@@ -5408,48 +5409,48 @@ function seedSampleHistory(rt, force = false) {
   }
 
   const plans = [
-    { days: 28, feeling: 2, note: "体育館・通常の道具", review: "4ボール以降で力みやすかった。", nextPlan: "4ボール前の呼吸を一定にする", fails: {
-      2: ["four", "drop_abort", ["技術ミス"], "高さが揃わず中止"],
-      4: ["choice", "wobble", ["技術ミス"], "5ボールで一度乱れた"],
+    { days: 28, feeling: 2, note: "体育館・通常の道具", review: "ミルズメス風の入りで力みやすかった。", nextPlan: "5ボール準備の間を一定にする", fails: {
+      2: ["mills", "drop_abort", ["技術ミス"], "高さが揃わず中止"],
+      4: ["choice", "wobble", ["技術ミス"], "ラスト前で一度乱れた"],
       5: ["reverse", "wobble", ["集中切れ"], "視線が先へ行った"],
-      7: ["four", "drop_recovered", ["疲労"], "落としたが拾って続行"],
+      7: ["mills", "drop_recovered", ["疲労"], "落としたが拾って続行"],
       8: ["five", "drop_abort", ["疲労"], "終盤で高さが落ちた"],
     } },
-    { days: 21, feeling: 1, note: "仕事後・少し疲労", review: "後半だけでなく4ボールへの入りも不安定。", nextPlan: "通し前に4ボールを3回だけ確認", fails: {
-      1: ["four", "wobble", ["疲労"], "入りで軌道が狭くなった"],
-      2: ["choice", "drop_abort", ["技術ミス"], "選択シーケンスの入りでドロップ"],
-      3: ["four", "drop_abort", ["疲労"], "4ボールで中止"],
+    { days: 21, feeling: 1, note: "仕事後・少し疲労", review: "後半だけでなく入りも不安定。", nextPlan: "通し前にミルズメス風を3回確認", fails: {
+      1: ["mills", "wobble", ["疲労"], "入りで軌道が狭くなった"],
+      2: ["choice", "drop_abort", ["技術ミス"], "選択の入りでドロップ"],
+      3: ["mills", "drop_abort", ["疲労"], "ミルズメス風で中止"],
       5: ["five", "wobble", ["疲労"], "終盤で乱れた"],
       6: ["reverse", "drop_recovered", ["集中切れ"], "リバースで一度落とした"],
       7: ["choice", "wobble", ["技術ミス"], "ラスト前で軌道が前へ出た"],
-      8: ["four", "drop_abort", ["疲労"], "4ボールの高さ不足"],
+      8: ["columns", "drop_abort", ["疲労"], "コラムスの高さ不足"],
     } },
-    { days: 14, feeling: 2, note: "体育館・本番用の靴", review: "呼吸を意識すると4ボールの成功が増えた。", nextPlan: "選択シーケンスA/Bを同じ本数ずつ試す", fails: {
-      2: ["four", "wobble", ["技術ミス"], "4ボールで小さな乱れ"],
-      4: ["choice", "drop_recovered", ["技術ミス"], "5ボールを拾って復帰"],
-      6: ["four", "drop_abort", ["集中切れ"], "音を聞き逃して中止"],
+    { days: 14, feeling: 2, note: "体育館・本番用の靴", review: "呼吸を意識するとミルズメス風の成功が増えた。", nextPlan: "選択シーケンスA/Bを同じ本数ずつ試す", fails: {
+      2: ["mills", "wobble", ["技術ミス"], "ミルズメス風で小さな乱れ"],
+      4: ["choice", "drop_recovered", ["技術ミス"], "ラスト前を拾って復帰"],
+      6: ["mills", "drop_abort", ["集中切れ"], "音を聞き逃して中止"],
       8: ["five", "wobble", ["疲労"], "終盤の高さが不足"],
     } },
     { days: 7, feeling: 3, note: "本番を想定して衣装で練習", review: "全体は安定。Aの方がまだ乱れやすい。", nextPlan: "Aを選ぶ日は手の高さだけ意識", fails: {
-      3: ["four", "wobble", ["緊張"], "4ボールの最初だけ硬くなった"],
-      5: ["choice", "wobble", ["技術ミス"], "選択シーケンスAで乱れた"],
+      3: ["mills", "wobble", ["緊張"], "ミルズメス風の最初だけ硬くなった"],
+      5: ["choice", "wobble", ["技術ミス"], "選択Aで乱れた"],
       7: ["reverse", "wobble", ["集中切れ"], "リバースの出口で乱れた"],
     } },
-    { days: 2, feeling: 3, note: "通し前に短いパート練習", review: "4ボールは半数で乱れ、選択シーケンスも不安定。リバースは一度だけだった。", nextPlan: "4ボールと選択シーケンスを優先してパート練習", fails: {
+    { days: 2, feeling: 3, note: "通し前に短いパート練習", review: "ミルズメス風は半数で乱れ、選択シーケンスも不安定。リバースは一度だけだった。", nextPlan: "ミルズメス風と選択を優先してパート練習", fails: {
       1: [
-        ["four", "wobble", ["技術ミス"], "4ボールの入りで軌道が崩れた"],
-        ["choice", "drop_recovered", ["緊張"], "選択シーケンスを拾って続行"],
+        ["mills", "wobble", ["技術ミス"], "ミルズメス風の入りで軌道が崩れた"],
+        ["choice", "drop_recovered", ["緊張"], "選択を拾って続行"],
         ["reverse", "wobble", ["集中切れ"], "リバースの出口で一度乱れた"],
       ],
       2: [
-        ["four", "wobble", ["技術ミス"], "4ボールの高さが揃わなかった"],
-        ["choice", "wobble", ["技術ミス"], "選択シーケンスの入りで軌道が前へ出た"],
+        ["mills", "wobble", ["技術ミス"], "ミルズメス風の高さが揃わなかった"],
+        ["choice", "wobble", ["技術ミス"], "選択の入りで軌道が前へ出た"],
       ],
       3: [
-        ["four", "drop_recovered", ["疲労"], "4ボールを拾って復帰"],
-        ["choice", "wobble", ["緊張"], "選択シーケンスで小さく乱れた"],
+        ["mills", "drop_recovered", ["疲労"], "ミルズメス風を拾って復帰"],
+        ["choice", "wobble", ["緊張"], "選択で小さく乱れた"],
       ],
-      4: ["four", "wobble", ["技術ミス"], "4ボールを立て直した"],
+      4: ["mills", "wobble", ["技術ミス"], "ミルズメス風を立て直した"],
     } },
   ];
   const dayMs = 24 * 60 * 60 * 1000;
@@ -5528,7 +5529,7 @@ async function ensureSampleTricks() {
 }
 window.loadSampleSet = async () => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
-  if (!appConfirm("サンプル一式(シーケンス9個+楽曲付きサンプルルーティン)を追加しますか?")) return;
+  if (!appConfirm("サンプル一式(シーケンス7個+楽曲付きサンプルルーティン)を追加しますか?")) return;
   showLoading("サンプル一式を読み込み中…");
   try {
   const byName = await ensureSampleTricks();
@@ -5537,9 +5538,9 @@ window.loadSampleSet = async () => {
     saveState(); render();
     return toast("サンプルルーティンは既にあります(シーケンスのみ確認しました)");
   }
-  // サンプル楽曲(レジストリの1曲目を使用)
+  // サンプル楽曲。本人がデモ構成で使った曲に合わせる
   let music = null;
-  const mf = await fetchSampleMusicFile(0);
+  const mf = await fetchSampleMusicFile(SAMPLE_MUSIC.findIndex((m) => m.n === "Clockwork Duet"));
   if (mf) {
     const mid = uid();
     if (await blobPut(mid, mf)) music = { blobId: mid, name: mf.name };
@@ -5547,19 +5548,21 @@ window.loadSampleSet = async () => {
   // シーケンスリンク/移行/リスク度/♪キュー/A/Bスロットを含むが、任意機能の表示は初期OFFにする。
   const T = (n) => (byName[n] ? byName[n].id : undefined);
   const steps = [
-    { id: uid(), name: "3ボールカスケード", kind: "trick", risk: 1, cue: 0, trickId: T("3ボールカスケード") },
-    { id: uid(), name: "リバースカスケード", kind: "trick", risk: 2, cue: 8, trickId: T("リバースカスケード") },
-    { id: uid(), name: "コラムス", kind: "trick", risk: 2, cue: 12, trickId: T("コラムス") },
-    { id: uid(), name: "持ち替え(間)", kind: "transition", risk: 1, cue: 15 },
-    { id: uid(), name: "4ボールファウンテン", kind: "trick", risk: 3, cue: 18, trickId: T("4ボールファウンテン") },
-    { id: uid(), name: "ミルズメス風", kind: "trick", risk: 3, cue: 24, trickId: T("ミルズメス風") },
-    { id: uid(), name: "ラスト前(調子で選ぶ)", kind: "trick", cue: 28, options: [
+    { id: uid(), name: "イントロ", kind: "transition", risk: 1, cue: 0, dur: 1.9 },
+    { id: uid(), name: "3ボールカスケード", kind: "trick", risk: 1, cue: 1.9, trickId: T("3ボールカスケード") },
+    { id: uid(), name: "シャワー", kind: "trick", risk: 2, cue: 9, trickId: T("シャワー") },
+    { id: uid(), name: "決めポーズ", kind: "transition", risk: 1, cue: 14, dur: 2.6 },
+    { id: uid(), name: "コラムス", kind: "trick", risk: 2, cue: 16.6, trickId: T("コラムス") },
+    { id: uid(), name: "ミルズメス風", kind: "trick", risk: 3, cue: 20.1, trickId: T("ミルズメス風") },
+    { id: uid(), name: "リバースカスケード", kind: "trick", risk: 2, cue: 23.2, trickId: T("リバースカスケード") },
+    { id: uid(), name: "5ボール準備", kind: "transition", risk: 1, cue: 30.1, dur: 7 },
+    { id: uid(), name: "5ボールカスケード", kind: "trick", risk: 4, cue: 37.1, trickId: T("5ボールカスケード") },
+    // 調子で選ぶ例。危険な技と安牌を並べ、A/Bのどちらが通ったかを比べられる
+    { id: uid(), name: "ラスト前(調子で選ぶ)", kind: "trick", cue: 44.1, options: [
       { id: uid(), name: "5ボールハイトス", risk: 5, trickId: T("5ボールハイトス") },
       { id: uid(), name: "シャワー(安牌)", risk: 2, trickId: T("シャワー") },
     ] },
-    { id: uid(), name: "サークルトス", kind: "trick", risk: 3, cue: 36, trickId: T("サークルトス") },
-    { id: uid(), name: "5ボールカスケード", kind: "trick", risk: 4, cue: 40, trickId: T("5ボールカスケード") },
-    { id: uid(), name: "フィニッシュポーズ", kind: "transition", risk: 1, cue: 50 },
+    { id: uid(), name: "フィニッシュ", kind: "transition", risk: 1, cue: 49.1, dur: 4.9 },
   ];
   steps.forEach((step) => {
     step.sampleContent = true;
@@ -5571,9 +5574,9 @@ window.loadSampleSet = async () => {
     sampleSequenceSchema: SAMPLE_SEQUENCE_SCHEMA,
     sampleTransitionColorSchema: SAMPLE_TRANSITION_COLOR_SCHEMA,
     lineColor: "rust",
-    memo: "次回は4ボール前の呼吸を一定にし、A/Bを同じ本数ずつ試す。",
+    memo: "次回は5ボール準備の間を一定にし、A/Bを同じ本数ずつ試す。",
     featureSettings: { showRisk: false, showSlots: false, showPracticeVideo: true },
-    partLoop: { a: 18, b: 28 }, // パート練習のデモ区間(4ボールの部分)
+    partLoop: { a: 30.1, b: 44.1 }, // パート練習のデモ区間(5ボール準備〜カスケード)
     versions: [{ id: uid(), createdAt: Date.now(), steps }],
   };
   state.routines.push(sampleRoutine);

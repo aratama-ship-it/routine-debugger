@@ -10,22 +10,16 @@ function normalizedRunCameraDimension(value) {
   return Number.isFinite(number) && number > 0 ? number : 0;
 }
 
+// 端末の持ち方(viewport)は見ない。背面カメラは縦に構えても横長で返るため。
 function runCameraOrientationState(profileId, viewportWidth, viewportHeight, frameWidth = 0, frameHeight = 0) {
-  const vw = normalizedRunCameraDimension(viewportWidth);
-  const vh = normalizedRunCameraDimension(viewportHeight);
   const fw = normalizedRunCameraDimension(frameWidth);
   const fh = normalizedRunCameraDimension(frameHeight);
   const requiresLandscape = profileId === RUN_CAMERA_LANDSCAPE_PROFILE_ID;
-  const viewportKnown = vw > 0 && vh > 0;
   const frameKnown = fw > 0 && fh > 0;
-  const viewportLandscape = !viewportKnown || vw >= vh;
-  const frameLandscape = !frameKnown || fw >= fh;
   return {
     requiresLandscape,
-    viewportKnown,
-    viewportLandscape,
     frameKnown,
-    frameLandscape,
-    blocked: requiresLandscape && frameKnown && !frameLandscape,
+    frameLandscape: !frameKnown || fw >= fh,
+    blocked: requiresLandscape && frameKnown && fw < fh,
   };
 }
