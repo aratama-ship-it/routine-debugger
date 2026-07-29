@@ -10,7 +10,10 @@ const context = vm.createContext({
     setItem: (key, value) => storedPreferences.set(key, String(value)),
   },
 });
+context.window = context;  // 遅れモジュールはUI用の関数を window へ載せる
+const delaySource = await readFile(new URL("../run-video-delay.js", import.meta.url), "utf8");
 const source = await readFile(new URL("../run-video-composition.js", import.meta.url), "utf8");
+vm.runInContext(delaySource, context, { filename: "run-video-delay.js" });
 vm.runInContext(source, context, { filename: "run-video-composition.js" });
 
 const music = { blobId: "music-1", name: "Verse 1", trimStart: 3.5, trimEnd: 93.5, fullDuration: 120 };

@@ -4,56 +4,6 @@
 // Web版はカメラ映像だけを先に記録し、保存時にCanvas＋Web Audioで音源を合成する。
 // 将来のiOS／Android版は、このレシピをネイティブ側へ渡し同じ完成形式を返す。
 const RUN_VIDEO_COMPOSITION_VERSION = 1;
-// 遅れ = 手動の微調整(つまみ0〜1秒) + カウントダウン分。1秒で頭打ちだと曲が頭から鳴る。
-const RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS = 20;
-const RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX = 1;
-
-function normalizeRunVideoAudioDelay(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 0;
-  const clamped = Math.max(0, Math.min(RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS, number));
-  return Math.round(clamped * 20) / 20; // つまみと同じ0.05秒刻み
-}
-
-function runVideoRecordingAudioDelay(video) {
-  const timelineValue = video && video.composition && video.composition.timeline
-    ? video.composition.timeline.recordingAudioDelaySeconds : null;
-  const value = timelineValue != null ? timelineValue : video && video.recordingAudioDelaySeconds;
-  return normalizeRunVideoAudioDelay(value);
-}
-
-function runVideoDesiredAudioDelay(video) {
-  if (video && video.syncAudioDelaySeconds != null) return normalizeRunVideoAudioDelay(video.syncAudioDelaySeconds);
-  return normalizeRunVideoAudioDelay(runVideoRecordingAudioDelay(video)
-    + Number(video && video.playbackAudioDelaySeconds || 0));
-}
-
-function runVideoPlaybackAudioDelay(video) {
-  return normalizeRunVideoAudioDelay(Math.max(0,
-    runVideoDesiredAudioDelay(video) - runVideoRecordingAudioDelay(video)));
-}
-
-function setRunVideoDesiredAudioDelay(video, value) {
-  if (!video) return { desired: 0, recorded: 0, playback: 0, belowRecorded: false };
-  const desired = normalizeRunVideoAudioDelay(value);
-  const recorded = runVideoRecordingAudioDelay(video);
-  const playback = normalizeRunVideoAudioDelay(Math.max(0, desired - recorded));
-  video.syncAudioDelaySeconds = desired;
-  video.playbackAudioDelaySeconds = playback;
-  return { desired, recorded, playback, belowRecorded: desired < recorded };
-}
-
-function preferredRunVideoAudioDelay() {
-  try { return normalizeRunVideoAudioDelay(localStorage.getItem("rd_run_video_audio_delay")); }
-  catch (_) { return 0; }
-}
-
-function savePreferredRunVideoAudioDelay(value) {
-  const normalized = normalizeRunVideoAudioDelay(value);
-  try { localStorage.setItem("rd_run_video_audio_delay", String(normalized)); } catch (_) {}
-  return normalized;
-}
-
 function runVideoCompositionMusicSnapshot(music) {
   if (!music || !music.blobId) return null;
   const numberOrNull = (value) => value == null || value === "" || !Number.isFinite(Number(value))
@@ -462,6 +412,7 @@ async function finalizeRunVideoComposition(capture) {
     audio: audioMode === "embedded",
     audioMode,
     recordingAudioDelaySeconds,
+    estimatedAudioDelaySeconds: desiredAudioDelaySeconds,
     composition,
   };
   setRunVideoDesiredAudioDelay(result, desiredAudioDelaySeconds);

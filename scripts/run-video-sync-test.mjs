@@ -101,8 +101,10 @@ const context = vm.createContext({
   URL: { createObjectURL: () => `blob:test-${++createdObjectUrl}` },
   localStorage: { getItem: () => null, setItem: () => {} },
 });
+const delaySource = await readFile(new URL("../run-video-delay.js", import.meta.url), "utf8");
 const compositionSource = await readFile(new URL("../run-video-composition.js", import.meta.url), "utf8");
 const source = await readFile(new URL("../run-video-sync.js", import.meta.url), "utf8");
+vm.runInContext(delaySource, context, { filename: "run-video-delay.js" });
 vm.runInContext(compositionSource, context, { filename: "run-video-composition.js" });
 vm.runInContext(source, context, { filename: "run-video-sync.js" });
 
