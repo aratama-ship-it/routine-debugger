@@ -523,3 +523,16 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 /* 戻るは記号だけにする。画面名が長いと文字が窮屈になり、名前の方が読めなくなる。
    押す面積は減らさない */
 .back-btn { font-size: 17px; letter-spacing: 0; }
+
+/* ===== 知らせは上に出す ===== */
+/* 下だと、記録中のミスボタンやシートの操作部に重なって邪魔になる。
+   上部は情報の帯なので、一瞬かぶっても操作を妨げない */
+#toast {
+  bottom: auto !important;
+  top: calc(12px + var(--safe-top, 0px));
+  animation: toastin-top .25s cubic-bezier(.32, .72, .35, 1);
+}
+@keyframes toastin-top {
+  from { transform: translate(-50%, -10px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
