@@ -23,13 +23,17 @@
 
   // 打ったキュー(秒)。昇順で保つ
   let marks = [];
-  let sourceVideo = null;   // state.runVideos の1件
+  let sourceVideo = null;   // state.runVideos の1件、または端末から選んだ映像
   let objectUrl = null;
+  // 端末から取り込んだ映像は、決定するまで宙に浮いている。
+  // やめたときに消さないと、参照のないデータが端末に残り続ける。
+  let 未確定のblobId = null;
 
   const videoEl = () => document.getElementById("frv-video");
 
   function cleanup() {
     if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    if (未確定のblobId) { blobDel(未確定のblobId); 未確定のblobId = null; }
     marks = []; sourceVideo = null;
   }
 
@@ -39,15 +43,16 @@
   function renderEntry() {
     const slot = document.getElementById("from-run-video");
     if (!slot) return;
+    // アプリで撮った映像が無くても、端末のライブラリから選べる。
+    // 映像を持っている人にとっては、ここが最短の入口になる。
     const empty = draft && (draft.steps || []).length === 0;
-    const videos = storedRunVideos();
-    if (!empty || !videos.length) { if (slot.innerHTML) slot.innerHTML = ""; return; }
+    if (!empty) { if (slot.innerHTML) slot.innerHTML = ""; return; }
     const html = `<button class="frv-entry" onclick="sheetPickRunVideo()">
       <span class="frv-kicker">${t("ここから始められます", "A faster start")}</span>
       <b>${t("撮ってある演技映像から構成を起こす", "Build from a recorded run")}</b>
       <span class="frv-sub">${t(
-        "映像を見ながら区切りでキューを打つと、順番・長さ・曲位置がまとめて決まります。",
-        "Tap at each break while watching; order, length and cues are set at once.")}</span>
+        "映像を見ながら区切りでキューを打つと、順番・長さ・曲位置がまとめて決まります。端末の動画も選べます。",
+        "Tap at each break while watching; order, length and cues are set at once. Device videos work too.")}</span>
     </button>`;
     if (slot.innerHTML !== html) slot.innerHTML = html;
   }
@@ -56,12 +61,6 @@
   // ---------- 映像を選ぶ ----------
   window.sheetPickRunVideo = () => {
     const videos = storedRunVideos().slice().sort((a, b) => (b.at || 0) - (a.at || 0));
-    if (!videos.length) {
-      return showSheet(`<h3>${t("演技映像がありません", "No recorded runs")}</h3>
-        <div class="empty">${t("通し練習で撮影すると、ここから構成を起こせます。",
-          "Record a full run first, then you can build from it.")}</div>
-        <button class="btn ghost" onclick="hideSheet()">${t("閉じる", "Close")}</button>`);
-    }
     const rows = videos.map((v) => {
       const rt = (state.routines || []).find((r) => r.id === v.routineId);
       return `<div class="pick-trick-row" onclick="startRunVideoCue('${v.id}')">
@@ -69,10 +68,47 @@
         <span class="kn">${fmtTime(v.duration || 0)}</span>
       </div>`;
     }).join("");
-    showSheet(`<h3>${t("どの演技映像から起こしますか", "Which run?")}</h3>
-      <div class="sheet-sub">${t("新しい順に並んでいます。", "Newest first.")}</div>
-      ${rows}
+    // 通し練習の記録に限らない。過去に別のカメラで撮った映像からも起こせるようにする
+    showSheet(`<h3>${t("どの映像から起こしますか", "Which video?")}</h3>
+      ${rows ? `<div class="sheet-sub">${t("アプリで撮った演技映像(新しい順)", "Recorded in this app (newest first)")}</div>${rows}`
+        : `<div class="empty">${t("アプリで撮った演技映像はまだありません。",
+          "No runs recorded in this app yet.")}</div>`}
+      <div class="sheet-sub">${t("端末のライブラリから", "From this device")}</div>
+      <button class="btn" onclick="document.getElementById('frv-file').click()">${
+        t("＋ 端末の動画を選ぶ", "+ Choose a video")}</button>
+      <input type="file" id="frv-file" accept="video/*" class="hidden" onchange="startRunVideoCueFromFile(this)">
+      <p class="frv-note">${t(
+        `${Math.round(TRICK_MAX_BYTES / 1024 / 1024)}MBまで。映像は切り出さず、区間だけを記録します。`,
+        `Up to ${Math.round(TRICK_MAX_BYTES / 1024 / 1024)}MB. The video is not cut; only ranges are stored.`)}</p>
       <button class="btn ghost" onclick="hideSheet()">${t("やめる", "Cancel")}</button>`);
+  };
+
+  // 端末から選んだ映像。アプリ内の演技映像と同じ形へそろえてから同じ流れに乗せる
+  window.startRunVideoCueFromFile = async (input) => {
+    const file = input && input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    if (file.size > TRICK_MAX_BYTES) {
+      return toast(t(`${fmtBytes(TRICK_MAX_BYTES)}以下の動画にしてください(現在${fmtBytes(file.size)})`,
+        `Use a video under ${fmtBytes(TRICK_MAX_BYTES)} (this one is ${fmtBytes(file.size)})`));
+    }
+    await withLoading(t("動画を確認中…", "Reading the video…"), async () => {
+      const duration = await probeVideoDuration(file);
+      if (!duration || duration < 0.3) {
+        return toast(t("動画の長さを確認できませんでした", "Could not read the video duration"));
+      }
+      const blobId = uid();
+      if (!(await blobPut(blobId, file))) {
+        return toast(t("動画を保存できませんでした。端末の空き容量を確認してください",
+          "Could not save the video. Check device storage."));
+      }
+      cleanup();
+      未確定のblobId = blobId;
+      sourceVideo = { id: blobId, blobId, duration, size: file.size, routineId: null };
+      objectUrl = URL.createObjectURL(file);
+      marks = [];
+      renderCueSheet();
+    });
   };
 
   // ---------- キューを打つ ----------
@@ -217,17 +253,19 @@
       });
     }
     if (!steps.length) return;
+    未確定のblobId = null;   // ここから先はシーケンスが参照する
     draft.steps = steps;
     saveState(); hideSheet(); cleanup(); render();
     toast(t(`${steps.length}個のシーケンスを作りました`, `Created ${steps.length} sequences`));
   };
 
-  // シートを閉じたら後始末(映像の参照を残さない)
+  // シートを閉じたら後始末。映像の参照だけでなく、決定せずに終えたときの
+  // 取り込み済み動画も消す(残すと参照のないデータが端末に溜まる)。
   if (typeof window.hideSheet === "function") {
     const original = window.hideSheet;
     window.hideSheet = function wrappedHideSheet() {
       const el = videoEl();
-      if (el) el.pause();
+      if (el) { el.pause(); cleanup(); }
       return original.apply(this, arguments);
     };
   }

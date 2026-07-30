@@ -12,8 +12,8 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runCameraLens, skinBlackboard, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView, sync] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"), read("sync.js"),
+const [app, runVideoOrientation, runCameraLens, skinBlackboard, fromRunVideo, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView, sync] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("from-run-video.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"), read("sync.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
@@ -426,6 +426,15 @@ if (!/window\.runCountdownBeep = \(remaining\)/.test(runCameraLens)
     || !/runCountdownBeep\(seconds\)/.test(app)) {
   failures.push("カウントダウンを音で知らせられません");
 }
+// 構成の起こし元は、アプリで撮った映像に限らない
+if (!/accept="video\/\*" class="hidden" onchange="startRunVideoCueFromFile/.test(fromRunVideo)
+    || !/file\.size > TRICK_MAX_BYTES/.test(fromRunVideo)
+    // 決定せずにやめたとき、参照のない動画を端末に残さない
+    || !/if \(未確定のblobId\) \{ blobDel\(未確定のblobId\)/.test(fromRunVideo)
+    || !/未確定のblobId = null;\s*\/\/ ここから先はシーケンスが参照する/.test(fromRunVideo)
+    || !/if \(el\) \{ el\.pause\(\); cleanup\(\); \}/.test(fromRunVideo)) {
+  failures.push("端末の動画から構成を起こせません");
+}
 // スキンは外観だけ。文言・DOM・配置・寸法を変える指定が混ざっていないこと
 // (詳細は app-dev/routine-note-skin-lab/blackboard-v1/SKIN_CONTRACT.md)
 {
@@ -636,7 +645,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 351_200], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_900],
+  ["app.js", 351_200], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
