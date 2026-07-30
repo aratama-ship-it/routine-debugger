@@ -232,10 +232,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   margin: 0 auto;
   padding: 12px 14px 13px;
   border-radius: 4px;
-  border: 1px solid var(--rule, #c9c2ae);
+  /* 用紙と同じ色だと沈んで見落とす。ノートに貼った付箋として見えるよう、
+     紙より一段濃い黄で面を作り、影を強めて浮かせる */
+  border: 1px solid var(--tut-edge, #d8bd6a);
   border-left: 5px solid var(--accent, #a75c24);
-  background: var(--card2, #f8f4e9);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, .22);
+  background: var(--tut-paper, #fbeeb8);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
 }
 /* 記録画面には下部の操作バーがあるので、その上へ逃がす */
 body.tut-above-bottombar #tut-bar { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
@@ -249,11 +251,11 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 }
 #tut-bar .tut-skip {
   border: 0; background: none; font: inherit; font-size: 12px; cursor: pointer;
-  color: var(--ink-soft, #6b675c); text-decoration: underline; text-underline-offset: 3px;
+  color: var(--tut-body, #4a4433); text-decoration: underline; text-underline-offset: 3px;
   padding: 2px 0;
 }
 #tut-bar .tut-title { display: block; font-size: 15.5px; line-height: 1.45; }
-#tut-bar .tut-body { margin: 5px 0 10px; font-size: 12.5px; line-height: 1.65; color: var(--ink-soft, #5b5f66); }
+#tut-bar .tut-body { margin: 5px 0 10px; font-size: 12.5px; line-height: 1.65; color: var(--tut-body, #4a4433); }
 #tut-bar .tut-actions { display: flex; gap: 8px; }
 #tut-bar .tut-go, #tut-bar .tut-next {
   flex: 1 1 auto; min-height: 42px; border-radius: 8px; font: inherit;
@@ -262,7 +264,7 @@ body.tut-on #app { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)
 #tut-bar .tut-go { flex: 2 1 auto; border: 0; background: var(--accent, #a75c24); color: #fff; }
 #tut-bar .tut-next {
   flex: 0 0 84px; background: transparent;
-  border: 1px solid var(--rule, #c9c2ae); color: var(--ink, #23262c);
+  border: 1px solid var(--tut-edge, #d8bd6a); color: var(--tut-body, #4a4433);
 }
 
 /* 読ませる画面(役割・データの約束・完了) */
