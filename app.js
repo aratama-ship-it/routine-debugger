@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v322"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v323"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -6310,7 +6310,24 @@ window.submitFeedback = async () => {
   if (btn) { btn.disabled = true; btn.textContent = uiText("送信中…"); }
 
   let ok = false;
-  if (FEEDBACK_ENDPOINT) {
+  // まずSupabaseの feedback 表へ(書き込み専用。読み出しは開発者しかできない)。
+  // メールアプリへの引き継ぎは、ここで送信を完了できなかったときの予備。
+  try {
+    const res = await fetch("https://ipuoofukdctvmczpxjnc.supabase.co/rest/v1/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: "sb_publishable_Cnw6TSVgAijP5uflVaxnhw_w-nZk_cp",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        kind, name: name || null, body,
+        app_version: APP_VERSION, user_agent: navigator.userAgent,
+      }),
+    });
+    ok = res.ok;
+  } catch (_) { ok = false; }
+  if (!ok && FEEDBACK_ENDPOINT) {
     try {
       // GASウェブアプリはCORSプリフライトを避けるため text/plain + no-cors で投げる(応答は読めない=送れれば成功とみなす)
       await fetch(FEEDBACK_ENDPOINT, {

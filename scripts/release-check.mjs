@@ -426,6 +426,10 @@ if (!/window\.runCountdownBeep = \(remaining\)/.test(runCameraLens)
     || !/runCountdownBeep\(seconds\)/.test(app)) {
   failures.push("カウントダウンを音で知らせられません");
 }
+// 要望はまずSupabaseへ。メールアプリ引き継ぎは失敗時の予備
+if (!/rest\/v1\/feedback/.test(app) || !/if \(!ok && FEEDBACK_ENDPOINT\)/.test(app)) {
+  failures.push("フィードバックがSupabaseへ送られません");
+}
 // 構成の起こし元は、アプリで撮った映像に限らない
 if (!/accept="video\/\*" class="hidden" onchange="startRunVideoCueFromFile/.test(fromRunVideo)
     || !/file\.size > TRICK_MAX_BYTES/.test(fromRunVideo)
@@ -645,7 +649,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 351_200], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
+  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
