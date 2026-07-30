@@ -71,7 +71,12 @@
     rt.partLoop = rt.partLoop || {};
     rt.partLoop.a = p.a;
     if (p.b == null) delete rt.partLoop.b; else rt.partLoop.b = p.b;
+    // 値を変えるだけだと、曲は今の場所を流れ続けて「効いていない」ように見える。
+    // 押した区間の頭へ飛ばす。再生中ならそのまま流し続ける。
+    const wasPlaying = !musicPlayer.paused;
+    musicSetTime(p.a);
     saveState(); render();
+    if (wasPlaying) playMedia(musicPlayer, t("楽曲を再生できませんでした", "Could not play the music"));
     toast(t(`区間を ${label(p)} にしました`, `Range set to ${label(p)}`));
   };
 
