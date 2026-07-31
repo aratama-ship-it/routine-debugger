@@ -649,7 +649,7 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_000], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
+  ["app.js", 352_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;

@@ -609,3 +609,7 @@ body:has(#run-camera-live-preview) .run-video-live {
 .run-camera-frame { margin-left: 8px; color: var(--muted); font-size: 11px; font-weight: 700; }
 
 .run-video-size { display: block; margin: 5px 0 0; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; }
+
+/* 練習シェアのカードの下見。実寸1080pxを縮めて出す */
+.share-card-preview { display:block; width:100%; max-width:340px; margin:0 auto 12px;
+  border:1px solid var(--sep); border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.18); }

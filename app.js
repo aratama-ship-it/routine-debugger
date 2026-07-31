@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v329"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v330"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -3875,6 +3875,9 @@ window.endSession = async (routineId) => {
   sess.nextPlan = document.getElementById("end-plan").value.trim();
   saveState(); hideSheet(); go("routines");
   toast("セッションを保存しました");
+  // 通しがあった日は、その日の結果をシェアできるようにひと声かける(任意)。
+  // シェア側で何かあっても、保存済みのセッションには影響させない
+  try { if (typeof offerPracticeShare === "function") offerPracticeShare(sess.id); } catch (_) {}
 };
 // このセッションを記録せず破棄(通しの記録・録音を保存しない)
 window.discardSession = async (routineId) => {
