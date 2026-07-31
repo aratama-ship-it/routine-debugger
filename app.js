@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v323"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v329"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -6219,7 +6219,14 @@ window.setLanguage = (language) => {
 // ※renderSettingsとsetLanguageの間には置かないこと(release-checkの抽出が壊れる)
 window.openDocPage = (file) => {
   const url = new URL(file, location.href).href;
-  if (!window.open(url, "_blank", "noopener")) location.href = url;
+  // window.open は noopener 指定だと成功しても null を返すため、戻り値で
+  // 「ブロックされたか」を判定できない。予備の location.href が成功時にも
+  // 発動し、タブが2つ開いていた。リンクのクリックとして開けば1枚で済む。
+  const link = document.createElement("a");
+  link.href = url; link.target = "_blank"; link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 };
 
 window.setVideoQuality = (k) => {
