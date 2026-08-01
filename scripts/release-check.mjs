@@ -273,21 +273,27 @@ if (!/wide:\s*\{[\s\S]*?width:\s*960[\s\S]*?height:\s*720[\s\S]*?ratio:\s*4\s*\/
     || !/\.run-video-review\s*\{[\s\S]*?aspect-ratio:\s*var\(--run-camera-aspect,\s*4\/3\)/.test(css)) {
   failures.push("通し映像の4:3横長／3:4縦長選択と各プレビューへの反映がありません");
 }
+// v335から、端末の持ち方でも映像の向きでも撮影を止めない。
+// 止めると縦持ちで撮れなくなるため、ブロックが復活していないことを検査する。
 if (!/function runCameraOrientationState\(profileId, viewportWidth, viewportHeight, frameWidth = 0, frameHeight = 0\)/.test(runVideoOrientation)
-    || !/blocked:\s*requiresLandscape\s*&&\s*frameKnown\s*&&\s*fw < fh/.test(runVideoOrientation)
+    || (runVideoOrientation.match(/blocked:/g) || []).length !== 1
+    || !/blocked: false,/.test(runVideoOrientation)
+    || /orientation\.blocked/.test(app)
     || !/wide:\s*\{[\s\S]*?orientation:\s*"landscape"/.test(app)
     || !/id="run-camera-orientation"/.test(app)
     || !/id="run-confirm-start"/.test(app)
-    || !/async function prepareRunCamera\([\s\S]*?currentRunCameraOrientationState\(profile\.id, null\)[\s\S]*?orientation\.blocked/.test(app)
-    || !/window\.startRunCountdown\s*=\s*\([\s\S]*?currentRunCameraOrientationState\(runCamera\.profileId, runCamera\)\.blocked/.test(app)
-    || !/function startRunVideoCapture\([\s\S]*?currentRunCameraOrientationState\(cap\.profileId, cap\)\.blocked/.test(app)
     || !/addEventListener\("resize", scheduleRunCameraOrientationUi\)/.test(app)
     || !/addEventListener\("orientationchange", scheduleRunCameraOrientationUi\)/.test(app)
     || !/captureAspectRatio:\s*pending\.captureAspectRatio/.test(app)
-    || !/iPhoneを縦に構えても、映像は横長で記録されます。/.test(app)
+    || !/縦に構えたままでも撮影できます。/.test(app)
     || !/function selectedRunCameraProfileId\(\) \{\s*return "wide";/.test(app)
     || !/\.run-camera-orientation/.test(css)) {
-  failures.push("横長固定の撮影と、実映像が横長のときだけ開始する保護がありません");
+  failures.push("縦横どちらの向きでも撮影を止めない作りが壊れています");
+}
+// 確認映像の枠は、実測の縦横へ追従させる(v336)。固定したままだと映像が枠内で縮む。
+if (!/loadedmetadata[\s\S]*?updateFrameOrientation/.test(app)
+    || !/updateFrameOrientation = \(\) => \{[\s\S]*?setProperty\("--run-camera-aspect"/.test(app)) {
+  failures.push("確認映像の枠が実際の映像の縦横に追従しません");
 }
 if (!/id="run-camera-live-preview"/.test(app) || !/bindRunCameraLivePreview\(\)/.test(app)) {
   failures.push("通し練習中のインカメプレビューがありません");

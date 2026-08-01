@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v334"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v336"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
