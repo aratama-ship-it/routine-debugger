@@ -1257,18 +1257,9 @@ label.fld { color: var(--muted); font-weight: 700; }
 .run-camera-head b { font-size: 15px; }
 .run-camera-head span, .run-camera-confirm > small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .run-video-capacity { flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
-.run-camera-profile {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 0 0 10px;
-}
-.run-camera-profile button {
-  min-height: 42px; padding: 7px 9px; border: 1px solid var(--sep); border-radius: 4px;
-  background: var(--paper); color: var(--muted); font: inherit; font-size: 12px; font-weight: 800;
-  box-shadow: 0 3px 0 var(--paper-shadow);
-}
-.run-camera-profile button.selected {
-  border-color: var(--run-shu-edge); background: var(--accent-tint); color: var(--accent);
-  box-shadow: inset 4px 0 0 var(--run-shu), 0 3px 0 var(--paper-shadow);
-}
+/* 画角は選ばせず、比率の名前も出さない。
+   縦に構えているのに「4:3 横長」と出て紛らわしかったため、実寸だけを見せる(v338) */
+.run-camera-profile { margin: 0 0 8px; }
 .run-camera-profile-guide {
   margin: -2px 2px 10px; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.55;
 }

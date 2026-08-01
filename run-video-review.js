@@ -17,24 +17,24 @@ function runVideoStorageActions(videos) {
   </div>`;
 }
 
+// 合成の見込み時間と注意書き。待ち時間は映像とほぼ同じ長さになるので、撮影直後のシートでも
+// 保存前の確認でも、押す前に分かるよう同じ文面をボタンの直前へ置く(表示言語はi18nの辞書に任せる)。
+function runVideoComposeIntroMarkup(capture) {
+  const estimate = estimateRunVideoComposition(capture, storedRunVideos());
+  return `<div class="run-video-compose-intro">
+    <b>映像と音源の合成 推定時間 ${fmtTime(estimate.minSeconds)}〜${fmtTime(estimate.maxSeconds)}</b>
+    <span>${estimate.sampleCount
+      ? `この端末の過去${estimate.sampleCount}回の合成実績を反映しています。`
+      : "映像時間と準備時間から出した初回の目安です。"}<br>合成には映像とほぼ同じ長さの時間がかかります。始めたらこの画面を開いたままお待ちください。</span>
+  </div>`;
+}
+
 function runVideoCompositionSaveMarkup(pending, willCompose, needsLinkedMusic, replaceId = "") {
   const english = isEnglish();
   const replaceArg = esc(replaceId);
   const slots = `<div class="run-video-save-note">${english ? "Saved slots" : "保存枠"} ${storedRunVideos().length}/${RUN_VIDEO_LIMIT}${english ? " videos" : "本"}</div>`;
   if (willCompose) {
-    const estimate = estimateRunVideoComposition(pending, storedRunVideos());
-    const time = `${fmtTime(estimate.minSeconds)}〜${fmtTime(estimate.maxSeconds)}`;
-    const basis = estimate.sampleCount
-      ? (english ? `Based on ${estimate.sampleCount} previous composition${estimate.sampleCount === 1 ? "" : "s"} on this device.`
-        : `この端末の過去${estimate.sampleCount}回の合成実績を反映しています。`)
-      : (english ? "First-use estimate based on the video duration and setup overhead."
-        : "映像時間と準備時間から出した初回の目安です。");
-    return `<div class="run-video-compose-intro">
-      <b>${english ? `Estimated time to combine video and music: ${time}` : `映像と音源の合成 推定時間 ${time}`}</b>
-      <span>${basis}<br>${english
-        ? "Keep this screen open while combining. To leave now, choose Compose later."
-        : "合成中はこの画面を開いたままにしてください。今は行わない場合は「あとで合成」を選べます。"}</span>
-    </div>
+    return `${runVideoComposeIntroMarkup(pending)}
     ${slots}
     <button class="btn primary" onclick="savePendingRunVideo('${replaceArg}')">${english
       ? (replaceId ? "Combine music and update video" : "Combine now and save")
@@ -150,7 +150,7 @@ window.openRunVideo = async (id) => {
     }).join("") : "";
     showSheet(`
       <h3>${esc(runVideoTitle(video))}</h3>
-      <div class="sheet-sub">${uiText("インカメ")} / ${uiText(runVideoProfile(video).label)} / ${runVideoAudioLabel(video)} / ${fmtTimeFine(video.duration)}</div>
+      <div class="sheet-sub">${uiText("インカメ")} / ${runVideoAudioLabel(video)} / ${fmtTimeFine(video.duration)}</div>
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(video)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
       ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
       ${runVideoPlaybackAudioMarkup(video, music, !!sheetRunMusicUrl)}

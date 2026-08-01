@@ -334,7 +334,9 @@ if (!/function startRunVideoCapture\([\s\S]*?new MediaRecorder\(cap\.stream, opt
     || !/window\.deferPendingRunVideoComposition/.test(app)
     || !/runVideoDeferredCompositionAction\(video\)/.test(app)
     || !/function runVideoCompositionSaveMarkup/.test(runVideoReview)
+    || !/function runVideoComposeIntroMarkup/.test(runVideoReview)
     || !/推定時間/.test(runVideoReview)
+    || !/runVideoComposeIntroMarkup\(pending\)/.test(runVideoReview)
     || !/window\.prepareStoredRunVideoComposition/.test(runVideoReview)
     || !/id="run-video-compose-bar"/.test(app)
     || !/audioMode:\s*pending\.audioMode/.test(app)
@@ -483,7 +485,7 @@ if (!/accept="video\/\*" class="hidden" onchange="startRunVideoCueFromFile/.test
   failures.push("端末の動画から構成を起こせません");
 }
 // スキンは外観だけ。文言・DOM・配置・寸法を変える指定が混ざっていないこと
-// (詳細は app-dev/routine-note-skin-lab/blackboard-v1/SKIN_CONTRACT.md)
+// (詳細は docs/skin-lab/blackboard-v1/SKIN_CONTRACT.md)
 {
   const skinBody = skinBlackboard.replace(/\/\*[\s\S]*?\*\//g, "");
   const allowed = new Set(["accent-color", "background", "background-color", "background-image",
@@ -531,6 +533,19 @@ if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
     || !/今撮った通し映像/.test(runVideoSync)
     || !/\.run-video-stopped \.run-video-instant-preview/.test(css)) {
   failures.push("音源停止直後の一時映像を、結果入力前に何度でもプレビューできません");
+}
+// 通し結果の入力前でも、その場で音源を合成して保存できる(v338)。
+// 待ち時間の明示と、保存済み映像を通し記録へ結び付ける経路までを一組で検査する。
+if (!/window\.composeStoppedRunVideo\s*=\s*async/.test(app)
+    || !/function stoppedRunVideoActionsMarkup\(capture, musicReady\)/.test(app)
+    || !/onclick="composeStoppedRunVideo\('\$\{esc\(capture\.routineId\)\}'\)"/.test(app)
+    || !/stoppedRunVideoActionsMarkup\(capture, needsLinkedMusic && !!musicBlob\)/.test(runVideoSync)
+    || !/fromStoppedCapture: true/.test(app)
+    || !/await savePendingRunVideo\(""\)/.test(app)
+    || !/pending\.fromStoppedCapture && stoppedRunVideoCapture/.test(app)
+    || !/function linkSavedRunVideoToRun\(videoId, sess, run\)/.test(app)
+    || !/if \(capture\.savedVideoId\) return linkSavedRunVideoToRun\(capture\.savedVideoId, sess, run\)/.test(app)) {
+  failures.push("撮影直後のシートから音源を合成して保存し、通し記録へ結び付ける流れがありません");
 }
 if (!/function bindRunVideoAudioSync\(music, sourceVideo = null\)[\s\S]*?addEventListener\("play"[\s\S]*?tryPlayRunVideoAudio/.test(runVideoSync)
     || !/addEventListener\("pause"[\s\S]*?audio\.pause/.test(runVideoSync)

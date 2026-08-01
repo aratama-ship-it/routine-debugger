@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v337"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v338"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -33,10 +33,12 @@ function runVideoBps() {
 }
 // 横も縦もセンサーの画角をそのまま使う(4:3 / 3:4)。切り落とさないので、
 // 撮ったあとで見返すときに端が欠けない。
+// 比率の名前(4:3 横長など)は画面に出さない。縦に構えていても「横長」と出て紛らわしいため、
+// 見せるのは実測の大きさだけにした(v338)。ここは枠の縦横比を決めるための値。
 const RUN_CAMERA_PROFILES = {
-  wide: { id: "wide", label: "4:3 横長", width: 960, height: 720, ratio: 4 / 3, cssRatio: "4 / 3", resizeMode: "none", orientation: "landscape" },
+  wide: { id: "wide", width: 960, height: 720, ratio: 4 / 3, cssRatio: "4 / 3", resizeMode: "none", orientation: "landscape" },
   // スマートフォンのセンサーは4:3が主流。3:4なら縦向きでも切り落とさずに使える
-  vertical: { id: "vertical", label: "3:4 縦長", width: 720, height: 960, ratio: 3 / 4, cssRatio: "3 / 4", resizeMode: "none", orientation: "portrait" },
+  vertical: { id: "vertical", width: 720, height: 960, ratio: 3 / 4, cssRatio: "3 / 4", resizeMode: "none", orientation: "portrait" },
 };
 const ITEM_LINE_COLORS = ["blue", "rust", "olive", "mustard", "plum", "gray", "teal", "rose", "violet"];
 const ITEM_LINE_COLOR_LABELS = {
@@ -1122,11 +1124,10 @@ let pendingRunVideoReplaceId = "";
 let runVideoPostCompositionController = null;
 let runVideoPostCompositionBusy = false;
 
-// 画角は端末の向きから決める。持ち方と設定が食い違うと、
-// 「横で構えているのに縦で録れている」といった事故が起きるため、選ばせない。
-// 画角は横長だけ。iPhoneのカメラは端末を縦に構えても横長のフレームを返すため、
-// 縦長を用意しても切り出して画素を捨てることにしかならない。
-// 縦長で撮るのは、AVFoundationを直接使えるネイティブ版の仕事。
+// 画角は選ばせない。持ち方と設定が食い違うと「横で構えているのに縦で録れている」といった
+// 事故が起きるため、要求はセンサー既定の4:3に固定し、返ってきたフレームをそのまま使う。
+// 縦に構えれば縦のフレームが返り、そのまま記録される(v335〜)。切り出して画素は捨てない。
+// この既定値は枠の縦横比の当てにすぎないので、画面には比率の名前を出さない(v338)。
 function selectedRunCameraProfileId() {
   return "wide";
 }
@@ -1181,9 +1182,6 @@ function syncRunCameraOrientationUi(routineId) {
     if (title) title.textContent = copy.title;
     if (body) body.textContent = copy.body;
   }
-  // 画角の表示も回転に合わせる。開き直しより先に、いまの向きを見せる
-  const profileLabel = document.querySelector(".run-camera-profile .selected");
-  if (profileLabel) profileLabel.textContent = runCameraProfile(selectedRunCameraProfileId()).label;
   const toggle = document.getElementById("run-camera-toggle");
   if (toggle && !ready && toggle.dataset.loading !== "true") {
     toggle.disabled = false;
@@ -1210,11 +1208,6 @@ function runVideoAspect(video) {
 }
 function runVideoAspectStyle(video) {
   return `--run-camera-aspect:${runVideoAspect(video)}`;
-}
-function runVideoProfile(video) {
-  if (RUN_CAMERA_PROFILES[video?.cameraProfile]) return RUN_CAMERA_PROFILES[video.cameraProfile];
-  return Math.abs(runVideoAspect(video) - RUN_CAMERA_PROFILES.wide.ratio) < 0.01
-    ? RUN_CAMERA_PROFILES.wide : RUN_CAMERA_PROFILES.vertical;
 }
 function clearStoppedRunVideoCapture() {
   stoppedRunVideoCapture = null;
@@ -1278,10 +1271,9 @@ function runCameraConfirmBody(routineId, status = "") {
     </div>
     ${ready ? `<div id="run-camera-lens">${
       typeof runCameraLensRowHtml === "function" ? runCameraLensRowHtml(routineId) : ""}</div>
-    <div class="run-camera-profile" role="status" aria-label="撮影画角">
-      <span class="selected">${selectedProfile.label}</span>
+    <div class="run-camera-profile" role="status">
       ${ready && runCamera.frameWidth && runCamera.frameHeight
-        ? `<span class="run-camera-frame">実際 ${runCamera.frameWidth}×${runCamera.frameHeight}</span>` : ""}
+        ? `<span class="run-camera-frame">撮影サイズ ${runCamera.frameWidth}×${runCamera.frameHeight}</span>` : ""}
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
       ? "Hold the iPhone upright or sideways — either way the run is recorded."
@@ -1298,11 +1290,11 @@ function runCameraConfirmBody(routineId, status = "") {
       onclick="toggleRunCamera('${routineId}')">${ready ? (isEnglish() ? "Turn recording OFF" : "撮影をOFFにする") : (isEnglish() ? "Turn recording ON" : "撮影をONにする")}</button>
     ${ready ? `<small>${routine && routine.music
       ? (isEnglish()
-        ? `The selected framing is used throughout. During the run, only the camera image is recorded. When you save, the app music is combined into one video. The camera microphone is not used. Sync correction: ${recordingDelay.toFixed(2)} sec.`
-        : `選んだ画角を確認映像・撮影中・保存後まで維持します。撮影中はカメラ映像だけを記録し、保存時にアプリ音源を1本の映像へ合成します。カメラのマイク音は入りません。同期補正は${recordingDelay.toFixed(2)}秒です。`)
+        ? `The framing you see now is kept through the run and after saving. During the run, only the camera image is recorded. When you save, the app music is combined into one video. The camera microphone is not used. Sync correction: ${recordingDelay.toFixed(2)} sec.`
+        : `いま映っている大きさ・向きのまま、撮影中も保存後も維持します。撮影中はカメラ映像だけを記録し、保存時にアプリ音源を1本の映像へ合成します。カメラのマイク音は入りません。同期補正は${recordingDelay.toFixed(2)}秒です。`)
       : (isEnglish()
-        ? "The selected framing is used throughout. With no music assigned, the app records video only."
-        : "選んだ画角を確認映像・撮影中・保存後まで維持します。音源未設定のため映像のみ撮影します。")}</small>` : ""}`;
+        ? "The framing you see now is kept through the run and after saving. With no music assigned, the app records video only."
+        : "いま映っている大きさ・向きのまま、撮影中も保存後も維持します。音源未設定のため映像のみ撮影します。")}</small>` : ""}`;
 }
 function updateRunCameraConfirm(routineId, status = "") {
   const area = document.getElementById("run-camera-area");
@@ -1459,12 +1451,26 @@ function bindRunCameraLivePreview() {
   if (playing && playing.catch) playing.catch(() => {});
 }
 
+// 撮影直後のシートで保存を済ませた映像は、二重に保存せずこの通しの記録へ結び付ける。
+function linkSavedRunVideoToRun(videoId, sess, run) {
+  const video = storedRunVideos().find((item) => item.id === videoId);
+  if (!video) return false;
+  video.sessionId = sess.id;
+  video.runId = run.id;
+  video.at = run.at;
+  run.videoId = video.id;
+  saveState(); render();
+  toast(isEnglish() ? "Linked the saved video to this run" : "保存済みの映像を、この通しの記録に結び付けました");
+  return true;
+}
+
 async function stopRunVideoCapture(rt, sess, run) {
   if (runCamera && runCamera.recording) await stopRunVideoCaptureAtMusicStop();
   else if (runVideoStopPromise) await runVideoStopPromise;
   const capture = stoppedRunVideoCapture;
   stoppedRunVideoCapture = null;
   if (!capture || capture.routineId !== rt.id) return false;
+  if (capture.savedVideoId) return linkSavedRunVideoToRun(capture.savedVideoId, sess, run);
   clearPendingRunVideo();
   pendingRunVideo = {
     ...capture, at: run.at, routineId: rt.id, sessionId: sess.id, runId: run.id,
@@ -1535,7 +1541,6 @@ function runVideoTitle(video) {
 async function showRunVideoReview() {
   if (!pendingRunVideo) return;
   const pending = pendingRunVideo;
-  const profile = runVideoProfile(pending);
   const music = runVideoMusicMeta(pending);
   const needsLinkedMusic = runVideoNeedsLinkedMusic(pending);
   const musicBlob = needsLinkedMusic && music ? await blobGet(music.blobId) : null;
@@ -1547,7 +1552,7 @@ async function showRunVideoReview() {
   sheetRunMusicUrl = musicBlob ? URL.createObjectURL(musicBlob) : null;
   showSheet(`
     <h3>通し練習の映像</h3>
-    <div class="sheet-sub">${uiText(profile.label)} / ${runVideoAudioLabel(pending)} / ${fmtTimeFine(pending.duration)} / ${fmtBytes(pending.size)}</div>
+    <div class="sheet-sub">${runVideoAudioLabel(pending)} / ${fmtTimeFine(pending.duration)} / ${fmtBytes(pending.size)}</div>
     <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(pending)}" src="${pendingRunVideoUrl}" controls playsinline preload="metadata"></video>
     ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
     ${runVideoPlaybackAudioMarkup(pending, music, !!sheetRunMusicUrl)}
@@ -1645,6 +1650,12 @@ async function persistPendingRunVideo(pending, replaceId = "", message = "") {
   state.runVideos.push(video);
   const found = findRunRecord(video.sessionId, video.runId);
   if (found.run) found.run.videoId = id;
+  // 撮影直後のシートから保存した場合は、通し結果がまだ無い。手元の一時映像を合成後のものへ
+  // 差し替えたうえで保存済みの印を残し、結果を記録した時点でその通しへ結び付ける。
+  if (pending.fromStoppedCapture && stoppedRunVideoCapture
+      && stoppedRunVideoCapture.routineId === video.routineId) {
+    stoppedRunVideoCapture = { ...pending, savedVideoId: id };
+  }
   // 新しい映像を参照状態へ入れてから旧映像を外し、共通音源Blobの誤削除を防ぐ。
   if (replaceId) await removeRunVideo(replaceId, false);
   clearPendingRunVideo();
@@ -1670,6 +1681,33 @@ window.savePendingRunVideoLinked = async (replaceId = "", deferred = false) => {
     : saveVideoOnly ? "映像のみで保存しました"
       : deferred ? (isEnglish() ? "Saved to compose later" : "あとで映像と音源を合成できる状態で保存しました")
         : "別音源同期のまま保存しました");
+};
+
+// 撮影直後(通し結果の入力前)のシート末尾。合成は待ち時間が長いので、結果の入力より先に
+// 始めておけるようにする。保存した映像は、結果を記録した時点でその通しへ結び付ける。
+function stoppedRunVideoActionsMarkup(capture, musicReady) {
+  const canCompose = !capture.savedVideoId && musicReady;
+  return `${canCompose ? `${runVideoComposeIntroMarkup(capture)}
+    <button class="btn primary" onclick="composeStoppedRunVideo('${esc(capture.routineId)}')">映像と音源を合成して保存</button>` : ""}
+    <button class="btn ${canCompose ? "ghost" : "primary"}" onclick="hideSheet()">通し結果の記録へ戻る</button>`;
+}
+
+// 保存の経路は結果入力後と同じ(pendingRunVideo)にし、進捗表示・失敗時の退避も共通にする。
+window.composeStoppedRunVideo = async (routineId) => {
+  const capture = stoppedRunVideoCapture;
+  if (!capture || capture.routineId !== routineId) return toast("確認できる撮影映像がありません");
+  if (capture.savedVideoId) return toast("この映像は保存済みです");
+  if (!runVideoNeedsLinkedMusic(capture)) return toast("この映像に合成する音源がありません");
+  const music = runVideoMusicMeta(capture);
+  const musicBlob = music ? await withLoading("音源を準備中…", () => blobGet(music.blobId)) : null;
+  if (!musicBlob) return toast("音源データが見つかりません");
+  if (stoppedRunVideoCapture !== capture) return toast("確認できる撮影映像がありません");
+  clearPendingRunVideo();
+  // 結果が未入力なので sessionId / runId はまだ無い。記録した時点で結び付ける。
+  pendingRunVideo = { ...capture, at: Date.now(), fromStoppedCapture: true };
+  pendingRunVideoUrl = URL.createObjectURL(capture.blob);
+  pendingRunVideoMusicBlob = musicBlob;
+  await savePendingRunVideo("");
 };
 
 window.savePendingRunVideo = async (replaceId = "") => {
@@ -3582,8 +3620,8 @@ function renderRecord() {
           <div class="run-video-live-copy">
             <div><span class="run-video-live-dot"></span><b>REC</b><span id="run-video-elapsed">${fmtTimeFine((Date.now() - runCamera.startedAt) / 1000)}</span></div>
             <small>${isEnglish()
-              ? `${uiText(runCameraProfile(runCamera.profileId).label)} · Front camera · ${runVideoAudioLabel(runCamera)}`
-              : `${runCameraProfile(runCamera.profileId).label}・${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}・${runVideoAudioLabel(runCamera)}`}</small>
+              ? `Front camera · ${runVideoAudioLabel(runCamera)}`
+              : `${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}・${runVideoAudioLabel(runCamera)}`}</small>
           </div>
         </div>` : ""}
         <button class="run-start-btn ${runActive ? "active" : ""}" onclick="confirmRunStart('${rt.id}')"
@@ -3601,7 +3639,7 @@ function renderRecord() {
         </div>
 
         ${stoppedRunVideoCapture && stoppedRunVideoCapture.routineId === rt.id ? `<div class="run-video-stopped" role="status">
-          <span aria-hidden="true">■</span><div><b>撮影終了・すぐ確認できます</b><small>音源の停止に合わせて終了しました。結果を記録する前でも、何度でも映像を確認できます。</small></div>
+          <span aria-hidden="true">■</span><div><b>撮影終了・すぐ確認できます</b><small>音源の停止に合わせて終了しました。結果を記録する前でも、何度でも映像を確認でき、音源の合成もここから始められます。</small></div>
           <button type="button" class="btn run-video-instant-preview" onclick="previewStoppedRunVideo('${rt.id}')">▶ 今撮った映像を見る</button>
         </div>` : ""}
         ${musicCard}

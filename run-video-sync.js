@@ -331,6 +331,7 @@ function bindRunVideoEmbeddedAudioDelay(video) {
 
 // 音源終了直後の一時映像を、結果確定前でも繰り返し確認する。
 // シートを閉じても stoppedRunVideoCapture は残し、結果入力後の保存確認へ引き継ぐ。
+// 末尾の操作(音源の合成・保存)は run-video-review.js の共通markupに任せる。
 window.previewStoppedRunVideo = async (routineId) => {
   const capture = stoppedRunVideoCapture;
   if (!capture || capture.routineId !== routineId) return toast("確認できる撮影映像がありません");
@@ -345,16 +346,17 @@ window.previewStoppedRunVideo = async (routineId) => {
     showSheet(`
       <h3>今撮った通し映像</h3>
       <div class="sheet-sub">結果を記録する前の確認です。閉じると通し練習画面へ戻ります。</div>
-      <div class="sheet-sub">${uiText(runVideoProfile(capture).label)} / ${runVideoAudioLabel(capture)} / ${fmtTimeFine(capture.duration)} / ${fmtBytes(capture.size)}</div>
+      <div class="sheet-sub">${runVideoAudioLabel(capture)} / ${fmtTimeFine(capture.duration)} / ${fmtBytes(capture.size)}</div>
       <video id="run-video-player" class="run-video-review" style="${runVideoAspectStyle(capture)}" src="${sheetVideoUrl}" controls playsinline preload="metadata"></video>
       ${needsLinkedMusic && sheetRunMusicUrl ? `<audio id="run-video-audio" src="${sheetRunMusicUrl}" preload="auto"></audio>` : ""}
       ${runVideoPlaybackAudioMarkup(capture, music, !!sheetRunMusicUrl)}
       ${runVideoSyncDelayMarkup(capture, "stopped")}
-      <button class="btn primary" onclick="hideSheet()">通し結果の記録へ戻る</button>`);
+      ${stoppedRunVideoActionsMarkup(capture, needsLinkedMusic && !!musicBlob)}`);
     if (needsLinkedMusic && sheetRunMusicUrl) bindRunVideoAudioSync(music, capture);
     else bindRunVideoEmbeddedAudioDelay(capture);
   });
 };
+
 
 // 保存済み演技映像の容量管理。映像本体だけを削除し、ルーティンと練習記録は保持する。
 async function removeRunVideo(id, shouldRender = true) {

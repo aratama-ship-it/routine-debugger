@@ -91,8 +91,10 @@ const context = vm.createContext({
   withLoading: async (_message, work) => work(),
   releaseSheetMedia: () => { releasedSheetMedia++; },
   showSheet: (html) => { shownSheet = html; },
-  runVideoProfile: () => ({ label: "4:3 横長" }),
   runVideoAspectStyle: () => "--run-camera-aspect:1.333",
+  // 末尾の操作(合成して保存 / 記録へ戻る)はapp.js側。ここでは呼び出しの有無だけを見る。
+  stoppedRunVideoActionsMarkup: (capture, musicReady) =>
+    `<actions saved="${!!capture.savedVideoId}" music="${!!musicReady}"></actions>`,
   fmtTimeFine: () => "0:12.3",
   fmtBytes: () => "1.0 MB",
   uiText: (value) => value,
@@ -203,6 +205,22 @@ assert.match(shownSheet, /映像と音源の同期補正/, "post-save compositio
 assert.match(shownSheet, /保存時の合成へ反映します/, "the control should explain that the value is baked in on save");
 context.window.runVideoSetSyncDelay("stopped", "", 0.3);
 assert.equal(context.runVideoDesiredAudioDelay(postSaveCapture), 0.3, "post-save composition should use the selected correction");
+context.stopRunVideoAudioSync();
+
+// 通し結果の入力前でも、その場で合成して保存できる導線を出す(音源を取り出せるときだけ)。
+assert.match(shownSheet, /<actions saved="false" music="true">/, "the just-recorded sheet should offer composing while the music is available");
+
+context.stoppedRunVideoCapture = {
+  ...postSaveCapture,
+  composition: { ...postSaveCapture.composition, music: { ...music, blobId: "missing" } },
+};
+await context.window.previewStoppedRunVideo("r1");
+assert.match(shownSheet, /<actions saved="false" music="false">/, "a capture whose music is unavailable should not offer composing");
+context.stopRunVideoAudioSync();
+
+context.stoppedRunVideoCapture = { ...postSaveCapture, savedVideoId: "video-1" };
+await context.window.previewStoppedRunVideo("r1");
+assert.match(shownSheet, /<actions saved="true" music="true">/, "an already saved capture should not offer composing twice");
 context.stopRunVideoAudioSync();
 
 console.log("Run-video music sync test passed");

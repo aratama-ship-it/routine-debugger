@@ -1,7 +1,7 @@
 /* ルーティンノート — 黒板スキン
  *
- * 出発点は app-dev/routine-note-skin-lab/blackboard-v1/blackboard-theme.tokens.css。
- * 制約の正は同フォルダの SKIN_CONTRACT.md。
+ * 出発点は docs/skin-lab/blackboard-v1/blackboard-theme.tokens.css。
+ * 制約の正は docs/skin-lab/blackboard-v1/SKIN_CONTRACT.md。
  *
  * 変えてよいのは色・font-family・枠・角丸・影・背景テクスチャだけ。
  * 文言・DOM・余白・寸法・配置・字間・遷移は一切変えない。
@@ -164,8 +164,10 @@ body[data-skin="blackboard"] .choice.abort.selected {
 }
 
 /* ステップ一覧を囲む枠。紙色38%がベタ書きで、盤面の上では灰色の帯になる。
- * 盤面より少しだけ明るい程度に落とし、区切りは分かるまま暗くする。 */
-body[data-skin="blackboard"] .card:has(> .editor-step) {
+ * 盤面より少しだけ明るい程度に落とし、区切りは分かるまま暗くする。
+ * 紙色ベタ書きの通知箱(そのままだと白地に白文字)も同じ面へ落とす。 */
+body[data-skin="blackboard"] .card:has(> .editor-step),
+body[data-skin="blackboard"] :is(.run-camera-orientation,.run-video-audio-sync,.run-video-compose-intro) {
   background: rgba(243, 240, 230, .06);
 }
 
