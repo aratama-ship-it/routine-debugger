@@ -2,6 +2,9 @@ PROJECT_NOTES.md
 HANDOFF_CODEX.md
 .DS_Store
 
+# ローカルの開発サーバ設定(このMacのnodeのパスを含む)
+.claude/
+
 # iCloudの同期競合コピー(「app 2.js」等)は追跡しない
 * [0-9].*
 

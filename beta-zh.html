@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>給測試者 — Routine Note Beta</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --ok:#3F7A4A; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Hiragino Sans",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .lead { font-size:16px; color:var(--ink); }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  p, li { font-size:15.5px; }
+  ul, ol { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.warn { border-left:5px solid var(--warn); }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps li { counter-increment:step; position:relative; padding:12px 12px 12px 52px; margin:10px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .steps li::before { content:counter(step); position:absolute; left:14px; top:12px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .steps b { display:block; margin-bottom:2px; }
+  .steps .why { font-size:13.5px; color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    padding:13px 26px; border-radius:8px; font-weight:700; margin:8px 0; }
+  .feature { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--ink);
+    border-radius:10px; padding:13px 17px; margin:12px 0; font-size:15.5px; }
+  .feature > b:first-child { display:block; font-size:16.5px; margin-bottom:6px; }
+  .feature ul { margin:0; padding-left:20px; }
+  .feature li { margin:5px 0; font-size:15px; }
+  a { color:var(--accent); }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+  .page-back { margin: 0 0 10px; }
+  .page-back a {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 52px; min-height: 40px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); text-decoration: none;
+    font-size: 28px; line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="page-back"><a href="./" aria-label="返回" title="返回">‹</a></div>
+<header>
+  <div class="kicker">ROUTINE NOTE — BETA</div>
+  <h1>感謝你協助測試</h1>
+  <p class="lead">Routine Note 是一本<b>每跑一次全套，就決定「下一個要練的地方」</b>的筆記。
+  請先花15分鐘，照下面的流程試試看。</p>
+  <div class="meta">最後更新：2026年7月25日 ／ Beta版</div>
+</header>
+
+<h2>這個App能做什麼</h2>
+<p>從組出演目、練習到保存。請先從這些功能開始試。</p>
+
+<div class="feature">
+  <b>配合音樂組出編排</b>
+  <ul>
+    <li>排列段落與銜接，組成一支完整的演目</li>
+    <li>登錄音樂後，可以指定每個段落「在曲子的第幾秒」</li>
+    <li>時間軸能一眼看出編排與音樂的對應，播放時目前位置也會移動</li>
+    <li>音樂可以<b>只截取想用的區間</b>使用</li>
+  </ul>
+</div>
+
+<div class="feature">
+  <b>累積素材</b>
+  <ul>
+    <li>段落可以存成短影片(排進編排就能直接用)</li>
+    <li>音檔也能登錄到音檔庫。麥克風錄音與內附範例都可使用</li>
+  </ul>
+</div>
+
+<div class="feature">
+  <b>練習</b>
+  <ul>
+    <li>5秒倒數後音樂自動播放，準備好就能直接進全套</li>
+    <li>在意的部分可以<b>指定A/B區間循環練習</b></li>
+    <li>全套練習可以<b>直接錄影</b>(會自動與音檔合成)</li>
+  </ul>
+</div>
+
+<div class="feature">
+  <b>持續養成</b>
+  <ul>
+    <li>改動編排會存成不同版本(v1・v2…)，可以<b>比較改動前後</b></li>
+    <li>連影片與音檔都能<b>備份成1個ZIP</b></li>
+  </ul>
+</div>
+
+<div class="card">
+  <b>還可以做這些</b><br>
+  記錄全套中亂掉的位置，分析各段落的失誤率／從長影片一次切出多個段落／
+  分段練習可變速(音高不變)／A/B分支(正式演出時二選一的步驟)／
+  風險度／日文・英文・繁體中文切換
+  <br><br>
+  <span style="font-size:13.5px;color:var(--muted)">A/B分支與風險度預設是隱藏的，需要的人才開啟。
+  從套路畫面右上的「套路」設定可以打開。</span>
+</div>
+
+<p><a class="btn" href="./">開啟App</a></p>
+
+<div class="card warn">
+  <b>一開始先拜託你這件事（很重要）</b><br>
+  <b>影片、音檔與錄音只儲存在你的裝置裡</b>(登入也不會上傳)。
+  清除瀏覽器資料後，這些就找不回來了。<br>
+  <b>練習紀錄累積起來後，請執行「設定 → 完整備份 → 匯出ZIP」</b>，
+  把檔案放到iCloud或電腦等裝置以外的地方。<b>連影片都能保留的只有這個方法。</b><br>
+  詳細寫在<a href="backup-zh.html"><b>如何保護資料</b></a>。<br>
+  另外，防止空間不足時被自動清除的「資料保護」，會在產生紀錄時自動開啟
+  (狀態可在「設定 → 資料 → 資料保護」確認)。
+</div>
+
+<h2>15分鐘任務</h2>
+<p>照這個順序操作，就能把我們想確認的地方走過一遍。</p>
+
+<ol class="steps">
+  <li><b>加入主畫面</b>
+    <span class="why">Safari的分享按鈕 →「加入主畫面」。從那裡啟動，就會像App一樣全螢幕運作。</span></li>
+  <li><b>載入範例，繞一圈看看</b>
+    <span class="why">套路清單的「載入範例套路」。會載入範例段落、音樂與40次全套的紀錄，能掌握完成後的樣子。</span></li>
+  <li><b>用自己的音樂建立一支套路</b>
+    <span class="why">「＋新套路」→ 排段落名稱 → 附加音檔。這是最大的關卡。<b>請記下讓你猶豫的地方。</b></span></li>
+  <li><b>記錄兩次全套（零失誤1次、有失誤1次）</b>
+    <span class="why">「練習」→ 準備本次練習 → 開始。亂掉就點該段落的「記錄失誤」；順利跑完就按「完成整套」。</span></li>
+  <li><b>看分析</b>
+    <span class="why">在「分析」確認哪個段落亂了幾次、幾%。<b>請告訴我們看不看得懂。</b></span></li>
+  <li><b>用分段練習重複在意的部分</b>
+    <span class="why">拖曳指定A/B區間 → 循環播放。播放速度也能調整。</span></li>
+  <li><b>匯出完整備份ZIP並驗證</b>
+    <span class="why">「設定 → 完整備份」匯出 →「驗證ZIP」確認內容完好。<b>這裡是我們特別想測的部分。</b></span></li>
+  <li><b>完全關閉App後再開啟</b>
+    <span class="why">確認紀錄是否還在。如果消失了，那正是我們最想知道的問題。</span></li>
+</ol>
+
+<h2>特別想聽的回饋</h2>
+<ul>
+  <li><b>卡住的地方</b> … 在哪個畫面「不知道該怎麼辦」</li>
+  <li><b>覺得麻煩的地方</b> … 準備太花時間、覺得點太多下的地方</li>
+  <li><b>壞掉的地方</b> … 紀錄消失、影片無法播放、畫面卡死等</li>
+  <li>用自己的音樂跑完第一次全套，<b>花了多少時間</b></li>
+  <li>看了分析畫面，<b>有沒有決定出下一個要練的地方</b></li>
+</ul>
+<p>不必說得很精確。「總覺得不好用」這樣的回饋也非常有幫助。</p>
+
+<h2>目前已知的限制</h2>
+<ul>
+  <li><b>備份只有「完整備份(ZIP)」一種。</b>影片與音檔都包含在這一個檔案裡。</li>
+  <li>全套的表演影片<b>最多保存5段</b>(錄第6段時會與舊的交換)。</li>
+  <li>iPhone長期不使用時，瀏覽器可能清除儲存資料。<b>加入主畫面</b>即可幾乎避免。</li>
+  <li>第一次請在連線狀態下開啟。載入一次後，之後離線也能使用。</li>
+  <li>串流訂閱(Apple Music / Spotify等)的音樂無法使用，請用手邊的音訊檔。</li>
+  <li><b>帳號(設定 → 帳號)不是必須的。</b>不建立也能免費使用全部功能。
+      登入後，<b>套路與練習紀錄會在裝置間同步</b>(影片與音檔只留在該裝置)。</li>
+  <li>因為是Beta版，<b>畫面與功能可能不經預告而變動</b>。</li>
+</ul>
+
+<h2>如何傳送回饋</h2>
+<p>從App內的<b>「設定(右上齒輪) → 意見與功能建議 → 傳送功能建議或問題回報」</b>即可。
+選擇類型(建議／問題回報／其他)，寫下你注意到的事。姓名可留空。</p>
+<div class="card">
+  送出時，除了內容之外也會附上<b>App版本與裝置類型</b>(用於重現問題)。<br>
+  套路內容、影片與音檔不會被送出。<br>
+  另外，為了瞭解使用情形，我們使用了不依賴Cookie的流量分析
+  (Cloudflare Web Analytics)，同樣不會送出套路內容。
+  詳見<a href="privacy-zh.html">隱私權政策</a>。
+</div>
+<p>也可以直接聯絡：<a href="mailto:circusarata@gmail.com">circusarata@gmail.com</a></p>
+
+<h2>遇到問題時</h2>
+<ul>
+  <li><b>動作變得怪怪的</b> … 請先關閉App再開啟。若沒有恢復，請告訴我們當時的狀況。</li>
+  <li><b>想從頭來過</b> … 「設定 → 重設」可全部刪除(<b>無法復原</b>。需要的話請先備份)。</li>
+  <li><b>想刪除資料</b> … 裝置內的資料用上述重設即可刪除。已送出的意見要刪除，請寄信到上述信箱。</li>
+</ul>
+
+<h2>使用須知</h2>
+<p>Beta版以<b>18歲以上、或已取得監護人同意者</b>為對象。
+音訊與影像請使用你擁有權利、或已獲授權的素材。
+詳見<a href="terms-zh.html">使用條款</a>與<a href="privacy-zh.html">隱私權政策</a>。</p>
+
+<footer>
+  <div class="nav">
+    <a href="./">開啟App</a>
+    <a href="updates.html">更新紀錄</a>
+    <a href="about-zh.html">關於這個App</a>
+    <a href="backup-zh.html">如何保護資料</a>
+    <a href="privacy-zh.html">隱私權政策</a>
+    <a href="terms-zh.html">使用條款</a>
+  </div>
+  <div style="margin-top:12px">© 2026 PYGMIX. 禁止未經授權的複製與轉載。</div>
+</footer>
+</div>
+</body>
+</html>

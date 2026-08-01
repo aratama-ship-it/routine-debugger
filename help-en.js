@@ -35,6 +35,7 @@ window.renderHelpEnglish = function renderHelpEnglish() {
 
 window.renderHelp = function renderHelp() {
   if (isEnglish()) return renderHelpEnglish();
+  if (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.renderHelpZh) return renderHelpZh();
   return `
     <div class="topbar"><button class="back-btn" onclick="go('home')" aria-label="戻る" title="戻る"></button><h1>使い方</h1></div>
     <div class="card help-tutorial-card"><h2>チュートリアル</h2>

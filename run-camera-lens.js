@@ -105,51 +105,6 @@
     return { ...base, facingMode: { ideal: facing(target) } };
   };
 
-  // ---------- 開いたあとの向きの取り直し ----------
-  // レンズを名指しすると縦横の希望が無視されることがある。実測して直し、
-  // 駄目ならレンズ指定を外して開き直す。
-  const frameIsLandscape = (settings) =>
-    (Number(settings.width) || 0) >= (Number(settings.height) || 0);
-
-  window.correctRunCameraStream = async (stream, profile, target = "run") => {
-    const track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
-    if (!track || typeof track.getSettings !== "function") return stream;
-    const first = track.getSettings();
-    if (!first.width || !first.height) return stream;
-    const wantLandscape = profile.ratio >= 1;
-    if (frameIsLandscape(first) === wantLandscape) return stream;
-
-    try {
-      await track.applyConstraints({
-        width: { ideal: profile.width }, height: { ideal: profile.height },
-        aspectRatio: { ideal: profile.ratio },
-      });
-    } catch (_) {}
-    if (frameIsLandscape(track.getSettings()) === wantLandscape) return stream;
-
-    // レンズ指定が原因のことがある。指定を外してもう一度だけ開く
-    if (!savedLens(target)) return stream;
-    try {
-      const retry = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: facing(target) },
-          width: { ideal: profile.width }, height: { ideal: profile.height },
-          aspectRatio: { ideal: profile.ratio },
-          resizeMode: profile.resizeMode,
-          frameRate: { ideal: 24, max: 30 },
-        },
-        audio: false,
-      });
-      const retryTrack = retry.getVideoTracks()[0];
-      if (retryTrack && frameIsLandscape(retryTrack.getSettings()) === wantLandscape) {
-        stream.getTracks().forEach((tr) => tr.stop());
-        return retry;
-      }
-      retry.getTracks().forEach((tr) => tr.stop());
-    } catch (_) {}
-    return stream;
-  };
-
   // プレビューの縦横は、実際に返ってきた映像そのものに合わせる。
   // 画角の中に自分がいるかを見るためのものなので、切り取ってはいけない。
   window.runCameraFrameRatioCss = (cap, fallback) => {

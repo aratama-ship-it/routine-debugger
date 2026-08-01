@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>隱私權政策 — Routine Note Beta</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Hiragino Sans",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  p, li { font-size:15.5px; }
+  ul { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.strong { border-left:5px solid var(--accent); }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14.5px; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { white-space:nowrap; width:32%; }
+  a { color:var(--accent); }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+  .page-back { margin: 0 0 10px; }
+  .page-back a {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 52px; min-height: 40px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); text-decoration: none;
+    font-size: 28px; line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="page-back"><a href="./" aria-label="返回" title="返回">‹</a></div>
+<header>
+  <div class="kicker">ROUTINE NOTE — BETA</div>
+  <h1>隱私權政策</h1>
+  <div class="meta">最後更新：2026年7月28日 ／ 本服務目前為Beta版</div>
+</header>
+
+<div class="card">
+  本中文版僅供參考。政策的解釋以<a href="privacy.html">日文版</a>為準。
+</div>
+
+<p>「Routine Note」(以下稱「本App」)是用來記錄與分析表演全套練習的網頁應用程式。
+本App對使用者資訊的處理，規定如下。</p>
+
+<div class="card strong">
+  <b>首先想讓你知道的事</b><br>
+  你在本App建立的套路、練習紀錄、影片與音檔，<b>全部只儲存在你的裝置(瀏覽器)裡</b>。
+  不會自動傳送到開發者的伺服器，開發者也無法看到其內容。<br><br>
+  資訊會被送到外部的，只有下列情況。
+  <ul style="margin:8px 0 0">
+    <li>使用者自己送出「意見與功能建議」時</li>
+    <li>使用者自己<b>建立帳號並登入時</b>(帳號為選用)</li>
+  </ul>
+</div>
+
+<h2>1. 只儲存在裝置內的資訊</h2>
+<p>以下資訊儲存在瀏覽器的儲存區(IndexedDB・localStorage)，不會被送到外部。</p>
+<ul>
+  <li>套路的編排(段落名稱、順序、音樂位置、風險度、A/B分支等)</li>
+  <li>練習紀錄(全套的成敗、亂掉的位置、可能原因標籤、筆記、狀態等)</li>
+  <li>段落影片、全套的表演影片、音檔、錄音</li>
+  <li>App的設定(顯示語言、影片畫質等)</li>
+</ul>
+<p>這些都在裝置內，刪除瀏覽器資料或重設裝置就會遺失。
+重要的紀錄請從App的「設定 → 完整備份」匯出ZIP檔，保管在裝置之外(電腦或雲端等)。</p>
+
+<h2>2. 會被送到外部的資訊</h2>
+<p>只有從App內「設定 → 意見與功能建議 → 傳送功能建議或問題回報」送出時，以下內容才會送給開發者。</p>
+<table>
+  <tr><th>送出的內容</th><td>類型(建議／問題回報／其他)、輸入的本文、姓名(選填)、App版本、使用的瀏覽器與裝置資訊(User-Agent)、送出時間</td></tr>
+  <tr><th>不會送出的內容</th><td>套路內容、練習紀錄、影片、音檔、錄音、筆記本文(寫進表單者除外)</td></tr>
+  <tr><th>使用目的</th><td>重現與修正問題、檢討功能改善、必要時的聯絡</td></tr>
+  <tr><th>送到哪裡</th><td>儲存在開發者管理的 Supabase(Supabase Inc.)資料庫。送出失敗時，會開啟你的郵件App，以寄給開發者的郵件送出。</td></tr>
+</table>
+<p>表單中請勿輸入超出必要、能識別本人或第三人的資訊(真實姓名、聯絡方式、所屬單位等)。</p>
+
+<h2>3. 帳號（選用）</h2>
+<p>建立帳號為<b>選用</b>。不建立也能使用本App的全部功能。
+帳號的用途是讓多台裝置能查看同一份紀錄。</p>
+<table>
+  <tr><th>取得的資訊</th><td>電子郵件、密碼(儲存的是不可逆轉換後的值，開發者無法得知密碼本身)</td></tr>
+  <tr><th>使用目的</th><td>本人確認、登入、密碼重設、裝置間同步資料的識別</td></tr>
+  <tr><th>保管位置</th><td>Supabase(Supabase Inc.)的伺服器。本App指定東京區域</td></tr>
+  <tr><th>刪除方式</th><td>希望刪除帳號時，請聯絡文末的窗口。刪除後，伺服器上的帳號資訊與已同步的資料將一併刪除</td></tr>
+</table>
+<p>未登入的狀態下，不會送出任何帳號相關資訊。</p>
+
+<h2>4. 使用帳號時被儲存的內容（同步）</h2>
+<p>登入期間，下列資訊會在裝置間同步並儲存在Supabase的伺服器。不建立帳號就不會被送出。</p>
+<table>
+  <tr><th>會同步的內容</th><td>套路的編排(段落名稱、順序、音樂位置、風險度、A/B分支等)、練習紀錄(全套成敗、亂掉的位置、可能原因標籤、筆記)、段落與音檔的資訊(名稱、長度等標頭資訊)</td></tr>
+  <tr><th>不會同步的內容</th><td><b>影片、音檔與錄音的檔案本身</b>、全套的表演影片、App的設定。這些只留在你的裝置裡</td></tr>
+  <tr><th>使用目的</th><td>讓多台裝置能查看同一份紀錄</td></tr>
+  <tr><th>保管位置</th><td>Supabase(Supabase Inc.)的伺服器。指定東京區域</td></tr>
+  <tr><th>刪除方式</th><td>申請刪除帳號時，已同步的資料也會一併刪除</td></tr>
+</table>
+<p>無法看到其他使用者的資料(伺服器端已限制只能存取自己的資料)。
+紀錄中包含練習內容與筆記，請注意不要寫入不想讓第三人知道的內容。</p>
+
+<h2>5. Cookie與流量分析</h2>
+
+<p>本App不使用Cookie，也沒有導入廣告投放標籤。</p>
+
+<p>為了瞭解使用情形，本App使用 <b>Cloudflare Web Analytics</b>。
+這是<b>不使用Cookie或localStorage等裝置端識別碼</b>的方式，
+也不會用IP位址或瀏覽器資訊來識別個人(指紋辨識)。
+取得的只有頁面顯示次數、來源、瀏覽器與OS類型、大致的國家等統計資訊。</p>
+
+<div class="card strong">
+  <b>分析不會送出的內容</b>
+  <p style="margin:8px 0 0">你建立的<b>套路、練習紀錄、影片、音檔與筆記</b>，
+  不會為了分析而被送出。</p>
+</div>
+
+<p>此外，本App的託管服務(GitHub Pages / GitHub, Inc.)可能在其端記錄連線IP位址等連線紀錄。</p>
+
+<h2>6. 提供第三人與委託</h2>
+<p>除法令要求外，不會將取得的資訊提供給第三人。營運上使用下列外部服務。</p>
+<ul>
+  <li><b>GitHub, Inc.</b> — 本App的發佈(GitHub Pages)</li>
+  <li><b>Google LLC</b> — 意見送出失敗時的預備管道(Gmail)</li>
+  <li><b>Cloudflare, Inc.</b> — 使用情形分析(Web Analytics)</li>
+  <li><b>Supabase Inc.</b> — 帳號的認證與保管、意見與建議的保存</li>
+</ul>
+
+<h2>7. 於國外的處理</h2>
+<p>上述各服務的伺服器可能位於日本國外(美國等)。
+表單送出的資訊可能在這些國家保管與處理。</p>
+
+<h2>8. 保存期間</h2>
+<ul>
+  <li><b>裝置內的資料</b> … 由使用者自行管理。可隨時從App的「設定 → 重設」全部刪除。</li>
+  <li><b>帳號資訊</b> … 帳號存在期間保管。收到刪除申請將盡速刪除。</li>
+  <li><b>表單送出的內容</b> … 作為改善參考保管，不再需要時刪除。收到刪除申請將盡速刪除。</li>
+</ul>
+
+<h2>9. 資料的刪除方式</h2>
+<ul>
+  <li>裝置內的資料 … App的「設定 → 重設 → 刪除這台裝置的所有資料」</li>
+  <li>已送出的意見與建議 … 請聯絡下方窗口</li>
+  <li>帳號(電子郵件) … 請聯絡下方窗口</li>
+</ul>
+
+<h2>10. 未成年者的使用</h2>
+<p>本App的Beta版以18歲以上、或已取得監護人同意者為對象。
+未滿18歲者，請務必取得監護人同意後使用。</p>
+
+<h2>11. 關於影片與音檔</h2>
+<p>錄製或登錄的影片與音檔只儲存在裝置內，不會傳送給開發者。
+處理拍到第三人的影像時，請取得該人(未成年者則為其監護人)同意後使用。
+關於權利的諮詢與刪除請求，請聯絡下方窗口。</p>
+
+<h2>12. 本政策的變更</h2>
+<p>本App為Beta版，可能隨功能的新增與變更修訂本政策。
+重大變更時，會在本頁面公告。</p>
+
+<h2>13. 聯絡窗口</h2>
+<p>關於本政策與個人資訊處理的詢問、刪除請求，請聯絡以下窗口。</p>
+<div class="card">
+  Routine Note 開發者<br>
+  Email: <a href="mailto:circusarata@gmail.com">circusarata@gmail.com</a>
+</div>
+
+<footer>
+  <div class="nav">
+    <a href="./">回到App</a>
+    <a href="terms-zh.html">使用條款</a>
+    <a href="backup-zh.html">如何保護資料</a>
+    <a href="beta-zh.html">Beta版指南</a>
+  </div>
+  <div style="margin-top:12px">© 2026 PYGMIX. 禁止未經授權的複製與轉載。</div>
+</footer>
+</div>
+</body>
+</html>

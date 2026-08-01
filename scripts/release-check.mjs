@@ -12,12 +12,12 @@ const requireMatch = (source, pattern, label) => {
   return match && match[1];
 };
 
-const [app, runVideoOrientation, runCameraLens, skinBlackboard, fromRunVideo, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, settingsView, sync] = await Promise.all([
-  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("from-run-video.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("settings-view.js"), read("sync.js"),
+const [app, runVideoOrientation, runCameraLens, skinBlackboard, fromRunVideo, runVideoDelay, runVideoComposition, runVideoSync, runVideoReview, musicPlayback, batchSequenceImport, css, batchSequenceImportCss, tabletCss, i18n, i18nZh, html, sw, manifestText, updateCss, editorTime, practiceDock, pwaInstall, helpEn, helpZh, sharePractice, settingsView, sync] = await Promise.all([
+  read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("from-run-video.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("i18n-zh.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("help-zh.js"), read("share-practice.js"), read("settings-view.js"), read("sync.js"),
 ]);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
+for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-zh.js", helpZh], ["share-practice.js", sharePractice], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -351,8 +351,16 @@ if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*20/.test(runVideoDelay)
     || !/requestedAudioDelaySeconds:\s*cap\.requestedAudioDelaySeconds/.test(app)
     || !/composition\.engine === "web-post-save-pending"/.test(runVideoDelay)
     || !/function runVideoSyncDelayMarkup\(video, target/.test(runVideoDelay)
-    // つまみは実測値を中心に置き、前後1秒だけ動かす
+    // つまみは実測値を中心に置き、前後1秒だけ動かす。
+    // ただし今の値が中心から離れている映像(保存済みで本人が寄せた後)は、両方が入る幅にする。
+    // 端に張り付くと＋0.1が効かず、押した拍子に端の値へ落ちる(2026-08-01 v332)
     || !/const centre = runVideoEstimatedAudioDelay\(video\)/.test(runVideoDelay)
+    || !/Math\.min\(centre, value\) - RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX/.test(runVideoDelay)
+    || !/Math\.max\(centre, value\) \+ RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX/.test(runVideoDelay)
+    // ±0.1は、つまみの表示値ではなく保存されている補正値から動かす
+    || !/runVideoDesiredAudioDelay\(video\) \+ step/.test(runVideoDelay)
+    // 保存する記録へ実測(中心)まで写す。落とすと開き直しで中心がずれる
+    || !/function runVideoSavedDelayFields\(video\)[\s\S]*?estimatedAudioDelaySeconds: runVideoEstimatedAudioDelay\(video\)/.test(runVideoDelay)
     || !/min="\$\{min\}" max="\$\{max\}" step="0\.05"/.test(runVideoDelay)
     || !/runVideoStepSyncDelay\('\$\{target\}','\$\{esc\(id\)\}',-0\.1\)/.test(runVideoDelay)
     || !/\.run-video-sync-step/.test(updateCss)
@@ -361,7 +369,7 @@ if (!/RUN_VIDEO_AUDIO_DELAY_MAX_SECONDS\s*=\s*20/.test(runVideoDelay)
     || !/audioDelaySeconds:\s*normalizeRunVideoAudioDelay\(capture\.syncAudioDelaySeconds/.test(runVideoComposition)
     || !/runVideoSyncDelayMarkup\(pending, "pending"\)/.test(app)
     || !/runVideoSyncDelayMarkup\(video, "saved", video\.id\)/.test(runVideoReview)
-    || !/syncAudioDelaySeconds:\s*runVideoDesiredAudioDelay\(pending\)/.test(app)
+    || !/\.\.\.runVideoSavedDelayFields\(pending\)/.test(app)
     || !/\.run-video-sync-adjust/.test(css)) {
   failures.push("演技直後の同期補正(実測±1秒)を試聴・保存し、次回録画へ反映できません");
 // カウントダウン中の再生権限取りは、Web Audio側も含めて完全に無音であること
@@ -430,6 +438,35 @@ if (!/window\.runCountdownBeep = \(remaining\)/.test(runCameraLens)
 if (!/rest\/v1\/feedback/.test(app) || !/if \(!ok && FEEDBACK_ENDPOINT\)/.test(app)) {
   failures.push("フィードバックがSupabaseへ送られません");
 }
+// 表示言語は ja/en/zh の3つ。初回だけブラウザ設定から初期値を決める
+if (!/window\.RoutineI18nZh = \{ apply, text \}/.test(i18nZh)
+    || !/const uiLanguage = \(\) =>/.test(app)
+    || !/uiLanguage\(\) === "zh" \? window\.RoutineI18nZh/.test(app)
+    || !/setLanguage\('zh'\)/.test(settingsView)
+    || !/preferred\.startsWith\("ja"\) \? "ja"/.test(app)
+    || !/state\.routines \|\| \[\]\)\.length === 0 && \(state\.sessions \|\| \[\]\)\.length === 0/.test(app)) {
+  failures.push("繁体字の表示言語(自動判定つき)が機能しません");
+}
+// 使い方・?説明・公開ページの繁体字版
+if (!/window\.renderHelpZh = function renderHelpZh/.test(helpZh)
+    || !/window\.INFO_ZH = \{/.test(helpZh)
+    || !/uiLanguage\(\) === "zh" && window\.renderHelpZh/.test(helpEn)
+    || !/INFO_ZH : INFO/.test(app)
+    || !/about\|backup\|beta\|terms\|privacy/.test(app)) {
+  failures.push("繁体字のガイド・説明・公開ページ分岐がありません");
+}
+// 練習のシェア。勝手に投稿せず、本人がボタンを押したときだけ共有へ進む
+if (!/window\.offerPracticeShare = \(sessionId\)/.test(sharePractice)
+    || !/navigator\.canShare && navigator\.canShare\(\{ files: \[file\] \}\)/.test(sharePractice)
+    || !/twitter\.com\/intent\/tweet/.test(sharePractice)
+    || !/offerPracticeShare\(sess\.id\)/.test(app)
+    || !/\.share-card-preview/.test(updateCss)) {
+  failures.push("練習シェアが組み込まれていません");
+}
+for (const page of ["about-zh.html", "backup-zh.html", "beta-zh.html", "terms-zh.html", "privacy-zh.html"]) {
+  try { await access(new URL(page, root), constants.R_OK); }
+  catch { failures.push(`繁体字ページが見つかりません: ${page}`); }
+}
 // 構成の起こし元は、アプリで撮った映像に限らない
 if (!/accept="video\/\*" class="hidden" onchange="startRunVideoCueFromFile/.test(fromRunVideo)
     || !/file\.size > TRICK_MAX_BYTES/.test(fromRunVideo)
@@ -468,6 +505,18 @@ if (!/accept="video\/\*" class="hidden" onchange="startRunVideoCueFromFile/.test
   if (/rd_skin/.test(sync)) bad.push("スキンを同期対象にしている");
   if (!/chooseRoutineSkin\('blackboard'\)/.test(settingsView)) bad.push("全体設定に選択が無い");
   if (bad.length) failures.push(`黒板スキンが外観の範囲を超えています: ${bad.join(" / ")}`);
+}
+
+// 同期のpullが「自分のpushの反響」や端末側で編集済みのデータを上書きしない(2026-08-01 v331)。
+// これが無いと、ログイン中の編集・記録が数秒後の同期でひとつ前の状態へ巻き戻る。
+// 挙動の検証は tests/sync-echo-revert.test.mjs(擬似サーバーで同期2周)。
+{
+  const bad = [];
+  if (!/known\.version === row\.entity_version/.test(sync)) bad.push("反響(version一致)を取り込まない分岐が無い");
+  if (!/hashOf\(current\.body\) !== known\.hash[\s\S]{0,600}hashOf\(current\.body\) !== known\.hash/.test(sync)) {
+    bad.push("端末側で編集済みのデータを上書きしない分岐が無い(墓石側と更新側の2箇所)");
+  }
+  if (bad.length) failures.push(`同期pullの巻き戻し防止が壊れています: ${bad.join(" / ")}`);
 }
 }
 if (!/window\.previewStoppedRunVideo\s*=\s*async/.test(runVideoSync)
@@ -649,20 +698,20 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 352_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 9_900], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 12_700], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300],
+  ["app.js", 354_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 11_200], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 13_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300], ["i18n-zh.js", 60_000], ["help-zh.js", 8_000], ["share-practice.js", 9_500],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(sw).length + gzipSync(html).length;
+const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(i18nZh).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
-// 経緯: 背面カメラまわりの追加で 180KB→186KB へ上げたあと、旧テーマの撤去で
-// 182KB まで締め直した。2026-07-30のサンプル差し替えでは、先に到達不能コード
-// (画角切替・向き追従・viewport判定・旧サンプルの移行)を削ってから 183KB とした。
-// 次に当たったら、まず減らすこと。app.js から機能単位で切り出す余地がある。
-if (gzipShell > 183_000) failures.push(`主要コードのgzip概算が183KBを超えています (${gzipShell})`);
+// 経緯: 背面カメラまわりで186KBまで上げ、旧テーマ撤去で182KB、サンプル差し替えで
+// 183KBへ。2026-07-31、繁体字翻訳(i18n-zh.js)の追加で+約8KB。これは機能でなく
+// 翻訳そのものの重さなので、削減でなく枠の引き上げが正しい(204KBへ)。
+// コード側で次に当たったら、まず減らすこと。
+if (gzipShell > 204_000) failures.push(`主要コードのgzip概算が204KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

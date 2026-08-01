@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>如何保護資料 — Routine Note Beta</title>
+<meta name="theme-color" content="#ECE4D0">
+<style>
+  :root { --paper:#ECE4D0; --card:#F4EFE2; --ink:#2B2A26; --muted:#6B675C; --accent:#B5651D; --line:#D8CEB6; --ok:#3F7A4A; --warn:#A6402C; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Hiragino Sans",sans-serif;
+    line-height:1.8; font-size:16px; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 20px 80px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+  .kicker { font-size:12px; letter-spacing:.18em; color:var(--muted); font-weight:700; }
+  h1 { font-size:27px; margin:6px 0 6px; }
+  .meta { font-size:13px; color:var(--muted); margin-top:6px; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:12px; border-left:5px solid var(--accent); }
+  p, li { font-size:15.5px; }
+  ul, ol { padding-left:22px; }
+  li { margin:7px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:16px 0; }
+  .card.warn { border-left:5px solid var(--warn); }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps li { counter-increment:step; position:relative; padding:12px 12px 12px 52px; margin:10px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .steps li::before { content:counter(step); position:absolute; left:14px; top:12px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .steps b { display:block; margin-bottom:2px; }
+  .steps .why { font-size:13.5px; color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    padding:13px 26px; border-radius:8px; font-weight:700; margin:8px 0; }
+  a { color:var(--accent); }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted); }
+  .nav a { margin-right:16px; }
+  .page-back { margin: 0 0 10px; }
+  .page-back a {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 52px; min-height: 40px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); text-decoration: none;
+    font-size: 28px; line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="page-back"><a href="./" aria-label="返回" title="返回">‹</a></div>
+<header>
+  <div class="kicker">ROUTINE NOTE — DATA</div>
+  <h1>如何保護資料</h1>
+  <div class="meta">最後更新：2026年7月28日 ／ Beta版</div>
+</header>
+
+<h2>1. 帳號與同步</h2>
+
+<p><b>不建立帳號時，資料只儲存在這個瀏覽器裡。</b>
+資料不會被傳到開發者的伺服器，但也不會和其他裝置共享；
+清除瀏覽器的儲存資料，它們就會遺失。</p>
+
+<p><b>建立帳號後，影片與音檔以外的資料會在線上管理。</b>
+因此可以在其他裝置同步使用。</p>
+
+<p><b>影片與音檔的資料，目前不會在線上同步。</b>
+想把影片和音樂也帶到其他裝置時，請使用<b>ZIP的匯出與匯入</b>。</p>
+
+<p class="meta">影片的雲端儲存，預計在Beta版之後的階段支援。</p>
+
+<h2>2. 不登入時的風險</h2>
+
+<div class="card warn">
+  <b>未登入的狀態下，資料遺失的可能性會變高。</b>
+  <p style="margin:8px 0 0">因為你做的東西只存在這個瀏覽器裡。
+  下面任何一件事發生，組好的編排和練習紀錄就再也找不回來了。</p>
+</div>
+
+<table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px">
+  <tr>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink)">發生的事</th>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink);width:26%;white-space:nowrap">未登入</th>
+    <th style="text-align:left;padding:9px 8px;border-bottom:2px solid var(--ink);width:30%;white-space:nowrap">登入中</th>
+  </tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">執行了瀏覽器的「清除瀏覽記錄與網站資料」</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">全部遺失</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">編排與紀錄可以找回</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">裝置空間不足，瀏覽器自動清除了資料</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">全部遺失</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">編排與紀錄可以找回</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">iPhone長期沒開啟，儲存資料被清掉</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">全部遺失</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">編排與紀錄可以找回</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">使用無痕瀏覽</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">關閉分頁<br>就消失</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">編排與紀錄可以找回</td></tr>
+  <tr><td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">裝置遺失、損壞或換新機</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--warn)">全部遺失</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top">編排與紀錄可以找回</td></tr>
+</table>
+
+<p>只要登入，至少<b>編排與練習紀錄</b>可以在其他裝置找回。
+但<b>影片與音檔即使登入也不會回來</b>。要連這些一起保住，需要完整備份ZIP。</p>
+
+<p class="meta">另外，第2項因為「資料保護」會自動開啟而較不容易發生。
+第3項只要加入主畫面，就幾乎可以避免。</p>
+
+<h2>3. 如何做完整備份</h2>
+
+<ol class="steps">
+  <li><b>設定 → 完整備份 → 「匯出ZIP」</b>
+    <span class="why">依影片數量可能需要幾分鐘。請保持在該畫面。</span></li>
+  <li><b>把產生的檔案移到裝置之外</b>
+    <span class="why">iCloud Drive、Google雲端硬碟、電腦等。
+    放在同一台裝置裡，裝置遺失時會一起消失。</span></li>
+  <li><b>用「驗證ZIP（不還原）」確認內容</b>
+    <span class="why">不用還原就能檢查匯出的檔案是否損壞。
+    會逐一比對每個檔案的內容，<b>真正需要時能不能還原，在這裡就能知道。</b>
+    這是為了避免「以為備份好了，其實檔案壞了」的事故。</span></li>
+</ol>
+
+<p>建議在<b>大幅修改編排之後</b>，以及<b>錄下重要的全套之後</b>備份一次。</p>
+
+<h2>4. 還原時</h2>
+
+<div class="card warn">
+  <b>登入中還原請特別注意</b>
+  <p style="margin:8px 0 0">在登入狀態下從ZIP還原，<b>內容也會同步到其他裝置</b>。
+  備份裡沒有的套路和紀錄，<b>會從其他裝置一併消失</b>。<br>
+  只想還原這台裝置時，請<b>先登出再</b>還原。</p>
+</div>
+
+<p>還原的位置是「設定 → 完整備份 → 從ZIP還原」。
+還原前會比對所有檔案的內容，<b>只要有一個損壞就會中途停止，不會置換任何資料</b>。
+不會發生只有一部分被改寫的情況。</p>
+
+<div class="card">
+  <b>請記住這件事</b>
+  <p style="margin:8px 0 0">儲存空間依瀏覽器、依網站各自獨立。
+  用別的瀏覽器開啟，即使是同一台裝置，內容也是空的。<b>請固定從同一個入口開啟。</b>
+  加入主畫面就不會弄錯。</p>
+</div>
+
+<h2>5. 遇到問題時</h2>
+
+<ul>
+  <li><b>匯出一直沒完成</b> … 影片多時需要時間。請不要切換畫面，稍候片刻</li>
+  <li><b>還原時顯示「已損壞」</b> … 檔案可能在傳輸途中缺損。請重新匯出一次</li>
+  <li><b>紀錄不見了</b> … <b>這是我們最想知道的問題。</b>請用下方按鈕聯絡我們</li>
+</ul>
+
+<p style="margin-top:22px"><a class="btn" href="./">回到App</a></p>
+
+<footer>
+  <div class="nav">
+    <a href="./">開啟App</a>
+    <a href="updates.html">更新紀錄</a>
+    <a href="about-zh.html">關於這個App</a>
+    <a href="beta-zh.html">Beta版指南</a>
+    <a href="privacy-zh.html">隱私權政策</a>
+    <a href="terms-zh.html">使用條款</a>
+  </div>
+  <div style="margin-top:12px">© 2026 PYGMIX. 禁止未經授權的複製與轉載。</div>
+</footer>
+</div>
+</body>
+</html>

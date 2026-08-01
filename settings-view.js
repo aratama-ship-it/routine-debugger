@@ -18,8 +18,9 @@ window.renderSettings = function renderSettings() {
     <div class="card">
       <h2>${isEnglish() ? "Language" : "表示言語"}</h2>
       <div class="segmented" id="language-seg" role="group" aria-label="${isEnglish() ? "Language" : "表示言語"}">
-        <button class="choice ${!isEnglish() ? "selected" : ""}" onclick="setLanguage('ja')">日本語</button>
-        <button class="choice ${isEnglish() ? "selected" : ""}" onclick="setLanguage('en')">English</button>
+        <button class="choice ${uiLanguage() === "ja" ? "selected" : ""}" onclick="setLanguage('ja')">日本語</button>
+        <button class="choice ${uiLanguage() === "en" ? "selected" : ""}" onclick="setLanguage('en')">English</button>
+        <button class="choice ${uiLanguage() === "zh" ? "selected" : ""}" onclick="setLanguage('zh')">繁體中文</button>
       </div>
     </div>
     <div class="card">

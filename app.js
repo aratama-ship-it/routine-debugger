@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v333"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v334"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1158,16 +1158,12 @@ function currentRunCameraOrientationState(profileId, cap = runCamera) {
   return runCameraOrientationState(profile.id, viewport.width, viewport.height, frame.width, frame.height);
 }
 function runCameraOrientationCopy(orientation, ready) {
-  // 見るのは実際の映像の向きだけ。端末の持ち方では止めない
-  // (背面カメラは縦に構えても横長で返るため)。
-  if (orientation.frameKnown && !orientation.frameLandscape) {
-    return isEnglish()
-      ? { title: "The camera feed is portrait", body: "Turn the iPhone sideways, stop the camera, then prepare it again." }
-      : { title: "カメラ映像が縦向きです", body: `iPhoneを横向きにして撮影をやめ、もう一度${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備してください。` };
-  }
+  // 端末の持ち方でも映像の向きでも止めない。縦に構えたままでも撮れるようにする。
   return isEnglish()
-    ? { title: ready ? "Landscape feed confirmed" : "Landscape recording", body: ready ? "The run is recorded in landscape." : "Recording is landscape, however you hold the iPhone." }
-    : { title: ready ? "横長の映像を確認しました" : "横長で撮影します", body: ready ? "この画角のまま記録します。" : "iPhoneを縦に構えても、映像は横長で記録されます。" };
+    ? { title: ready ? "Ready to record" : "Hold the iPhone however you like",
+      body: "You can record with the iPhone upright or sideways." }
+    : { title: ready ? "撮影の準備ができました" : "iPhoneは縦でも横でも構いません",
+      body: "縦に構えたままでも撮影できます。" };
 }
 
 function syncRunCameraOrientationUi(routineId) {
@@ -1178,8 +1174,8 @@ function syncRunCameraOrientationUi(routineId) {
   const notice = document.getElementById("run-camera-orientation");
   if (notice) {
     notice.hidden = !orientation.requiresLandscape;
-    notice.classList.toggle("is-blocked", orientation.blocked);
-    notice.classList.toggle("is-ready", !orientation.blocked);
+    notice.classList.remove("is-blocked");
+    notice.classList.add("is-ready");
     const title = notice.querySelector("b");
     const body = notice.querySelector("small");
     if (title) title.textContent = copy.title;
@@ -1190,17 +1186,15 @@ function syncRunCameraOrientationUi(routineId) {
   if (profileLabel) profileLabel.textContent = runCameraProfile(selectedRunCameraProfileId()).label;
   const toggle = document.getElementById("run-camera-toggle");
   if (toggle && !ready && toggle.dataset.loading !== "true") {
-    toggle.disabled = orientation.blocked;
-    toggle.setAttribute("aria-disabled", String(orientation.blocked));
-    toggle.textContent = uiText(orientation.blocked
-      ? (isEnglish() ? "Rotate to prepare camera" : "横向きにして準備")
-      : `${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備`);
+    toggle.disabled = false;
+    toggle.setAttribute("aria-disabled", "false");
+    toggle.textContent = uiText(
+      `${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備`);
   }
   const start = document.getElementById("run-confirm-start");
-  const blockStart = ready && orientation.blocked;
   if (start) {
-    start.disabled = blockStart;
-    start.setAttribute("aria-disabled", String(blockStart));
+    start.disabled = false;
+    start.setAttribute("aria-disabled", "false");
   }
   return orientation;
 }
@@ -1267,7 +1261,6 @@ function runCameraConfirmBody(routineId, status = "") {
   const selectedProfile = runCameraProfile(ready ? runCamera.profileId : undefined);
   const orientation = currentRunCameraOrientationState(selectedProfile.id, ready ? runCamera : null);
   const orientationCopy = runCameraOrientationCopy(orientation, ready);
-  const prepareBlocked = !ready && orientation.blocked;
   const routine = state.routines.find((item) => item.id === routineId);
   const recordingDelay = preferredRunVideoAudioDelay();
   const audioCopy = routine && routine.music
@@ -1283,11 +1276,6 @@ function runCameraConfirmBody(routineId, status = "") {
         <span>${audioCopy}</span></div>
       <span class="run-video-capacity">保存 ${count}/${RUN_VIDEO_LIMIT}本</span>
     </div>
-    ${ready && runCamera.frameWidth && runCamera.frameHeight
-      && (runCamera.frameWidth >= runCamera.frameHeight) !== (selectedProfile.ratio >= 1)
-      ? `<div class="rcl-note">${isEnglish()
-        ? `The camera returns ${runCamera.frameWidth}×${runCamera.frameHeight}, which does not match the framing above. Try another lens.`
-        : `このカメラは ${runCamera.frameWidth}×${runCamera.frameHeight} を返しており、上の画角と向きが違います。別のレンズをお試しください。`}</div>` : ""}
     ${ready ? `<div id="run-camera-lens">${
       typeof runCameraLensRowHtml === "function" ? runCameraLensRowHtml(routineId) : ""}</div>
     <div class="run-camera-profile" role="status" aria-label="撮影画角">
@@ -1296,9 +1284,9 @@ function runCameraConfirmBody(routineId, status = "") {
         ? `<span class="run-camera-frame">実際 ${runCamera.frameWidth}×${runCamera.frameHeight}</span>` : ""}
     </div>
     <p class="run-camera-profile-guide">${isEnglish()
-      ? "The framing follows how you hold the device. Turn it before starting the camera."
-      : "画角は端末の向きに合わせます。撮る向きへ回すと切り替わります。"}</p>` : ""}
-    <div id="run-camera-orientation" class="run-camera-orientation ${orientation.blocked ? "is-blocked" : "is-ready"}"
+      ? "Hold the iPhone upright or sideways — either way the run is recorded."
+      : "iPhoneは縦に構えたままでも撮影できます。"}</p>` : ""}
+    <div id="run-camera-orientation" class="run-camera-orientation is-ready"
       role="status" ${orientation.requiresLandscape ? "" : "hidden"}>
       <span aria-hidden="true">↻</span><div><b>${orientationCopy.title}</b><small>${orientationCopy.body}</small></div>
     </div>
@@ -1307,7 +1295,6 @@ function runCameraConfirmBody(routineId, status = "") {
       ? runCameraFrameRatioCss(runCamera, selectedProfile.cssRatio) : selectedProfile.cssRatio}" autoplay playsinline muted></video>` : ""}
     ${status ? `<div class="run-camera-status" role="status">${esc(status)}</div>` : ""}
     <button type="button" class="btn ${ready ? "ghost" : ""}" id="run-camera-toggle"
-      ${prepareBlocked ? "disabled aria-disabled=\"true\"" : ""}
       onclick="toggleRunCamera('${routineId}')">${ready ? (isEnglish() ? "Turn recording OFF" : "撮影をOFFにする") : (isEnglish() ? "Turn recording ON" : "撮影をONにする")}</button>
     ${ready ? `<small>${routine && routine.music
       ? (isEnglish()
@@ -1344,13 +1331,6 @@ async function prepareRunCamera(routineId) {
     return false;
   }
   const profile = runCameraProfile();
-  const orientation = currentRunCameraOrientationState(profile.id, null);
-  if (orientation.blocked) {
-    updateRunCameraConfirm(routineId, isEnglish()
-      ? "Turn the iPhone sideways before preparing the camera"
-      : "iPhoneを横向きにしてからカメラを準備してください");
-    return false;
-  }
   const button = document.getElementById("run-camera-toggle");
   if (button) { button.disabled = true; button.dataset.loading = "true"; button.textContent = uiText("カメラを準備中…"); }
   const requestGeneration = ++runCameraRequestGeneration;
@@ -1371,10 +1351,6 @@ async function prepareRunCamera(routineId) {
     if (requestGeneration !== runCameraRequestGeneration || !document.getElementById("run-camera-area")) {
       stream.getTracks().forEach((track) => track.stop());
       return false;
-    }
-    // レンズを名指しすると縦横の希望が無視されることがある。実測して直す
-    if (typeof correctRunCameraStream === "function") {
-      stream = await correctRunCameraStream(stream, profile);
     }
     const videoTrack = stream.getVideoTracks()[0];
     const settings = videoTrack && typeof videoTrack.getSettings === "function" ? videoTrack.getSettings() : {};
@@ -1426,13 +1402,6 @@ window.addEventListener("orientationchange", scheduleRunCameraOrientationUi);
 function startRunVideoCapture(routineId) {
   if (!runCameraReady(routineId)) { runCameraArmed = false; return false; }
   const cap = runCamera;
-  if (currentRunCameraOrientationState(cap.profileId, cap).blocked) {
-    stopRunCameraNow();
-    toast(isEnglish()
-      ? "Landscape recording was cancelled because the camera is portrait"
-      : "カメラが縦向きのため、横長撮影を開始できませんでした");
-    return false;
-  }
   const captureFrame = runCameraFrameSize(cap);
   cap.captureWidth = captureFrame.width;
   cap.captureHeight = captureFrame.height;
@@ -3422,12 +3391,6 @@ window.startRunCountdown = (routineId) => {
   const rt = state.routines.find((r) => r.id === routineId);
   const sess = activeSession(routineId);
   if (!rt || !sess || fullRunIsActive(routineId)) return;
-  if (runCameraReady(routineId) && currentRunCameraOrientationState(runCamera.profileId, runCamera).blocked) {
-    syncRunCameraOrientationUi(routineId);
-    return toast(isEnglish()
-      ? "Keep the iPhone sideways before starting a landscape recording"
-      : "横長撮影では、iPhoneを横向きにしてから始めてください");
-  }
   const seconds = routineCountdownSeconds(rt);
   const runProgress = routineRunProgress(routineId);
   runCameraArmed = runCameraReady(routineId);
@@ -3471,15 +3434,6 @@ window.startRunCountdown = (routineId) => {
   const begin = () => {
     if (runCountdownTimer) clearInterval(runCountdownTimer);
     runCountdownTimer = null;
-    if (runCameraArmed && runCameraReady(routineId)
-        && currentRunCameraOrientationState(runCamera.profileId, runCamera).blocked) {
-      clearRunCountdown();
-      stopRunCameraNow();
-      toast(isEnglish()
-        ? "The run was not started because the camera changed to portrait"
-        : "カメラが縦向きになったため、通し練習を開始しませんでした");
-      return;
-    }
     activeFullRunRoutineId = routineId;
     const number = document.getElementById("run-countdown-number");
     const card = document.querySelector(".run-countdown-card");
