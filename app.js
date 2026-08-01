@@ -1317,6 +1317,12 @@ function updateRunCameraConfirm(routineId, status = "") {
       if (!runCameraReady(routineId)) return;
       runCamera.frameWidth = Number(preview.videoWidth) || runCamera.frameWidth || 0;
       runCamera.frameHeight = Number(preview.videoHeight) || runCamera.frameHeight || 0;
+      // 準備直後の inline style は getUserMedia の申告値で、実測とずれることがある。
+      // 枠の縦横比を実測に合わせないと、映像が枠の中で不自然に余白を持つ。
+      const livePreview = document.getElementById("run-camera-preview");
+      if (livePreview && typeof runCameraFrameRatioCss === "function") {
+        livePreview.style.setProperty("--run-camera-aspect", runCameraFrameRatioCss(runCamera, null) || "4 / 3");
+      }
       syncRunCameraOrientationUi(routineId);
     };
     preview.addEventListener("loadedmetadata", updateFrameOrientation, { once: true });
