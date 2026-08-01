@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v332"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v333"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1271,7 +1271,7 @@ function runCameraConfirmBody(routineId, status = "") {
   const routine = state.routines.find((item) => item.id === routineId);
   const recordingDelay = preferredRunVideoAudioDelay();
   const audioCopy = routine && routine.music
-    ? (isEnglish() ? "Music combined when saved · until the music stops" : "保存時に音源合成・音源停止まで")
+    ? (isEnglish() ? "Music combined when saved · until the music stops" : "保存時に映像と音源を合成・音源停止まで")
     : (isEnglish() ? "Video only · until the run ends" : "映像のみ・通し終了まで");
   return `
     <div class="run-camera-head">
@@ -1693,7 +1693,7 @@ window.savePendingRunVideoLinked = async (replaceId = "", deferred = false) => {
   }
   await persistPendingRunVideo(pending, replaceId, replaceId ? "通し映像を入れ替えました"
     : saveVideoOnly ? "映像のみで保存しました"
-      : deferred ? (isEnglish() ? "Saved to compose later" : "後で合成できる状態で保存しました")
+      : deferred ? (isEnglish() ? "Saved to compose later" : "あとで映像と音源を合成できる状態で保存しました")
         : "別音源同期のまま保存しました");
 };
 
@@ -2282,7 +2282,7 @@ function renderRunVideos() {
         <small>${fmtTimeFine(video.duration)} / ${fmtBytes(video.size || 0)} / ${linkedMusic
           ? (runVideoHasEmbeddedAudio(video)
             ? (english ? `Music included: ${esc(linkedMusic.name || "Recorded music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}を収録済み`)
-            : (english ? `Composition pending: ${esc(linkedMusic.name || "Linked music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}・合成待ち`))
+            : (english ? `Composition pending: ${esc(linkedMusic.name || "Linked music")}` : `♪ ${esc(linkedMusic.name || "対象音源")}・映像と音源の合成待ち`))
           : (english ? "Video only" : "映像のみ")}</small>
       </div>
       <div class="run-video-library-actions">

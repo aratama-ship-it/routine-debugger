@@ -30,16 +30,16 @@ function runVideoCompositionSaveMarkup(pending, willCompose, needsLinkedMusic, r
       : (english ? "First-use estimate based on the video duration and setup overhead."
         : "映像時間と準備時間から出した初回の目安です。");
     return `<div class="run-video-compose-intro">
-      <b>${english ? `Estimated time ${time}` : `推定時間 ${time}`}</b>
+      <b>${english ? `Estimated time to combine video and music: ${time}` : `映像と音源の合成 推定時間 ${time}`}</b>
       <span>${basis}<br>${english
         ? "Keep this screen open while combining. To leave now, choose Compose later."
-        : "合成中はこの画面を開いたままにしてください。今は行わない場合は「後で合成」を選べます。"}</span>
+        : "合成中はこの画面を開いたままにしてください。今は行わない場合は「あとで合成」を選べます。"}</span>
     </div>
     ${slots}
     <button class="btn primary" onclick="savePendingRunVideo('${replaceArg}')">${english
       ? (replaceId ? "Combine music and update video" : "Combine now and save")
-      : (replaceId ? "音源を合成して更新" : "今すぐ合成して保存")}</button>
-    ${replaceId ? "" : `<button class="btn" onclick="deferPendingRunVideoComposition()">${english ? "Compose later" : "後で合成"}</button>`}
+      : (replaceId ? "映像と音源を合成して更新" : "映像と音源を合成して保存")}</button>
+    ${replaceId ? "" : `<button class="btn" onclick="deferPendingRunVideoComposition()">${english ? "Compose later" : "あとで合成"}</button>`}
     <button class="btn ghost" onclick="discardPendingRunVideo()">${replaceId
       ? (english ? "Close without combining" : "合成せず閉じる")
       : (english ? "Do not save" : "保存しない")}</button>`;
