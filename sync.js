@@ -145,11 +145,18 @@
             removeLocal(row.kind, id);
             delete meta.entities[id];
           }
+        } else if (known && known.version === row.entity_version) {
+          // この端末が送った変更がそのまま返ってきただけ(pushはcursorを進めないため必ず起きる)。
+          // 取り込むと、push後にした編集をひとつ前の状態へ巻き戻してしまうので、何もしない
         } else {
-          const had = localEntities().has(id);
-          replaceLocal(row.kind, row.body);
-          meta.entities[id] = { kind: row.kind, version: row.entity_version, hash: hashOf(row.body) };
-          had ? applied.updated++ : applied.added++;
+          const current = localEntities().get(id);
+          if (current && known && hashOf(current.body) !== known.hash) {
+            // 端末側で編集済み → 上書きせず残す。次のpushが競合として両方を保存する
+          } else {
+            replaceLocal(row.kind, row.body);
+            meta.entities[id] = { kind: row.kind, version: row.entity_version, hash: hashOf(row.body) };
+            current ? applied.updated++ : applied.added++;
+          }
         }
         meta.cursor = Math.max(meta.cursor || 0, row.change_seq);
       }
