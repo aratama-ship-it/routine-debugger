@@ -69,6 +69,17 @@ function setRunVideoDesiredAudioDelay(video, value) {
   return { desired, recorded, playback, belowRecorded: desired < recorded };
 }
 
+// 保存する記録へ写す遅れの値。実測(中心)まで写すのが要点で、これを落とすと
+// 開き直したときの中心が収録済みの値へずれ、本人が寄せた補正が端に張り付く。
+function runVideoSavedDelayFields(video) {
+  return {
+    recordingAudioDelaySeconds: runVideoRecordingAudioDelay(video),
+    estimatedAudioDelaySeconds: runVideoEstimatedAudioDelay(video),
+    syncAudioDelaySeconds: runVideoDesiredAudioDelay(video),
+    playbackAudioDelaySeconds: runVideoPlaybackAudioDelay(video),
+  };
+}
+
 // 旧キーには補正の総量が入っている。カウントダウンを実測する今それを足すと
 // 二重に効いてずれるので、キーごと分ける。
 function preferredRunVideoAudioDelay() {
@@ -108,10 +119,12 @@ function runVideoSyncDelayMarkup(video, target, id = "") {
   if (!runVideoHasEmbeddedAudio(video) && !postSavePending) return "";
   // アプリが実測したカウントダウン分を中心に置き、前後1秒だけ動かせるようにする。
   // 0秒から始めると、5秒台の実測値がつまみの外側に出て動かせなくなる。
+  // 中心と今の値がずれている映像(保存済みで本人が寄せた後など)は、両方が入る幅にする。
+  // 今の値がつまみの端に張り付くと、±0.1が効かないうえ、押した拍子に端の値へ落ちる。
   const centre = runVideoEstimatedAudioDelay(video);
-  const min = Math.max(0, Math.round((centre - RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX) * 20) / 20);
-  const max = Math.round((centre + RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX) * 20) / 20;
-  const value = Math.min(max, Math.max(min, runVideoDesiredAudioDelay(video)));
+  const value = runVideoDesiredAudioDelay(video);
+  const min = Math.max(0, Math.round((Math.min(centre, value) - RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX) * 20) / 20);
+  const max = Math.round((Math.max(centre, value) + RUN_VIDEO_AUDIO_DELAY_SLIDER_MAX) * 20) / 20;
   return `<section class="run-video-sync-adjust" aria-labelledby="run-video-sync-delay-title">
     <div class="run-video-sync-adjust-head">
       <div><b id="run-video-sync-delay-title">${isEnglish() ? "Audio sync correction" : "映像と音源の同期補正"}</b>
@@ -162,11 +175,17 @@ const runVideoSetSyncDelay = (target, id, value) => {
 };
 
 const runVideoStepSyncDelay = (target, id, step) => {
+  const video = runVideoSyncDelayTarget(target, id);
+  if (!video) return;
+  // つまみの表示値ではなく、いま保存されている補正値から動かす。
+  // 表示はつまみの範囲へ丸められるので、そこから計算すると値そのものが縮む。
+  const next = Math.max(0, Math.round((runVideoDesiredAudioDelay(video) + step) * 20) / 20);
   const el = document.getElementById("run-video-sync-delay");
-  if (!el) return;
-  const next = Math.min(Number(el.max), Math.max(Number(el.min),
-    Math.round((Number(el.value) + step) * 20) / 20));
-  el.value = next;
+  if (el) {
+    if (next > Number(el.max)) el.max = next.toFixed(2);
+    if (next < Number(el.min)) el.min = next.toFixed(2);
+    el.value = next;
+  }
   runVideoSetSyncDelay(target, id, next);
 };
 

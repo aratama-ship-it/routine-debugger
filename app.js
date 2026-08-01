@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v331"; // 要望フォーム等で自動送信するアプリ版
+const APP_VERSION = "v332"; // 要望フォーム等で自動送信するアプリ版
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -75,7 +75,17 @@ const localDateString = (value = Date.now()) => {
 };
 const today = () => localDateString();
 const isEnglish = () => (state.settings || {}).language === "en";
-const uiText = (value) => isEnglish() && window.RoutineI18n ? window.RoutineI18n.text(value) : String(value ?? "");
+// 表示言語: ja(既定) / en / zh(繁体字)。描画は常に日本語で行い、表示時に置換する
+const uiLanguage = () => {
+  const value = (state.settings || {}).language;
+  return value === "en" ? "en" : value === "zh" ? "zh" : "ja";
+};
+const uiTranslator = () =>
+  uiLanguage() === "en" ? window.RoutineI18n : uiLanguage() === "zh" ? window.RoutineI18nZh : null;
+const uiText = (value) => {
+  const translator = uiTranslator();
+  return translator ? translator.text(value) : String(value ?? "");
+};
 // 初期サンプルの固有名・メモだけを表示言語へ合わせる。
 // 保存値は日本語のまま保持し、利用者が作った同名データを誤って翻訳しない。
 const sampleDisplayText = (value, marker) => {
@@ -88,11 +98,22 @@ const routineDisplayMemo = (routine) => sampleDisplayText(routine?.memo, routine
 const trickDisplayName = (trick) => sampleDisplayText(trick?.name, trick);
 const appConfirm = (message) => window.confirm(uiText(message));
 const appAlert = (message) => window.alert(uiText(message));
+// 後から差し込まれるUI(トースト・チュートリアルの付箋・導入カード・更新バー等)にも
+// 表示言語を当てる。childListだけを見るので、置換そのもの(文字の書き換え)では再発火しない。
+new MutationObserver((mutations) => {
+  const translator = uiTranslator();
+  if (!translator) return;
+  for (const m of mutations) {
+    for (const node of m.addedNodes) if (node.nodeType === 1) translator.apply(node);
+  }
+}).observe(document.body, { childList: true, subtree: true });
+
 function applyUiLanguage(root = document) {
-  const language = isEnglish() ? "en" : "ja";
-  document.documentElement.lang = language;
-  document.title = language === "en" ? "Routine Note Beta" : "ルーティンノート ベータ";
-  if (language === "en" && window.RoutineI18n) window.RoutineI18n.apply(root);
+  const language = uiLanguage();
+  document.documentElement.lang = language === "zh" ? "zh-Hant" : language;
+  document.title = language === "ja" ? "ルーティンノート ベータ" : "Routine Note Beta";
+  const translator = uiTranslator();
+  if (translator) translator.apply(root);
 }
 
 // ---------- 永続化 (IndexedDB, localStorageフォールバック) ----------
@@ -162,6 +183,17 @@ function migrateState() {
   if (!Array.isArray(state.audios)) state.audios = []; // 音源ライブラリ(楽曲・録音)。ルーティンへはコピーして添付
   if (!Array.isArray(state.runVideos)) { state.runVideos = []; runVideoStateChanged = true; }
   if (!state.settings) state.settings = {}; // アプリ設定(動画品質など)
+  // 初回だけ、ブラウザの言語設定から表示言語の初期値を決める。
+  // 既に使っている人(明示的に選んだ・データがある)の表示は変えない。
+  // 一度決めた値は保存するので、以後ブラウザ設定が変わっても勝手に切り替わらない。
+  if (state.settings.language == null
+      && (state.routines || []).length === 0 && (state.sessions || []).length === 0) {
+    const preferred = String((navigator.languages || [navigator.language])[0] || "").toLowerCase();
+    state.settings.language = preferred.startsWith("ja") ? "ja"
+      : preferred.startsWith("zh") ? "zh"
+        : preferred ? "en" : "ja";
+    routineSettingsChanged = true;
+  }
   // v175: 練習プレビューは全体切替を廃止し、ルーティンごとの個別設定へ移す。
   // 旧版で「シーケンス名だけ」を選んでいても、移行後の初期状態は動画ONに戻す。
   if (Object.prototype.hasOwnProperty.call(state.settings, "practicePreviewMode")) {
@@ -1633,9 +1665,7 @@ async function persistPendingRunVideo(pending, replaceId = "", message = "") {
     music: pending.music ? { ...pending.music } : null,
     composition: pending.composition ? JSON.parse(JSON.stringify(pending.composition)) : null,
     postComposition: pending.postComposition ? { ...pending.postComposition } : null,
-    recordingAudioDelaySeconds: runVideoRecordingAudioDelay(pending),
-    syncAudioDelaySeconds: runVideoDesiredAudioDelay(pending),
-    playbackAudioDelaySeconds: runVideoPlaybackAudioDelay(pending),
+    ...runVideoSavedDelayFields(pending),
   };
   state.runVideos.push(video);
   const found = findRunRecord(video.sessionId, video.runId);
@@ -1819,7 +1849,7 @@ const INFO = {
 };
 const infoBtn = (key) => `<button class="info-btn" onclick="event.stopPropagation();showInfo('${key}')" aria-label="説明">?</button>`;
 window.showInfo = (key) => {
-  const it = (isEnglish() ? INFO_EN : INFO)[key]; if (!it) return;
+  const it = (isEnglish() ? INFO_EN : uiLanguage() === "zh" && window.INFO_ZH ? INFO_ZH : INFO)[key]; if (!it) return;
   showSheet(`<h3>${esc(it.t)}</h3>
     <div class="help-body" style="margin-top:8px">${it.b}</div>
     <div style="height:16px"></div>
@@ -6212,19 +6242,25 @@ window.openHelp = () => {
 
 // ========== 設定(バックアップ) ==========
 window.setLanguage = (language) => {
-  state.settings.language = language === "en" ? "en" : "ja";
+  state.settings.language = language === "en" ? "en" : language === "zh" ? "zh" : "ja";
   saveState(); render();
   refreshWideSidePanel();
-  toast(isEnglish() ? "Language: English" : "表示言語: 日本語");
+  toast(language === "en" ? "Language: English" : language === "zh" ? "顯示語言：繁體中文" : "表示言語: 日本語");
 };
 
 // 規約等は別タブで開く(アプリ内遷移だと編集中・練習中の状態を失うため)
 // ※renderSettingsとsetLanguageの間には置かないこと(release-checkの抽出が壊れる)
 window.openDocPage = (file) => {
+  // 繁体字表示のときは、翻訳済みのページだけ -zh 版へ差し替える
+  // (updates.html は更新のたびに増える記録なので日本語のまま)
+  if (uiLanguage() === "zh" && /^(about|backup|beta|terms|privacy)\.html$/.test(file)) {
+    file = file.replace(".html", "-zh.html");
+  }
   const url = new URL(file, location.href).href;
-  // window.open は noopener 指定だと成功しても null を返すため、戻り値で
-  // 「ブロックされたか」を判定できない。予備の location.href が成功時にも
-  // 発動し、タブが2つ開いていた。リンクのクリックとして開けば1枚で済む。
+  // window.open は noopener 指定だと成功しても null を返すため、戻り値では
+  // 「ブロックされたか」を判定できない。予備で location.href へ進むと、
+  // 成功時にもう1枚開くことになる(タブが2つ開く報告の原因)。
+  // リンクのクリックとして開けば、1枚だけ確実に開く。
   const link = document.createElement("a");
   link.href = url; link.target = "_blank"; link.rel = "noopener";
   document.body.appendChild(link);
