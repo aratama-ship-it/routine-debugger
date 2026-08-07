@@ -15,7 +15,7 @@
   let deferredPrompt = null; // Chrome/Edge が渡してくる「その場で追加できる」券
 
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   // すでにホーム画面/アプリとして開かれているか
   function isInstalled() {

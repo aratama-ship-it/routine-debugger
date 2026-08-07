@@ -16,7 +16,7 @@
   "use strict";
 
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   let audio = null;      // 試聴用。1つを使い回す
   let playingKey = null; // いま鳴らしている行

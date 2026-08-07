@@ -16,7 +16,7 @@
 
   const MAX = 5;
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   const currentRoutine = () =>
     (state.routines || []).find((r) => r.id === view.params.id) || null;

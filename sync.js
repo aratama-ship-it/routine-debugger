@@ -35,7 +35,7 @@
   let lastResult = null;    // 画面表示用
 
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   // ---------- 端末に持つ同期メモ ----------
   function kvGet(key) {

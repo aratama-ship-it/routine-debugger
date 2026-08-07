@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v338"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v339"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -2319,7 +2319,7 @@ function renderRunVideos() {
     : (english ? "No performance videos yet.<br>Prepare the front camera before starting a full run."
       : `演技映像はまだありません。<br>通し練習の開始前に${typeof runCameraFacingLabel === "function" ? runCameraFacingLabel() : "インカメ"}を準備すると、終了後に保存できます。`);
   return `
-    <div class="topbar"><button class="back-btn" onclick="${backAction}" aria-label="戻る" title="戻る"></button><h1 data-user-text>${esc(pageTitle)}</h1></div>
+    <div class="topbar"><button class="back-btn" onclick="${backAction}" aria-label="戻る" title="戻る"></button><h1 data-user-text>${esc(uiText(pageTitle))}</h1></div>
     <section class="card run-video-library-card" aria-labelledby="run-video-library-title">
       <div class="run-video-library-heading">
         <div><h2 id="run-video-library-title">${headingTitle}</h2><p>${headingCopy}</p></div>
@@ -5235,7 +5235,7 @@ window.pickLibraryMusic = async (id, target) => {
 
 window.loadSampleTricks = async () => {
   if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
-  if (!appConfirm(`サンプルのシーケンス9個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
+  if (!appConfirm(`サンプルのシーケンス7個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
   showLoading("サンプルのシーケンスを読み込み中…");
   let ok = 0;
   try {
@@ -5259,7 +5259,7 @@ window.loadSampleTricks = async () => {
   saveState(); render();
   toast(ok ? `サンプル${ok}個を追加しました` : "サンプルを読み込めませんでした");
 };
-// サンプル一式: シーケンス9個(既にあれば再利用)+サンプル楽曲+全機能入りのサンプルルーティン
+// サンプル一式: シーケンス7個(既にあれば再利用)+サンプル楽曲+全機能入りのサンプルルーティン
 // v1=基本構成、v2=移行と後半シーケンスを追加、v3=A/B分岐とシーケンスを追加。初心者が版の意味を実画面で追えるようにする。
 function sampleTrickId(name) {
   const normalized = String(name || "").replace(/[（(].*?[）)]/g, "").trim();
@@ -5644,7 +5644,7 @@ function renderTricks() {
     </div>
     ${tricks.some((t) => t.sample)
       ? `<button class="btn ghost" onclick="removeSampleTricks()">サンプルシーケンスをまとめて削除</button>`
-      : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(シーケンス9個+ルーティン)</button>`}`;
+      : `<button class="btn ghost" onclick="loadSampleSet()">サンプル一式を読み込む(シーケンス7個+ルーティン)</button>`}`;
 }
 
 // シーケンス動画をシートで再生(どの画面からでもワンタップ)。

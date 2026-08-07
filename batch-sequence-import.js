@@ -2,7 +2,7 @@
 let batchImportDraft = null;
 let batchImportPlaying = false;
 
-function batchText(ja, en) { return isEnglish() ? en : ja; }
+function batchText(ja, en) { return isEnglish() ? en : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja); }
 function batchClamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || 0)); }
 function batchRound(value) { return Math.round(Number(value || 0) * 10) / 10; }
 
