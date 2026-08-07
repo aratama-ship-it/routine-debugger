@@ -719,7 +719,9 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
-  ["app.js", 354_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 11_200], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 13_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_300], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300], ["i18n-zh.js", 60_000], ["help-zh.js", 8_000], ["share-practice.js", 9_500],
+  // 2026-08-07: 繁体字の未翻訳補完で i18n-zh.js 60000→90000(翻訳データの正当な増加)。
+  // batch-sequence-import/share-practice は t()のzh経路追加(各+約110bytes)で微増。
+  ["app.js", 354_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 11_200], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 13_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_600], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 48_300], ["i18n-zh.js", 90_000], ["help-zh.js", 8_000], ["share-practice.js", 9_800],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
@@ -731,8 +733,9 @@ notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
 // 経緯: 背面カメラまわりで186KBまで上げ、旧テーマ撤去で182KB、サンプル差し替えで
 // 183KBへ。2026-07-31、繁体字翻訳(i18n-zh.js)の追加で+約8KB。これは機能でなく
 // 翻訳そのものの重さなので、削減でなく枠の引き上げが正しい(204KBへ)。
-// コード側で次に当たったら、まず減らすこと。
-if (gzipShell > 204_000) failures.push(`主要コードのgzip概算が204KBを超えています (${gzipShell})`);
+// 2026-08-07、繁体字の未翻訳補完(記録シート・撮影合成・各モジュール約160項目)で
+// +約6KB。同じく翻訳の重さなので212KBへ。コード側で次に当たったら、まず減らすこと。
+if (gzipShell > 212_000) failures.push(`主要コードのgzip概算が212KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));

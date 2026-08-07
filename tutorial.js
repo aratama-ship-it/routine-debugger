@@ -23,7 +23,7 @@
   const TUT_VERSION = 2;
   const LAST = 6;                 // 最後の段(0..6)。7で完了画面
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   // ---------- 進み具合 ----------
   function tut() {

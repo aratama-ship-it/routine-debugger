@@ -18,7 +18,7 @@
   "use strict";
 
   const en = () => (typeof isEnglish === "function" ? isEnglish() : false);
-  const t = (ja, eng) => (en() ? eng : ja);
+  const t = (ja, eng) => (en() ? eng : (typeof uiLanguage === "function" && uiLanguage() === "zh" && window.RoutineI18nZh ? window.RoutineI18nZh.text(ja) : ja));
 
   // ---------- 曲位置の数字入力 ----------
   // 打つたびに M:SS.t へ整形し直す。「:」と「.」は常に入っている状態を保ち、

@@ -374,7 +374,9 @@
     ["記録せず終了しました", "Session discarded"], ["取り消すものがありません", "Nothing to undo"],
     ["この録音を削除しますか?(元に戻せません)", "Delete this recording? This cannot be undone."],
     ["この通しを集計から除外しますか?(データは残り、いつでも戻せます)", "Exclude this run from analysis? The record remains and can be included again."],
-    ["サンプル一式(シーケンス9個+楽曲付きサンプルルーティン)を追加しますか?", "Add the complete sample set (9 sequences and a routine with music)?"],
+    ["サンプル一式(シーケンス7個+楽曲付きサンプルルーティン)を追加しますか?", "Add the complete sample set (7 sequences and a routine with music)?"],
+    ["サンプル一式を読み込む(シーケンス7個+ルーティン)", "Load the sample set (7 sequences + a routine)"],
+    ["サンプルのシーケンス7個(アニメーション)をシーケンスライブラリに追加しますか?", "Add 7 sample sequences (animations) to the sequence library?"],
     ["ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://routine-note.pygmix.com/", "Samples cannot be loaded when the app is opened directly as a file. Open the published app instead:\nhttps://routine-note.pygmix.com/"],
   ]);
 
