@@ -140,7 +140,8 @@
   }
   .home-wide-routines-head small {
     display: block;
-    color: var(--sheet-tab-rust);
+    /* 9pxなので4.5:1確保(--sheet-tab-rust のままだと 3.07) */
+    color: var(--accent-ink, #985421);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 9px;
     font-weight: 850;
@@ -374,7 +375,8 @@
   .wide-side-panel-head small {
     display: block;
     margin-bottom: 3px;
-    color: var(--sheet-tab-rust);
+    /* 9pxなので4.5:1確保 */
+    color: var(--accent-ink, #985421);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 9px;
     font-weight: 850;

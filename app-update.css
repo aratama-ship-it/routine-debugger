@@ -1,5 +1,8 @@
-/* 新しい版のお知らせ(画面下に控えめに出す。操作を塞がない) */
-#update-banner { position: fixed; left: 12px; right: 12px; z-index: 60;
+/* 新しい版のお知らせ(画面下に控えめに出す。操作を塞がない)
+   z-index は #sheet(50) より下に置く。60 だった頃は、更新が出ている初回起動で
+   チュートリアルのシートに重なり、下端の「あとで」を押せなくしていた。
+   #sheet-backdrop(40) よりは上なので、シートが閉じているときの見え方は変わらない。 */
+#update-banner { position: fixed; left: 12px; right: 12px; z-index: 45;
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   display: flex; align-items: center; gap: 10px;
   padding: 11px 12px 11px 15px; border-radius: 12px;
@@ -13,6 +16,15 @@
 #update-banner .ub-later { flex: 0 0 auto; width: 34px; height: 34px; border: none; border-radius: 17px;
   background: rgba(255, 255, 255, .14); color: #F4EFE2; font-size: 14px; }
 @media (min-width: 768px) { #update-banner { left: auto; right: 20px; width: 380px; } }
+/* シートが開いている間は完全に隠す(z-indexだけでも重ならないが、意図を明示しておく)。
+   :has() 非対応のブラウザではこの行が無視されるだけで、上の z-index:45 が効く。 */
+body:has(#sheet:not(.hidden)) #update-banner { display: none; }
+
+/* --accent-ink(小さい文字用の濃いアクセント)の黒板スキン向け打ち消し。
+   暗い面では濃くすると読めないので --accent と同値に戻す。
+   本来 skin-blackboard.css に置くべきだが、あちらは release-check のサイズ上限
+   6500 bytes まで残り 22 bytes しかないため、ここに置いている。 */
+body[data-skin="blackboard"] { --accent-ink: #e8bd63; }
 
 /* シートにフォーカスを移したときに枠が出ないように(見た目のため。トラップ自体は a11y-sheet.js) */
 #sheet[tabindex="-1"]:focus { outline: none; }
@@ -66,7 +78,8 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
 .home-account-chip.out { background: var(--card2); }
 .home-account-chip.out:active { background: var(--card3); }
 .home-account-chip.out .hac-dot { background: var(--muted2); }
-.home-account-chip.out .hac-name { color: var(--accent); }
+/* 13.5pxと小さいので濃い版を使う(--accent のままだと --card2 の上で 3.9) */
+.home-account-chip.out .hac-name { color: var(--accent-ink, #985421); }
 
 /* ===== ホーム: ホーム画面への追加をすすめる案内 ===== */
 /* 本題(ルーティン一覧)より前に置くが、主役を食わないよう紙に貼った付箋くらいの重さに留める */
@@ -87,7 +100,8 @@ input[type=email]::placeholder, input[type=password]::placeholder { color: var(-
   display: block;
   font-size: 11px;
   letter-spacing: .12em;
-  color: var(--accent, #a75c24);
+  /* 11pxと小さいので濃い版(--accent のままだと 4.09) */
+  color: var(--accent-ink, #985421);
   margin-bottom: 2px;
 }
 .home-install .hi-body b { display: block; font-size: 14px; line-height: 1.4; }

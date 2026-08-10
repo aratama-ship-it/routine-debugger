@@ -9,6 +9,7 @@
   --muted: rgba(49, 52, 53, .66);
   --muted2: rgba(49, 52, 53, .38);
   --accent: #a75c24;
+  --accent-ink: #985421;  /* 小さい文字用の濃い版(4.5:1確保)。暗いスキンでは同値に戻す */
   --accent-tint: rgba(189, 113, 64, .15);
   --blue: #39495b;
   --ok: #4e7a52;
@@ -32,7 +33,7 @@
   --sheet-paper: #eee8d8;
   --sheet-paper-raised: #f8f4e9;
   --sheet-ink: #23262c;
-  --sheet-muted: #6e6e68;
+  --sheet-muted: #696963;   /* 4.5:1確保(旧 #6e6e68=4.19) */
   --sheet-rule: rgba(73, 99, 124, .11);
   --sheet-margin: rgba(184, 86, 67, .22);
   --sheet-tab-blue: #39495b;
@@ -797,7 +798,8 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
   border-radius: 5px 13px 13px 5px; background: var(--sheet-accent); color: #1e211f; text-align: left;
   box-shadow: 0 6px 0 #ad681f, 0 10px 19px rgba(60,43,22,.22); }
 .home-practice-copy { min-width: 0; }
-.home-practice-copy > small { display: block; margin-bottom: 2px; color: #704415;
+/* 8pxなのでオレンジ地の上で4.5:1確保(旧 #704415=3.46) */
+.home-practice-copy > small { display: block; margin-bottom: 2px; color: #573510;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
 .home-practice-copy > span { display: block; overflow: hidden; font-size: 18px; font-weight: 850;
   letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
@@ -844,7 +846,8 @@ button.time-chip.tappable { color: var(--text); background: var(--card2); min-he
 .home-library-copy { min-width: 0; }
 .home-library-copy b { display: block; overflow: hidden; color: var(--sheet-ink); font-size: 12px;
   line-height: 1.3; font-weight: 750; white-space: nowrap; text-overflow: ellipsis; }
-.home-library-copy small { display: block; margin-top: 4px; color: #77766e; font-size: 10px; font-weight: 500; }
+/* 10pxなので4.5:1確保(旧 #77766e=4.15) */
+.home-library-copy small { display: block; margin-top: 4px; color: #717069; font-size: 10px; font-weight: 500; }
 .home-library-grid .home-button-arrow { color: #72746f; font-size: 20px; }
 .home-practice-button:active, .home-recent-button:active, .home-library-grid button:active,
 .home-head-buttons button:active { opacity: 1; filter: none; transform: translateY(3px); }
