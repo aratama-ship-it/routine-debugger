@@ -6,6 +6,10 @@
   "use strict";
 
   const exact = new Map([
+    ["曲末", "end"],
+    ["をパート練習", ""],
+    ["前回いちばん崩れた", "Practice last time's weakest spot"],
+    ["この前後をパート練習", "Practice this part"],
     ["端末の記録が空だったため、サーバーに残っていた記録を取り戻しました", "This device had no records, so the records kept on the server were restored."],
     ["通信できませんでした。電波の届く場所でもう一度お試しください。", "Could not connect. Please try again where you have a signal."],
     ["記録（state.json）が壊れています。別のバックアップをお使いください", "Records (state.json) are damaged. Use another backup."],
