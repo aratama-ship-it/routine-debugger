@@ -56,14 +56,16 @@
 
   // ---------- 通信 ----------
   async function authPost(path, body, extraHeaders) {
-    const res = await fetch(`${AUTH}${path}`, {
-      method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json", apikey: SUPABASE_KEY }, extraHeaders || {}),
-      body: JSON.stringify(body),
-    });
-    let data = null;
-    try { data = await res.json(); } catch (_) {}
-    return { ok: res.ok, status: res.status, data };
+    try {
+      const res = await fetch(`${AUTH}${path}`, {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json", apikey: SUPABASE_KEY }, extraHeaders || {}),
+        body: JSON.stringify(body),
+      });
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      return { ok: res.ok, status: res.status, data };
+    } catch (_) { return { ok: false, status: 0, data: null, network: true }; }
   }
 
   // 期限が近ければ更新する。同期処理から呼べるよう公開しておく。
@@ -71,13 +73,17 @@
     if (!session) return null;
     if (session.expires_at - Date.now() > 60000) return session.access_token;
     const res = await authPost("/token?grant_type=refresh_token", { refresh_token: session.refresh_token });
-    if (!res.ok) { saveSession(null); return null; }   // 更新できない=ログアウト扱い
+    if (!res.ok) {
+      if (res.status === 400 || res.status === 401 || res.status === 403) saveSession(null);
+      return null;
+    }
     saveSession(sessionFromTokens(res.data));
     return session ? session.access_token : null;
   };
 
   // 認証APIのエラーは英語で返るので、よくあるものだけ日本語にする
   function authErrorText(res) {
+    if (res.status === 0) return t("通信できませんでした。電波の届く場所でもう一度お試しください。", "Could not connect. Please try again where you have a signal.");
     const raw = String((res.data && (res.data.error_description || res.data.msg || res.data.message)) || "");
     const code = String((res.data && res.data.error_code) || "");
     if (/already registered|already been registered/i.test(raw) || code === "user_already_exists")
@@ -230,7 +236,7 @@
       method: "PUT",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
       body: JSON.stringify({ password }),
-    });
+    }).catch(() => ({ ok: false, status: 0 }));
     busy(false, t("変更する", "Update"));
     if (!res.ok) { let d=null; try { d = await res.json(); } catch(_){} return toast(authErrorText({ status: res.status, data: d })); }
     hideSheet();
@@ -259,7 +265,7 @@
       method: "PUT",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
       body: JSON.stringify({ data: { display_name: name } }),
-    });
+    }).catch(() => ({ ok: false, status: 0 }));
     busy(false, t("保存", "Save"));
     if (!res.ok) { let d = null; try { d = await res.json(); } catch (_) {} return toast(authErrorText({ status: res.status, data: d })); }
     try { saveSession(Object.assign({}, session, { user: await res.json() })); } catch (_) {}

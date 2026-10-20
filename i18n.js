@@ -6,6 +6,17 @@
   "use strict";
 
   const exact = new Map([
+    ["端末の記録が空だったため、サーバーに残っていた記録を取り戻しました", "This device had no records, so the records kept on the server were restored."],
+    ["通信できませんでした。電波の届く場所でもう一度お試しください。", "Could not connect. Please try again where you have a signal."],
+    ["記録（state.json）が壊れています。別のバックアップをお使いください", "Records (state.json) are damaged. Use another backup."],
+    ["復元できます（注意あり）", "Can be restored (with warnings)"],
+    ["注意: 記録の件数がバックアップの一覧と一致しません。", "Warning: Record counts differ from the backup list."],
+    ["注意: 照合値を確認できないファイルがあります。", "Warning: Some files could not be verified."],
+    ["記録は復元できます。注意事項をご確認ください。", "Records can be restored. Please review the warnings."],
+    ["容量不足などで書き戻せませんでした。記録は変更していません", "Could not restore media, possibly due to storage limits. Records were not changed."],
+    ["メディアを書き戻し中…", "Restoring media…"],
+    ["注意: メディア", "Warning: Media"],
+    ["件はこのバックアップに含まれていません（書き出し時点で端末に無かったもの）", "items are absent from this backup (missing on the device when exported)"],
     ["ルーティンノート ベータ", "Routine Note Beta"],
     ["墨の呼吸", "Breath of Ink"],   // 付属サンプル音源の原題
     ["ベータ", "Beta"],
@@ -381,6 +392,9 @@
   ]);
 
   const rules = [
+    [/^(検証できませんでした|読み込めませんでした): (.+)$/, (_, action, message) => (action === "検証できませんでした" ? "Could not verify: " : "Could not load: ") + text(message)],
+    [/^メディアを書き戻し中… (\d+)\/(\d+)$/, "Restoring media… $1/$2"],
+    [/^注意: メディア (\d+) 件はこのバックアップに含まれていません（書き出し時点で端末に無かったもの）$/, "Warning: $1 media items are absent from this backup (missing on the device when exported)"],
     [/^(\d+)ステップ \/ v(\d+) \/ 通し(\d+)本$/, "$1 steps / v$2 / $3 runs"],
     [/^(\d+)本$/, "$1 runs"], [/^(\d+)件$/, "$1 items"],
     [/^記録 (\d+)件$/, "$1 logged"], [/^記録して続行中 — この通しのミス(\d+)件$/, "Issue logged — $1 in this run"],

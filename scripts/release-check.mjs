@@ -16,6 +16,16 @@ const [app, runVideoOrientation, runCameraLens, skinBlackboard, fromRunVideo, ru
   read("app.js"), read("run-video-orientation.js"), read("run-camera-lens.js"), read("skin-blackboard.css"), read("from-run-video.js"), read("run-video-delay.js"), read("run-video-composition.js"), read("run-video-sync.js"), read("run-video-review.js"), read("music-playback.js"), read("batch-sequence-import.js"), read("styles.css"), read("batch-sequence-import.css"), read("tablet.css"), read("i18n.js"), read("i18n-zh.js"), read("index.html"), read("sw.js"), read("manifest.webmanifest"), read("app-update.css"), read("editor-time.js"), read("practice-dock.js"), read("pwa-install.js"), read("help-en.js"), read("help-zh.js"), read("share-practice.js"), read("settings-view.js"), read("sync.js"),
 ]);
 
+// v342: 保存と同期の保全修正を巻き戻さない。
+const backupArchive = await read("backup-archive.js");
+for (const [ok, label] of [
+  [sync.includes("rd:state-loaded"), "同期はstate読み込み後に起動"],
+  [sync.includes("${known ? known.version : 0}:"), "mutation_idに基準版"],
+  [editorTime.includes("typeof view"), "編集画面の起動順ガード"],
+  [app.includes("rd:state-loaded"), "state読み込み完了イベント"],
+  [/if \(manifest\.stateSha256\)/.test(backupArchive), "記録本体のSHA照合"],
+]) if (!ok) failures.push(label);
+
 // 構文エラーはブラウザ起動前に止める。
 for (const [name, source] of [["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-zh.js", helpZh], ["share-practice.js", sharePractice], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }

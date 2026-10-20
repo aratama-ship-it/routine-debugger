@@ -28,6 +28,8 @@
     { kind: "audio", get: () => (state.audios = state.audios || []) },
   ];
 
+  let metaFromDb = false;
+  let firstSyncCheck = true; // 最初の同期で「端末の記録が失われていないか」を一度だけ確かめる
   let meta = null;          // { userId, cursor, entities: {id:{kind,version,hash}} }
   let running = false;      // 二重起動の防止
   let applying = false;     // 取り込み中の保存で同期を再帰させない
@@ -43,7 +45,7 @@
       if (!db) return resolve(null);
       try {
         const rq = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
-        rq.onsuccess = () => resolve(rq.result || null);
+        rq.onsuccess = () => { metaFromDb = true; resolve(rq.result || null); };
         rq.onerror = () => resolve(null);
       } catch (_) { resolve(null); }
     });
@@ -60,7 +62,7 @@
     });
   }
   const blankMeta = () => ({ userId: null, cursor: 0, entities: {} });
-  async function loadMeta() { meta = (await kvGet(META_KEY)) || blankMeta(); return meta; }
+  async function loadMeta() { metaFromDb = false; meta = (await kvGet(META_KEY)) || blankMeta(); return meta; }
   const saveMeta = () => kvSet(META_KEY, meta);
 
   // ---------- 変更の検出 ----------
@@ -196,7 +198,7 @@
       const hash = hashOf(body);
       if (known && known.hash === hash) continue;         // 変わっていない
       const payload = {
-        p_mutation_id: `${id}:${hash}`,                    // 同じ変更を再送しても一度しか適用されない
+        p_mutation_id: `${id}:${known ? known.version : 0}:${hash}`,                    // 同じ変更を再送しても一度しか適用されない
         p_id: id, p_kind: kind, p_body: body,
         p_base_version: known ? known.version : 0,
         p_deleted: false,
@@ -243,6 +245,7 @@
     running = true;
     updateSyncUi();
     try {
+      if (!metaFromDb && db) await loadMeta();
       const headers = await authHeaders();
       if (!headers) throw new Error(t("ログインし直してください", "Please sign in again"));
       if (!meta) await loadMeta();
@@ -258,17 +261,34 @@
       const firstTime = !meta.userId;
       meta.userId = userId;
 
+      // 端末の記録が空なのに同期メモには記録が残っている = 端末側の保存が失われた可能性が高い。
+      // 最初の同期に限り、これを「全部削除した」と解釈して広めず、メモを白紙にして
+      // サーバーに残っている記録を全件取り戻す。操作中に空になった場合は本人の削除なので通常どおり送る。
+      let recovering = false;
+      if (firstSyncCheck) {
+        firstSyncCheck = false;
+        if (!(state.routines || []).length && !(state.sessions || []).length
+            && Object.values(meta.entities).some((x) => x.kind === "routine" || x.kind === "session")) {
+          meta = { userId, cursor: 0, entities: {} };
+          recovering = true;
+        }
+      }
+
       applying = true;
       const pulled = await pull(headers);
       applying = false;
       const pushed = await push(headers);
 
-      await saveMeta();
       if (pulled.added || pulled.updated || pulled.removed || pushed.conflicts) {
-        applying = true; saveState(); applying = false;
+        applying = true; saveState(); flushStateSave(); applying = false;
         if (typeof render === "function") render();
       }
+      await saveMeta();
       lastResult = { at: Date.now(), pulled, pushed, firstTime, error: null };
+      if (recovering && (pulled.added || pulled.updated)) {
+        toast(t("端末の記録が空だったため、サーバーに残っていた記録を取り戻しました",
+          "This device had no records, so the records kept on the server were restored."));
+      }
       if (pushed.conflicts) {
         toast(t(`${pushed.conflicts}件が別の端末と食い違ったため、両方を残しました`,
           `${pushed.conflicts} item(s) differed from another device. Both versions were kept.`));
@@ -305,7 +325,15 @@
   window.addEventListener("online", () => scheduleSync(1500));
   document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleSync(2000); });
 
-  loadMeta().then(() => { setTimeout(() => runSync("start"), 2500); });
+  let startScheduled = false;
+  function startOnce() {
+    if (startScheduled) return;
+    startScheduled = true;
+    setTimeout(() => runSync("start"), 1500);
+  }
+  document.addEventListener("rd:state-loaded", startOnce);
+  setTimeout(() => { if (db) startOnce(); }, 15000);
+  loadMeta();
 
   // ---------- 画面 ----------
   function syncStatusText() {

@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v341"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v342"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -1657,6 +1657,7 @@ async function persistPendingRunVideo(pending, replaceId = "", message = "") {
     stoppedRunVideoCapture = { ...pending, savedVideoId: id };
   }
   // 新しい映像を参照状態へ入れてから旧映像を外し、共通音源Blobの誤削除を防ぐ。
+  saveState(); flushStateSave();
   if (replaceId) await removeRunVideo(replaceId, false);
   clearPendingRunVideo();
   saveState(); hideSheet(); render();
@@ -6480,7 +6481,7 @@ window.addEventListener("pageshow", (event) => { if (event.persisted) stopPlayba
 
 // ---------- 起動 ----------
 window.go = go;
-loadState().then(() => { hideLoading(); render(); }).catch((error) => {
+loadState().then(() => { hideLoading(); render(); document.dispatchEvent(new Event("rd:state-loaded")); }).catch((error) => {
   console.error("Failed to start Routine Note", error);
   removeLoadingOverlay();
   $app.innerHTML = `<main class="fatal-start-error" role="alert">

@@ -459,7 +459,9 @@
       setTimeout(() => { queued = false; syncEditorBaseline(); addShrinkButtons(); }, 0);
     };
     new MutationObserver(soon).observe(appEl, { childList: true, subtree: true });
-    syncEditorBaseline();
-    addShrinkButtons();
+    if (typeof view !== "undefined") {
+      syncEditorBaseline();
+      addShrinkButtons();
+    }
   }
 })();

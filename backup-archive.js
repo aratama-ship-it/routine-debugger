@@ -221,17 +221,17 @@ const blobExt = (type) => BLOB_EXT[String(type || "").split(";")[0].trim().toLow
 const safeBlobName = (id) => String(id).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80);
 
 // state から参照されている全Blobを集める。同じblobIdを複数のシーケンスが共有する場合があるので必ず重複排除する。
-function collectBackupBlobRefs() {
+function collectBackupBlobRefs(st = state) {
   const refs = new Map();
   const add = (blobId, kind) => { if (blobId && !refs.has(blobId)) refs.set(blobId, { blobId, kind }); };
-  for (const rt of state.routines || []) if (rt.music) add(rt.music.blobId, "music");
-  for (const t of state.tricks || []) add(t.blobId, "trick");
-  for (const a of state.audios || []) add(a.blobId, "audio");
-  for (const v of state.runVideos || []) {
+  for (const rt of st.routines || []) if (rt.music) add(rt.music.blobId, "music");
+  for (const t of st.tricks || []) add(t.blobId, "trick");
+  for (const a of st.audios || []) add(a.blobId, "audio");
+  for (const v of st.runVideos || []) {
     add(v.blobId, "runvideo");
     if (v.music) add(v.music.blobId, "music");
   }
-  for (const s of state.sessions || []) for (const r of s.recordings || []) add(r.blobId, "recording");
+  for (const s of st.sessions || []) for (const r of s.recordings || []) add(r.blobId, "recording");
   return [...refs.values()];
 }
 
@@ -324,16 +324,23 @@ async function loadBackupZip(file) {
   const manifest = JSON.parse(await zip.text("manifest.json"));
   if (manifest.format !== BACKUP_FORMAT) throw new Error("このアプリのバックアップではありません");
   if (Number(manifest.formatVersion) > BACKUP_FORMAT_VERSION) throw new Error("新しい版で作られたバックアップです。アプリを更新してください");
-  const data = JSON.parse(await zip.text("state.json"));
-  return { zip, manifest, data };
+  const text = await zip.text("state.json");
+  let stateUnverified = true;
+  if (manifest.stateSha256) {
+    const sha = await archive.sha256Hex(new TextEncoder().encode(text).buffer);
+    if (sha !== null && sha !== manifest.stateSha256) throw new Error("記録（state.json）が壊れています。別のバックアップをお使いください");
+    stateUnverified = sha === null;
+  }
+  const data = JSON.parse(text);
+  return { zip, manifest, data, stateUnverified };
 }
 
 // manifestの各メディアを照合する。write=true なら照合に通ったものからIndexedDBへ書き戻す。
-// 失敗が出ても state は呼び出し側で差し替えないため、現在のデータは壊れない(書き戻し済みの孤立Blobは無害)。
+// 既存Blobは上書きせず別IDへ書き戻し、成功時に復元するstateの参照だけを差し替える。
 async function processBackupBlobs(zip, manifest, write, onProgress) {
   const archive = window.RoutineBackupArchive;
   const list = Array.isArray(manifest.blobs) ? manifest.blobs : [];
-  const result = { total: list.length, ok: 0, failed: [], missing: [], unverified: 0, bytes: 0 };
+  const result = { total: list.length, ok: 0, failed: [], missing: [], unverified: 0, bytes: 0, remapped: new Map() };
   for (let i = 0; i < list.length; i++) {
     const entry = list[i];
     if (onProgress) onProgress(i + 1, list.length);
@@ -347,7 +354,12 @@ async function processBackupBlobs(zip, manifest, write, onProgress) {
     } else result.unverified++;
     if (write) {
       const typed = entry.type ? new Blob([blob], { type: entry.type }) : blob;
-      if (!(await blobPut(entry.blobId, typed))) { result.failed.push(entry); continue; }
+      let id = result.remapped.get(entry.blobId) || entry.blobId;
+      if (await blobGet(id)) {
+        do { id = uid(); } while (await blobGet(id));
+        result.remapped.set(entry.blobId, id);
+      }
+      if (!(await blobPut(id, typed))) { result.failed.push(entry); continue; }
     }
     result.ok++;
     result.bytes += blob.size;
@@ -371,18 +383,27 @@ window.verifyFullBackup = async (input) => {
   if (!file) return;
   showLoading("バックアップを検証中…");
   try {
-    const { zip, manifest, data } = await loadBackupZip(file);
+    const { zip, manifest, data, stateUnverified } = await loadBackupZip(file);
     const shapeOk = validateBackupShape(data);
     const res = await processBackupBlobs(zip, manifest, false, (i, n) => updateLoading(`メディアを検証中… ${i}/${n}`));
     hideLoading();
     const bad = res.failed.length + res.missing.length;
     const healthy = shapeOk && bad === 0;
-    showSheet(`<h3>${healthy ? "このバックアップは復元できます" : "問題が見つかりました"}</h3>
+    const countMismatch = Object.entries(manifest.counts || {}).some(([key, n]) =>
+      key === "blobs" ? n !== res.total : Array.isArray(data[key]) && n !== data[key].length);
+    const included = new Set((manifest.blobs || []).map((x) => x.blobId));
+    const absent = collectBackupBlobRefs(data).filter((x) => !included.has(x.blobId)).length;
+    const warning = countMismatch || absent || stateUnverified || res.unverified;
+    const complete = healthy && !warning;
+    showSheet(`<h3>${healthy ? (warning ? "復元できます（注意あり）" : "このバックアップは復元できます") : "問題が見つかりました"}</h3>
       <div class="help-body" style="margin-top:8px">
         ${backupSummaryHtml(manifest, res)}<br>
         記録の形式: ${shapeOk ? "正常" : `<span style="color:var(--danger)">読み取れません</span>`}<br><br>
+        ${countMismatch ? "注意: 記録の件数がバックアップの一覧と一致しません。<br>" : ""}
+        ${absent ? `注意: メディア ${absent} 件はこのバックアップに含まれていません（書き出し時点で端末に無かったもの）<br>` : ""}
+        ${stateUnverified || res.unverified ? "注意: 照合値を確認できないファイルがあります。<br>" : ""}
         ${healthy
-          ? "全ファイルの照合値が一致しました。このZIPからそのまま復元できます。"
+          ? (complete ? "全ファイルの照合値が一致しました。このZIPからそのまま復元できます。" : "記録は復元できます。注意事項をご確認ください。")
           : "このZIPからは完全には復元できません。別のバックアップを使うか、いまの端末のデータから新しく書き出してください。"}
       </div>
       <div style="height:16px"></div>
@@ -415,9 +436,9 @@ window.importFullBackup = async (input) => {
     ? `\n\n【ログイン中です】\nこの内容が他の端末にも同期されます。\nバックアップに含まれていないルーティンや記録は、他の端末からも消えます。\nこの端末だけに戻したい場合は、先にログアウトしてください。`
     : "";
   if (!appConfirm(`このバックアップで置き換えます。\n\n書き出し日時: ${when}\nルーティン ${c.routines == null ? "?" : c.routines} / セッション ${c.sessions == null ? "?" : c.sessions}\nメディア ${(ctx.manifest.blobs || []).length}件\n\nいまの端末のデータは失われます。${syncWarn}\n\nよいですか?`)) return;
-  showLoading("メディアを検証・復元中…");
+  showLoading("バックアップを検証中…");
   try {
-    const res = await processBackupBlobs(ctx.zip, ctx.manifest, true, (i, n) => updateLoading(`メディアを検証・復元中… ${i}/${n}`));
+    const res = await processBackupBlobs(ctx.zip, ctx.manifest, false, (i, n) => updateLoading(`メディアを検証中… ${i}/${n}`));
     if (res.failed.length || res.missing.length) {
       hideLoading();
       return showSheet(`<h3>復元を中止しました</h3>
@@ -429,6 +450,22 @@ window.importFullBackup = async (input) => {
         <div style="height:16px"></div>
         <button class="btn ghost" onclick="hideSheet()">閉じる</button>`);
     }
+    let restored;
+    try {
+      restored = await processBackupBlobs(ctx.zip, ctx.manifest, true,
+        (i, n) => updateLoading(`メディアを書き戻し中… ${i}/${n}`));
+      if (restored.failed.length || restored.missing.length) throw new Error("write failed");
+    } catch (_) {
+      hideLoading();
+      return toast("容量不足などで書き戻せませんでした。記録は変更していません");
+    }
+    // 失敗時にも現行state/Blobを守るため、既存IDへの書き戻しは避ける。
+    function remapRefs(value) {
+      if (!value || typeof value !== "object") return;
+      if (restored.remapped.has(value.blobId)) value.blobId = restored.remapped.get(value.blobId);
+      for (const child of Object.values(value)) remapRefs(child);
+    }
+    remapRefs(ctx.data);
     state = ctx.data;
     migrateState();
     saveState();

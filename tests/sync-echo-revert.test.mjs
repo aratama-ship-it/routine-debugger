@@ -18,6 +18,7 @@ g.addEventListener = () => {};
 g.db = null; // IndexedDBなし → 同期メモはプロセス内メモリのみ(検証には十分)
 g.state = { routines: [], sessions: [], tricks: [], audios: [] };
 g.saveState = () => {};
+g.flushStateSave = () => {};
 g.render = () => {};
 g.toast = (m) => { logs.push(`toast: ${m}`); };
 g.isEnglish = () => false;
