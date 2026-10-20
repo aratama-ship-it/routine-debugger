@@ -96,7 +96,7 @@
     if (!ver) return null;
     const runs = recentRuns(runsOfVersion(rt.id, ver.id));
     const pick = pickWeakestStep(ver, runs);
-    if (!pick) return null;
+    if (!pick) return !latest && rt.experiment ? { rt, ver, runs, pick } : null;
     const interval = jeffreysInterval(pick.k, pick.n);
     return { rt, ver, runs, pick, values: { N: pick.runsUsed, S: stepLabel(pick.step),
       K: `${pick.k}/${pick.n}`, R: pick.reached, L: `${Math.round(interval.lo * 100)}〜${Math.round(interval.hi * 100)}%` } };
@@ -109,6 +109,9 @@
     const { rt, ver, runs, pick, values } = data;
     const card = document.createElement("div");
     card.id = "vc-card"; card.className = "card";
+    if (rt.experiment && window.RoutineExperimentUI) {
+      window.RoutineExperimentUI.mount(card, data); topbar.after(card); return;
+    }
     const tags = tagCounts(runs, pick.index);
     card.innerHTML = `<h2>${t("検証支援（観測のみ）", "Verification support (observation only)")}</h2>
       <div class="vc-obs">${fill(t("直近 {N} 本で「{S}」が {K} 崩れた（到達 {R} 本）。80% 区間 {L}",
@@ -130,6 +133,7 @@
       };
       card.append(btn);
     }
+    if (window.RoutineExperimentUI) window.RoutineExperimentUI.mount(card, data);
     topbar.after(card);
   }
   function addEndLine() {
@@ -148,6 +152,9 @@
       "Weakest spot: “{S}” {K} (80% interval {L})"), data.values);
     label.before(line);
   }
+  window.RoutineVerifyCard.refresh = () => {
+    document.getElementById("vc-card")?.remove(); addCard();
+  };
   for (const [id, add] of [["app", addCard], ["sheet", addEndLine]]) {
     const root = document.getElementById(id);
     if (!root) continue;

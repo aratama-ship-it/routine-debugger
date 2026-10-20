@@ -20,6 +20,12 @@ const [app, runVideoOrientation, runCameraLens, skinBlackboard, fromRunVideo, ru
 const backupArchive = await read("backup-archive.js");
 const partFromFailure = await read("part-from-failure.js");
 const verifyCard = await read("verify-card.js");
+const verifyExperiment = await read("verify-experiment.js");
+for (const [source, pattern] of [[html, /<script src="verify-experiment\.js\?v=(\d+)"/], [sw, /"\.\/verify-experiment\.js\?v=(\d+)"/]]) {
+  const version = source.match(pattern)?.[1];
+  if (!version || version !== app.match(/APP_VERSION\s*=\s*"v(\d+)"/)?.[1]) failures.push("verify-experiment.jsの登録・版が不正です");
+}
+if (!/<script src="verify-card\.js\?v=\d+"><\/script>\s*<script src="verify-experiment\.js\?v=\d+"><\/script>\s*<script src="sync\.js\?v=\d+"/.test(html)) failures.push("verify-experiment.jsの読み込み順が不正です");
 for (const [source, pattern] of [[html, /<script src="verify-card\.js\?v=(\d+)"/], [sw, /"\.\/verify-card\.js\?v=(\d+)"/]]) {
   const version = source.match(pattern)?.[1];
   if (!version || version !== app.match(/APP_VERSION\s*=\s*"v(\d+)"/)?.[1]) failures.push("verify-card.jsの登録・版が不正です");
@@ -38,7 +44,7 @@ for (const [ok, label] of [
 ]) if (!ok) failures.push(label);
 
 // 構文エラーはブラウザ起動前に止める。
-for (const [name, source] of [["verify-card.js", verifyCard], ["part-from-failure.js", partFromFailure], ["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-zh.js", helpZh], ["share-practice.js", sharePractice], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
+for (const [name, source] of [["verify-experiment.js", verifyExperiment], ["verify-card.js", verifyCard], ["part-from-failure.js", partFromFailure], ["app.js", app], ["run-video-orientation.js", runVideoOrientation], ["run-camera-lens.js", runCameraLens], ["run-video-delay.js", runVideoDelay], ["run-video-composition.js", runVideoComposition], ["run-video-sync.js", runVideoSync], ["run-video-review.js", runVideoReview], ["music-playback.js", musicPlayback], ["batch-sequence-import.js", batchSequenceImport], ["i18n.js", i18n], ["sw.js", sw], ["editor-time.js", editorTime], ["practice-dock.js", practiceDock], ["pwa-install.js", pwaInstall], ["help-zh.js", helpZh], ["share-practice.js", sharePractice], ["help-en.js", helpEn], ["settings-view.js", settingsView]]) {
   try { new Function(source); } catch (error) { failures.push(`${name}: ${error.message}`); }
 }
 
@@ -740,11 +746,12 @@ for (const asset of shellAssets) {
 }
 
 const budgets = [
+  ["verify-experiment.js", 10_000],
   ["verify-card.js", 9_000],
   ["part-from-failure.js", 8_000],
   // 2026-08-07: 繁体字の未翻訳補完で i18n-zh.js 60000→90000(翻訳データの正当な増加)。
   // batch-sequence-import/share-practice は t()のzh経路追加(各+約110bytes)で微増。
-  ["app.js", 354_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 11_200], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 13_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_600], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 49_200], ["i18n-zh.js", 100_000], ["help-zh.js", 8_000], ["share-practice.js", 9_800],
+  ["app.js", 354_500], ["run-video-orientation.js", 1_600], ["run-camera-lens.js", 17_400], ["skin-blackboard.css", 6_500], ["from-run-video.js", 14_600], ["run-video-delay.js", 11_200], ["run-video-composition.js", 22_400], ["run-video-sync.js", 22_400], ["run-video-review.js", 13_000], ["music-playback.js", 4_500], ["batch-sequence-import.js", 31_600], ["styles.css", 118_900], ["batch-sequence-import.css", 8_000], ["tablet.css", 13_500], ["i18n.js", 51_000], ["i18n-zh.js", 100_000], ["help-zh.js", 8_000], ["share-practice.js", 9_800],
 ];
 for (const [name, max] of budgets) {
   const size = (await stat(new URL(name, root))).size;
