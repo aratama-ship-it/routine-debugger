@@ -6,6 +6,12 @@
   "use strict";
 
   const exact = new Map([
+    ["検証支援（観測のみ）", "Verification support (observation only)"],
+    ["本人の仮説タグ:", "Your hypothesis tags:"],
+    ["原因タグの記録なし", "No cause tags recorded"],
+    ["証拠レベル: 観測のみ（まだ比較していません）", "Evidence level: observation only (not compared yet)"],
+    ["直近 {N} 本で「{S}」が {K} 崩れた（到達 {R} 本）。80% 区間 {L}", "In the last {N} runs, “{S}” broke {K} (reached {R}). 80% interval {L}"],
+    ["いちばん崩れた: 「{S}」 {K}（80% 区間 {L}）", "Weakest spot: “{S}” {K} (80% interval {L})"],
     ["曲末", "end"],
     ["をパート練習", ""],
     ["前回いちばん崩れた", "Practice last time's weakest spot"],
@@ -396,6 +402,8 @@
   ]);
 
   const rules = [
+    [/^直近 (\d+) 本で「(.*)」が (\d+\/\d+) 崩れた（到達 (\d+) 本）。80% 区間 (.+)$/, "In the last $1 runs, “$2” broke $3 (reached $4). 80% interval $5"],
+    [/^いちばん崩れた: 「(.*)」 (\d+\/\d+)（80% 区間 (.+)）$/, "Weakest spot: “$1” $2 (80% interval $3)"],
     [/^(検証できませんでした|読み込めませんでした): (.+)$/, (_, action, message) => (action === "検証できませんでした" ? "Could not verify: " : "Could not load: ") + text(message)],
     [/^メディアを書き戻し中… (\d+)\/(\d+)$/, "Restoring media… $1/$2"],
     [/^注意: メディア (\d+) 件はこのバックアップに含まれていません（書き出し時点で端末に無かったもの）$/, "Warning: $1 media items are absent from this backup (missing on the device when exported)"],
