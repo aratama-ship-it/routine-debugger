@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v345"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v350"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -207,7 +207,7 @@ function migrateState() {
   // v132で試したタグがあれば、最初に付けたタグの色だけを線色へ引き継ぐ。
   const legacyTags = new Map((Array.isArray(state.entityTags) ? state.entityTags : [])
     .filter((tag) => tag && validBackupId(tag.id)).map((tag) => [tag.id, tag]));
-  for (const item of [...(state.routines || []), ...state.tricks]) {
+  for (const item of [...(state.routines || []).filter(routineValid), ...state.tricks]) {
     const legacyColor = (Array.isArray(item.tagIds) ? item.tagIds : [])
       .map((id) => legacyTags.get(id)?.color).find((color) => ITEM_LINE_COLORS.includes(color));
     const nextColor = ITEM_LINE_COLORS.includes(item.lineColor) ? item.lineColor : (legacyColor || "blue");
@@ -224,7 +224,7 @@ function migrateState() {
   }
   // 音源も動画と同じく、元の長さと有効区間を別々に持つ。旧データは全区間を有効として扱う。
   for (const a of state.audios) normalizeMusicMeta(a);
-  for (const rt of state.routines || []) {
+  for (const rt of (state.routines || []).filter(routineValid)) {
     // 右上の「個別設定」はルーティンごとに保持する。
     // 全体一括設定は廃止したため、個別値が無い旧データは任意機能をOFFで補う。
     if (!rt.featureSettings) {
@@ -269,7 +269,7 @@ function migrateState() {
   }
   // サンプルルーティンは、実際の分析画面まで最初から確認できるデモ履歴を持たせる。
   // v1→v2→v3の構成変更と、版ごとに分かれた分析を初回から体験できるようにする。
-  for (const rt of state.routines || []) {
+  for (const rt of (state.routines || []).filter(routineValid)) {
     if (rt.sampleSet && rt.memo == null) {
       rt.memo = "次回は5ボール準備の間を一定にし、A/Bを同じ本数ずつ試す。";
       sampleDataChanged = true;
@@ -2050,6 +2050,7 @@ window.loadRoutineVersionIntoDraft = (routineId, versionIndex) => {
 };
 
 function render() {
+  if (renderUnreadableRoutine()) return;
   const r = { home: renderHome, routines: renderRoutines, edit: renderEdit, record: renderRecord,
     stats: renderStats, settings: renderSettings, history: renderHistory, stepdetail: renderStepDetail,
     part: renderPart, help: renderHelp, tricks: renderTricks, trickrec: renderTrickRec,
@@ -2099,6 +2100,7 @@ function stepLineColorButtonHtml(step, index) {
 }
 
 function routineCardHtml(rt, context = "list") {
+  if (!routineValid(rt)) return unreadableRoutineCardHtml(rt, context);
   const ver = latestVersion(rt);
   const runCount = state.sessions.filter((s) => s.routineId === rt.id).reduce((a, s) => a + s.runs.length, 0);
   const videoCount = storedRunVideos().filter((video) => video.routineId === rt.id).length;
