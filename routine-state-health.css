@@ -1,0 +1,6 @@
+/* Unreadable records remain stored and cannot stop the home or account UI. */
+.routine-unreadable { --unreadable-body:16px; --unreadable-line:1.6; --unreadable-gap:8px; --unreadable-rule:1px; }
+.routine-unreadable .routine-row { border:var(--unreadable-rule) solid var(--blue); }
+.routine-unreadable-title, .routine-unreadable-help { color:var(--text); font-size:var(--unreadable-body); line-height:var(--unreadable-line); margin:var(--unreadable-gap) 0; white-space:normal; overflow-wrap:anywhere; }
+.routine-unreadable-title { font-weight:600; }
+.routine-unreadable .actions { width:100%; }

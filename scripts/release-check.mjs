@@ -770,7 +770,10 @@ notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
 // 2026-08-07、繁体字の未翻訳補完(記録シート・撮影合成・各モジュール約160項目)で
 // +約6KB(212KBへ)。同日P2(深部機能約105項目)でさらに+約2KB(218KBへ)。
 // いずれも翻訳データの重さ。コード側で次に当たったら、まず減らすこと。
-if (gzipShell > 218_000) failures.push(`主要コードのgzip概算が218KBを超えています (${gzipShell})`);
+// 2026-11-06 v351、公開v350の起動ガード(壊れたルーティンで起動を止めない)を
+// 未公開v349へ統合して+約60B。削れる候補は旧データ移行など現役の処理だけだったため、
+// 保全の修正として219KBへ。次はコメント削りでなく、使われない処理の撤去か遅延読み込みで減らす。
+if (gzipShell > 219_000) failures.push(`主要コードのgzip概算が219KBを超えています (${gzipShell})`);
 
 if (failures.length) {
   console.error("Release check failed:\n- " + failures.join("\n- "));
