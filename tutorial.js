@@ -309,6 +309,8 @@
     const s = tut();
     if (s.status !== "not_started") { if (isActive()) enterStep(s.step); return; }
     if ((state.routines || []).some((r) => !r.sampleSet)) { setTut({ status: "skipped" }); return; }
+    // 名前入力・編集・別の案内を、遅れて開くチュートリアルで置き換えない。
+    if (view.name !== "home" || !document.getElementById("sheet").classList.contains("hidden")) return;
     window.tutorialStart();
   }, 1400);
 })();

@@ -347,13 +347,17 @@ async function processBackupBlobs(zip, manifest, write, onProgress) {
     if (!entry || !entry.path || !zip.has(entry.path)) { result.missing.push(entry || {}); continue; }
     const blob = await zip.blob(entry.path);
     if (entry.size != null && blob.size !== entry.size) { result.failed.push(entry); continue; }
+    // File-backed ZIP slices can lose their range after an IndexedDB restart in WebKit.
+    // Persist independent bytes, reusing the same buffer that was checked below.
+    const bytes = entry.sha256 || write ? await blob.arrayBuffer() : null;
+    if (bytes && bytes.byteLength !== blob.size) { result.failed.push(entry); continue; }
     if (entry.sha256) {
-      const sha = await archive.sha256Hex(await blob.arrayBuffer());
+      const sha = await archive.sha256Hex(bytes);
       if (sha == null) result.unverified++;        // crypto.subtleが無い環境(file://等)ではサイズ照合のみ
       else if (sha !== entry.sha256) { result.failed.push(entry); continue; }
     } else result.unverified++;
     if (write) {
-      const typed = entry.type ? new Blob([blob], { type: entry.type }) : blob;
+      const typed = new Blob([bytes], { type: entry.type || blob.type });
       let id = result.remapped.get(entry.blobId) || entry.blobId;
       if (await blobGet(id)) {
         do { id = uid(); } while (await blobGet(id));
@@ -414,6 +418,29 @@ window.verifyFullBackup = async (input) => {
   }
 };
 
+// Wait for a durable state copy before publishing restored data or scheduling sync.
+async function commitBackupState(candidate) {
+  const previous = state;
+  try { state = candidate; migrateState(); } finally { state = previous; }
+  if (typeof flushStateSave === "function") flushStateSave();
+  candidate._savedAt = Math.max(Date.now(), Number(previous._savedAt || 0) + 1);
+  let idbOk = false, localOk = false;
+  if (typeof db !== "undefined" && db) {
+    idbOk = await new Promise((resolve) => {
+      try {
+        const tx = db.transaction("kv", "readwrite");
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = tx.onabort = () => resolve(false);
+        tx.objectStore("kv").put(candidate, "state");
+      } catch (_) { resolve(false); }
+    });
+  }
+  try { localStorage.setItem("rd_state", JSON.stringify(candidate)); localOk = true; } catch (_) {}
+  if (!idbOk && !localOk) throw new Error("容量不足などで書き戻せませんでした。記録は変更していません");
+  state = candidate;
+  saveState();
+}
+
 window.importFullBackup = async (input) => {
   const file = input.files && input.files[0];
   input.value = "";
@@ -466,9 +493,7 @@ window.importFullBackup = async (input) => {
       for (const child of Object.values(value)) remapRefs(child);
     }
     remapRefs(ctx.data);
-    state = ctx.data;
-    migrateState();
-    saveState();
+    await commitBackupState(ctx.data);
     render();
     hideLoading();
     showSheet(`<h3>復元しました</h3>

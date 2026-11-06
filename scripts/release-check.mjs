@@ -194,9 +194,9 @@ if (/function draftTotal\(|durationSummary|class="tl-caption"/.test(app)
   failures.push("キュー間と楽曲末尾の空白・マイナス区間警告、空白内追加、閉じる操作、FIT整列が揃っていません");
 }
 if (/onclick="editorAutoCue\(\)"/.test(app)
-    || !/const emptyStepActions = `[\s\S]*?sheetAddTrick\(0\)[\s\S]*?addStep\('transition',0\)/.test(app)
-    || !/\$\{stepRows \|\| `[\s\S]*?\$\{emptyStepActions\}`\}/.test(app)) {
-  failures.push("編集末尾の追加・自動セット領域が非表示で、空のルーティンだけに初回追加導線を残す仕様ではありません");
+    || !/const stepActions = `[\s\S]*?sheetAddTrick\(\$\{draft.steps.length\}\)[\s\S]*?addStep\('transition',\$\{draft.steps.length\}\)/.test(app)
+    || !/\$\{stepRows \|\| `[^`]*`\}\$\{stepActions\}/.test(app)) {
+  failures.push("音源や空間の有無に関係なく、構成の末尾へ追加する入口が必要です。自動セットは表示しません");
 }
 if (/stepsSignature/.test(app)
     || !/function showRoutineSaveChoice\(rt\)/.test(app)
@@ -344,7 +344,7 @@ if (!/RUN_VIDEO_COMPOSITION_VERSION\s*=\s*1/.test(runVideoComposition)
     || !/canvas\.captureStream/.test(runVideoComposition)
     || !/createMediaElementSource\(audio\)/.test(runVideoComposition)
     || !/createMediaStreamDestination/.test(runVideoComposition)
-    || !/engine:\s*"web-post-save"/.test(runVideoComposition)
+    || !/engine:\s*composed\.engine \|\| "web-post-save"/.test(runVideoComposition)
     || !/function finalizeRunVideoPostComposition/.test(runVideoComposition)
     || !/function estimateRunVideoComposition/.test(runVideoComposition)
     || !/recordingGain:\s*1/.test(runVideoComposition)
@@ -758,7 +758,11 @@ for (const [name, max] of budgets) {
   if (size > max) failures.push(`${name} がサイズ上限 ${max} bytes を超えています (${size})`);
   notes.push(`${name}: ${(size / 1024).toFixed(1)} KiB`);
 }
-const gzipShell = gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(i18nZh).length + gzipSync(sw).length + gzipSync(html).length;
+const runVideoClock = await read("run-video-clock.js");
+new Function(runVideoClock);
+if (!html.includes(`run-video-clock.js?v=${appVersion.slice(1)}`) || !sw.includes(`run-video-clock.js?v=${appVersion.slice(1)}`)) failures.push("Capture clock asset version mismatch");
+if (Buffer.byteLength(runVideoClock) > 4000) failures.push("Capture clock exceeds 4000 bytes");
+const gzipShell = gzipSync(runVideoClock).length + gzipSync(app).length + gzipSync(runVideoOrientation).length + gzipSync(runCameraLens).length + gzipSync(runVideoDelay).length + gzipSync(runVideoComposition).length + gzipSync(runVideoSync).length + gzipSync(runVideoReview).length + gzipSync(musicPlayback).length + gzipSync(batchSequenceImport).length + gzipSync(css).length + gzipSync(batchSequenceImportCss).length + gzipSync(tabletCss).length + gzipSync(i18n).length + gzipSync(i18nZh).length + gzipSync(sw).length + gzipSync(html).length;
 notes.push(`主要コード gzip概算: ${(gzipShell / 1024).toFixed(1)} KiB`);
 // 経緯: 背面カメラまわりで186KBまで上げ、旧テーマ撤去で182KB、サンプル差し替えで
 // 183KBへ。2026-07-31、繁体字翻訳(i18n-zh.js)の追加で+約8KB。これは機能でなく

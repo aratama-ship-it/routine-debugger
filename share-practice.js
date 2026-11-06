@@ -1,17 +1,5 @@
-/* ルーティンノート — 今日の練習をシェアする
- *
- * セッションを終えた人が、その日の結果(通し本数・クリーン・崩れた場所)を
- * カード画像つきでXなどへ投稿できるようにする。
- * 練習報告の文化がある界隈なので、投稿1枚ごとにアプリの画とURLが載ることが
- * いちばん嘘のない宣伝になる(作者はもう現役ではないため、使う人が主役)。
- *
- * 方式:
- *  - iPhone等: Web Share API(navigator.share)で画像+文面を共有シートへ
- *  - 使えない環境: X のツイート画面(intent)を文面つきで開き、画像は保存ボタンで
- * 送るかどうかは毎回本人がボタンを押して決める。勝手に投稿はしない。
- *
- * app.js が容量上限に近いため、集計・カード描画・共有はここに置く。
- */
+/* 練習終了後の分析への入口と任意の共有。画像は共有画面を開いたときだけ作る。
+ * Web Share / Xへの送信は本人の操作時のみ。集計・描画をこのファイルへ集約する。 */
 (() => {
   "use strict";
 
@@ -180,11 +168,19 @@
 
   // ---------- セッション終了後のひと声 ----------
   // 通しが1本以上あるときだけ。勝手に投稿はせず、押した人だけ共有へ進む
-  window.offerPracticeShare = (sessionId) => {
+  window.offerPracticeShare = (sessionId, showPreview = false) => {
     const sess = (state.sessions || []).find((s) => s.id === sessionId);
     const rt = sess && (state.routines || []).find((r) => r.id === sess.routineId);
     if (!sess || !rt || !(sess.runs || []).length) return false;
     const sum = summarize(sess, rt);
+    if (!showPreview) {
+      showSheet(`<h3>${t("練習を保存しました", "Practice saved")}</h3>
+        <div class="sheet-sub">${esc(rt.name)} · ${t(`通し ${sum.total} 本 / クリーン ${sum.clean} 本`, `${sum.total} runs / ${sum.clean} clean`)}</div>
+        <button class="btn primary" onclick="hideSheet();go('stats',{id:'${rt.id}'})">${t("分析を見る", "View analysis")}</button>
+        <button class="btn" onclick="offerPracticeShare('${sess.id}',true)">${t("今日の練習をシェア", "Share today’s practice")}</button>
+        <button class="btn ghost" onclick="hideSheet()">${t("一覧に戻る", "Back to routines")}</button>`);
+      return true;
+    }
     const canvas = drawCard(sess, rt, sum);
     if (!canvas) return false;
     const preview = canvas.toDataURL("image/png");

@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v345"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v349"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -975,15 +975,10 @@ musicPlayback.bindEvents({
     if (runCamera && runCamera.recording && runCamera.audioStartedAt) stopRunVideoCaptureAtMusicStop();
   },
   onPlaying: () => {
-    if (!activeFullRunRoutineId) return;
-    // 先に「もう回っているか」を見る。撮影を始めた時点で armed は下ろされるため、
-    // armed を先に判定すると、この差の記録に永久に到達しない。
+    if (!activeFullRunRoutineId || musicPlayer.muted) return;
+    // Check the active recording before the armed flag.
     if (runCamera && runCamera.recording && runCamera.routineId === activeFullRunRoutineId) {
-      // 曲が鳴るまでの差を一度だけ控える(止めて再開しても最初のずれが正しい)
-      if (runCamera.audioStartedAt) return;
-      runCamera.audioStartedAt = Date.now();
-      runCamera.recordingAudioDelaySeconds =
-        Math.max(0, Math.round((runCamera.audioStartedAt - runCamera.startedAt) / 100) / 10);
+      markRunVideoMusicStart(runCamera, musicPlayer, musicCurrentTime());
       return;
     }
     if (!runCameraArmed || !runCameraReady(activeFullRunRoutineId)) return;
@@ -1416,6 +1411,7 @@ function startRunVideoCapture(routineId) {
     const rec = new MediaRecorder(cap.stream, options);
     cap.chunks = [];
     rec.ondataavailable = (event) => { if (event.data.size) cap.chunks.push(event.data); };
+    initRunVideoClock(cap, rec);
     rec.start(1000);
     // Web版では録画中の複合Streamを避け、保存時に完成映像を作る。
     cap.audioEmbedded = false;
@@ -1481,8 +1477,7 @@ async function stopRunVideoCapture(rt, sess, run) {
   return true;
 }
 
-// 楽曲が止まった瞬間にMediaRecorderとカメラトラックを閉じる。
-// 通し結果は少し後に入力されるため、Blobだけ一時保持して結果確定時にrunへ結び付ける。
+// Stop capture with music; attach the retained Blob when the run result is entered.
 async function stopRunVideoCaptureAtMusicStop() {
   if (runVideoStopPromise) return runVideoStopPromise;
   const cap = runCamera;
@@ -1495,6 +1490,7 @@ async function stopRunVideoCaptureAtMusicStop() {
     return false;
   }
   const captureGeneration = cap.generation;
+  if (cap.captureClock) cap.captureClock.stopped = performance.now();
   runVideoStopPromise = (async () => {
     const rec = cap.rec;
     await new Promise((resolve) => {
@@ -1518,12 +1514,7 @@ async function stopRunVideoCaptureAtMusicStop() {
       audioEmbedded: !!cap.audioEmbedded,
       recordingAudioDelaySeconds: cap.recordingAudioDelaySeconds,
       requestedAudioDelaySeconds: cap.requestedAudioDelaySeconds,
-      // カウントダウンから回した分、映像は曲より先に始まっている。
-      // その実測ぶんを土台にし、本人の微調整を足す。
-      // ここを手動値だけにすると、曲が映像の頭から鳴ってしまう。
-      syncAudioDelaySeconds: Math.round((
-        (Number(cap.recordingAudioDelaySeconds) || 0) + (Number(cap.requestedAudioDelaySeconds) || 0)
-      ) * 10) / 10,
+      ...finishRunVideoClock(cap),
     });
     render();
     return true;
@@ -1644,6 +1635,7 @@ async function persistPendingRunVideo(pending, replaceId = "", message = "") {
     captureWidth: pending.captureWidth, captureHeight: pending.captureHeight,
     music: pending.music ? { ...pending.music } : null,
     composition: pending.composition ? JSON.parse(JSON.stringify(pending.composition)) : null,
+    captureTiming: pending.captureTiming || null,
     postComposition: pending.postComposition ? { ...pending.postComposition } : null,
     ...runVideoSavedDelayFields(pending),
   };
@@ -2717,16 +2709,16 @@ function renderEdit() {
       ${RISK_LEVELS.map((n) => `<option value="${n}" ${selected === n ? "selected" : ""}>リスク ${n}</option>`).join("")}
     </select>`;
   const hasEditorMusic = !!(draft._newMusicFile || (rt && rt.music && draft.music));
-  // 任意機能(初期は非表示。設定でON/OFF)。既に使われているステップは設定OFFでも操作可能にして詰まらせない
+  // 任意機能は個別設定に従う。
   const showRisk = routineFeatureEnabled(rt, "showRisk", draft.featureSettings);
   const showSlots = routineFeatureEnabled(rt, "showSlots", draft.featureSettings);
-  const emptyStepActions = `<div id="from-run-video"></div>
+  const stepActions = `<div id="from-run-video"></div>
     <div class="row-2" style="margin-top:12px">
-    <button class="btn small" onclick="sheetAddTrick(0)">＋ シーケンス</button>
-    <button class="btn small ghost" onclick="addStep('transition',0)">＋ 移行</button>
+    <button class="btn small" onclick="sheetAddTrick(${draft.steps.length})">＋ シーケンス</button>
+    <button class="btn small ghost" onclick="addStep('transition',${draft.steps.length})">＋ 移行</button>
   </div>`;
   const stepRows = draft.steps.map((s, i) => {
-    // A/B機能がOFFのA/Bステップは、データは残したまま表示だけ畳んで「選択肢A」を通常のシーケンスとして見せる
+    // A/BがOFFでも選択肢を保持し、Aだけを表示する。
     const collapsedSlot = isSlot(s) && !showSlots;
     const nameVal = collapsedSlot ? optionDisplayName(s.options[0]) : stepDisplayName(s);
     const namePh = collapsedSlot ? "シーケンス名" : (isSlot(s) ? "分岐の名前(例: ラストシーケンス)" : s.kind === "transition" ? "移行(例: 持ち替え)" : "シーケンス名");
@@ -2860,7 +2852,7 @@ function renderEdit() {
       <main class="tablet-edit-main">
         <div class="card tablet-step-card">
           <h2>ステップ(シーケンスと移行) — 上から実施順${infoBtn("steps")}</h2>
-          ${stepRows || `<div class="empty">最初のシーケンスを追加</div>${emptyStepActions}`}
+          ${stepRows || `<div class="empty">最初のシーケンスを追加</div>`}${stepActions}
         </div>
         ${rt ? `<p class="hint">${isEnglish()
           ? `When saving, choose whether to keep the edit as a new version or overwrite the current v${rt.versions.length}.`
@@ -3443,21 +3435,16 @@ window.startRunCountdown = (routineId) => {
   clearRunCountdown();
   musicResetForNextRun();
 
-  // カウントダウン中から回す。構えるところまで残る。
-  // 曲は遅れて始まるので、その差を控えて合成時に音をずらす。
+  // Record the preparation too; retain the measured music offset.
   if (runCameraArmed) startRunVideoCapture(routineId);
 
-  // カウント終了時の自動再生を通すため、操作直後に一度だけ再生権限を取る。
-  // この一瞬が聞こえていたので、その間は無音にする
-  // (Web Audio経由だと muted か volume の片方では消えない)。
+  // Prime playback in this gesture; silence both the element and Web Audio.
   if (rt.music && musicPlayer.src && !musicMissing) {
     ensureAudioGraph();
-    // 2回目以降はWeb Audioのグラフが既にあり、音量はGainNodeが持っている。
-    // element側のmuted/volumeだけでは経路が違って鳴るので、GainNodeも0にする。
     musicPlayer.muted = true;
     musicPlayer.volume = 0;
     if (gainNode) gainNode.gain.value = 0;
-    // 戻すのは musicVolume 基準。現在値を控えると、二重に呼ばれたとき0が焼き付く
+    // Restore the preference, never a previously muted value.
     const unmute = () => { musicPlayer.muted = false; musicSetVolume(musicVolume); };
     const priming = musicPlayer.play();
     if (priming && priming.then) {
@@ -3862,8 +3849,7 @@ window.undo = async () => {
 window.endSessionAsk = (routineId) => {
   const sess = activeSession(routineId);
   if (!sess) return go("routines");
-  // 通しの最中に終了を押す場面はよくある。最後まで演って「完走」を押し忘れただけの
-  // ことが多いので、まず完走かどうかを聞く。押し忘れで記録が消えるのが一番惜しい。
+  // 終了前に完走を確定する。録画の確認があれば優先する。
   if ((openRun && openRun.routineId === routineId) || activeFullRunRoutineId === routineId) {
     const withMiss = !!(openRun && openRun.routineId === routineId);
     return showSheet(`
@@ -3871,7 +3857,7 @@ window.endSessionAsk = (routineId) => {
       <div class="sheet-sub">${withMiss
         ? "崩れた場所は記録されています。最後まで演れていれば「はい」で残せます。"
         : "最後まで演れていれば「はい」で記録します。"}</div>
-      <button class="btn primary" onclick="${withMiss ? "finishOpenRun()" : "recordClean()"}">はい（完走として記録）</button>
+      <button class="btn primary" onclick="hideSheet();${withMiss ? "finishOpenRun()" : "recordClean()"}.then(() => { if (!pendingRunVideo && view.name === 'record' && view.params.id === '${routineId}') endSessionAsk('${routineId}'); })">はい（完走として記録）</button>
       <button class="btn ghost" onclick="hideSheet()">いいえ（画面に戻る）</button>
       <div style="height:6px"></div>
       <button class="btn danger-ghost" style="width:100%" onclick="abandonActiveRun('${routineId}')">この通しは記録せず中断</button>`);
@@ -4729,16 +4715,15 @@ async function fetchSampleMusicFile(idx) {
   const s = SAMPLE_MUSIC[idx];
   if (!s) return null;
   try {
-    const resp = await fetch(s.f);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
+    const blob = await fetchSampleAsset(s.f);
+    if (!blob) return null;
     return new File([blob], `${s.n}.mp3`, { type: blob.type || "audio/mpeg" });
   } catch (_) { return null; }
 }
 const FILE_OPEN_ALERT = "ファイルから直接開いているため、サンプルを取得できません。\n\n公開版URLで開いてください:\nhttps://routine-note.pygmix.com/";
 // サンプル曲の選択シート(target: 'edit'=ルーティン編集)
 window.sheetSampleMusic = (target) => {
-  if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
+  if (!canLoadSampleAssets()) return appAlert(FILE_OPEN_ALERT);
   showSheet(`
     <h3>サンプル曲から選ぶ</h3>
     <div class="sheet-sub">練習用に自由に使える楽曲です(今後追加予定)</div>
@@ -4947,7 +4932,9 @@ window.playSample = async (i) => {
     libAudio._url = URL.createObjectURL(file);
     libAudioMeta = null;
     libAudio.src = libAudio._url; audioPlayingId = "sample:" + i;
-    libAudio.play().catch(() => {});
+    playMedia(libAudio, "サンプル曲を再生できませんでした。もう一度▶を押してください").catch(() => {
+      if (audioPlayingId === "sample:" + i) { audioPlayingId = null; if (view.name === "audios") render(); }
+    });
     render();
   } finally { hideLoading(); }
 };
@@ -5189,7 +5176,7 @@ async function stopAudioRec() {
   render();
 }
 window.sheetAddSampleAudio = () => {
-  if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
+  if (!canLoadSampleAssets()) return appAlert(FILE_OPEN_ALERT);
   showSheet(`<h3>サンプル曲を追加</h3>
     <div class="sheet-sub">練習用に自由に使える楽曲(音源ライブラリに追加します)</div>
     ${SAMPLE_MUSIC.map((s, i) => `<button class="btn" onclick="addSampleToLibrary(${i})">♪ ${esc(s.n)}</button>`).join("")}
@@ -5235,16 +5222,15 @@ window.pickLibraryMusic = async (id, target) => {
 };
 
 window.loadSampleTricks = async () => {
-  if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
+  if (!canLoadSampleAssets()) return appAlert(FILE_OPEN_ALERT);
   if (!appConfirm(`サンプルのシーケンス7個(アニメーション)を${TRICK_LIBRARY_LABEL}に追加しますか?`)) return;
   showLoading("サンプルのシーケンスを読み込み中…");
   let ok = 0;
   try {
     for (const s of SAMPLE_TRICKS) {
       try {
-        const resp = await fetch(s.f);
-        if (!resp.ok) continue;
-        const blob = await resp.blob();
+        const blob = await fetchSampleAsset(s.f);
+        if (!blob) continue;
         const dur = (await probeVideoDuration(blob)) || 4;
         const id = uid();
         if (await blobPut(id, blob)) {
@@ -5542,9 +5528,8 @@ async function ensureSampleTricks() {
     let t = (state.tricks || []).find((x) => x.sample && x.name.startsWith(s.n));
     if (!t) {
       try {
-        const resp = await fetch(s.f);
-        if (!resp.ok) continue;
-        const blob = await resp.blob();
+        const blob = await fetchSampleAsset(s.f);
+        if (!blob) continue;
         const dur = (await probeVideoDuration(blob)) || 4;
         const id = uid();
         if (await blobPut(id, blob)) {
@@ -5560,7 +5545,7 @@ async function ensureSampleTricks() {
   return byName;
 }
 window.loadSampleSet = async () => {
-  if (!location.protocol.startsWith("http")) return appAlert(FILE_OPEN_ALERT);
+  if (!canLoadSampleAssets()) return appAlert(FILE_OPEN_ALERT);
   if (!appConfirm("サンプル一式(シーケンス7個+楽曲付きサンプルルーティン)を追加しますか?")) return;
   showLoading("サンプル一式を読み込み中…");
   try {

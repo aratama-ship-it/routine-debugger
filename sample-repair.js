@@ -32,7 +32,7 @@
   // なので記録はそのままに、同じ入れ物へ実体だけ書き戻す。
   async function refetchBrokenSampleBlobs() {
     const samples = (state.tricks || []).filter((x) => x.sample);
-    if (!samples.length || !location.protocol.startsWith("http")) return 0;
+    if (!samples.length || !canLoadSampleAssets()) return 0;
     let fixed = 0;
     for (const t of samples) {
       let alive = false;
@@ -42,9 +42,8 @@
       const src = SAMPLE_TRICKS.find((s) => t.name.startsWith(s.n));
       if (!src) continue;
       try {
-        const resp = await fetch(src.f);
-        if (!resp.ok) continue;
-        if (await blobPut(t.blobId, await resp.blob())) fixed++;
+        const blob = await fetchSampleAsset(src.f);
+        if (blob && await blobPut(t.blobId, blob)) fixed++;
       } catch (_) { /* 通信できないだけ。次の起動でまた試す */ }
     }
     return fixed;

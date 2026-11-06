@@ -121,8 +121,7 @@ function createRunVideoPostCompositionPlan(capture = {}, videoMeta = {}, audioMe
   };
 }
 
-// Web版は映像をほぼ等速で再生しながら再録画する。過去の同端末実績があればその比率を優先し、
-// 未実施なら映像時間＋準備時間から、開始前に見せる安全側の時間幅を返す。
+// Estimate the browser compositor from recent local runs.
 function estimateRunVideoComposition(capture = {}, completed = []) {
   const duration = Math.max(0, Number(capture.duration) || 0);
   const ratios = (Array.isArray(completed) ? completed.slice(-7) : []).map((video) => {
@@ -190,12 +189,12 @@ function seekRunVideoMedia(media, time, signal) {
   });
 }
 
-// 保存操作の時点で、カメラ映像をCanvasへ再描画し、対象音源をWeb Audioから加えて
-// 一つのMediaStreamとして再録画する。MP3全体をPCMへ展開しないため、音源はmedia要素から逐次再生する。
+// iOS supplies a timestamp-based exporter; the browser retains its streaming compositor.
 async function composeRunVideoAfterCapture({
   capture, musicBlob, frameRate = 24, videoBitsPerSecond = 1500000,
   audioBitsPerSecond = 128000, signal = null, onProgress = null,
 } = {}) {
+  if (window.RNVideoComposer) return window.RNVideoComposer.compose({ capture, musicBlob, signal, onProgress });
   const support = runVideoPostCompositionSupport();
   if (!support.supported) throw runVideoPostCompositionError(support.reason, "Post composition is not supported");
   if (!capture || !capture.blob || !capture.blob.size || !musicBlob || !musicBlob.size || !capture.music) {
@@ -390,8 +389,7 @@ async function composeRunVideoAfterCapture({
   }
 }
 
-// 生のカメラ映像を、保存前の一時データとして共通形式へそろえる。
-// ネイティブ版でも同じ中間形式からAVFoundation／Media3の合成処理へ渡せる。
+// Normalize the raw capture for review and composition.
 async function finalizeRunVideoComposition(capture) {
   const music = runVideoCompositionMusicSnapshot(capture && capture.music);
   const audioMode = music ? (capture && capture.audioEmbedded ? "embedded" : "linked") : "none";
@@ -413,7 +411,7 @@ async function finalizeRunVideoComposition(capture) {
     audio: audioMode === "embedded",
     audioMode,
     recordingAudioDelaySeconds,
-    estimatedAudioDelaySeconds: desiredAudioDelaySeconds,
+    estimatedAudioDelaySeconds: normalizeRunVideoAudioDelay(capture.estimatedAudioDelaySeconds ?? desiredAudioDelaySeconds),
     composition,
   };
   setRunVideoDesiredAudioDelay(result, desiredAudioDelaySeconds);
@@ -427,7 +425,7 @@ function finalizeRunVideoPostComposition(capture, composed) {
   const music = runVideoCompositionMusicSnapshot(capture.music);
   const recordingAudioDelaySeconds = normalizeRunVideoAudioDelay(composed.audioDelaySeconds);
   const composition = createRunVideoCompositionRecipe(music, {
-    engine: "web-post-save",
+    engine: composed.engine || "web-post-save",
     audioMode: music ? "embedded" : "none",
     recordingGain: 1,
     musicOffsetSeconds: 0,
@@ -447,7 +445,7 @@ function finalizeRunVideoPostComposition(capture, composed) {
     recordingAudioDelaySeconds,
     composition,
     postComposition: {
-      engine: "canvas-web-audio-media-recorder",
+      engine: composed.engine || "canvas-web-audio-media-recorder",
       elapsedMs: Math.max(0, Number(composed.elapsedMs) || 0),
       sourceBytes: Number(capture.blob.size) || 0,
       outputBytes: Number(composed.size || composed.blob.size) || 0,

@@ -11,3 +11,27 @@ const SAMPLE_MUSIC = [
   { f: "samples/challie-lav.mp3", n: "challie lav" },
   { f: "samples/verse1.mp3", n: "Verse 1" },
 ];
+
+// Capacitor iOS serves bundled media as URLResponse, so fetch reports status 0.
+// Accept that only for this app's local sample files; HTTP failures stay failures.
+function nativeSampleURL(path) {
+  if (!window.Capacitor?.isNativePlatform?.() || location.protocol !== "capacitor:") return null;
+  const url = new URL(path, location.href);
+  return url.protocol === location.protocol && url.host === location.host &&
+    !url.username && !url.password && !url.search && !url.hash &&
+    /^\/samples\/[a-zA-Z0-9_-]+\.(mp3|mp4)$/.test(url.pathname) ? url : null;
+}
+function canLoadSampleAssets() {
+  return /^https?:$/.test(location.protocol) || !!nativeSampleURL(SAMPLE_MUSIC[0].f);
+}
+async function fetchSampleAsset(path) {
+  const response = await fetch(path);
+  const local = nativeSampleURL(path);
+  if (!response.ok && !(local && response.status === 0 && !response.redirected)) return null;
+  const blob = await response.blob();
+  if (!blob.size || /^text\/html\b/i.test(blob.type)) return null;
+  if (local && !blob.type) {
+    return new Blob([blob], { type: local.pathname.endsWith(".mp3") ? "audio/mpeg" : "video/mp4" });
+  }
+  return blob;
+}
