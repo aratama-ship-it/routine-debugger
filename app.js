@@ -989,11 +989,12 @@ function musicRafTick() {
   enforceMusicTrimEnd();
   const rel = musicCurrentTime();
   const effectiveDur = musicEffectiveDuration();
-  const cur = document.getElementById("music-cur");
-  if (cur) cur.textContent = fmtTimeFine(rel);
+  // 表示は0.1秒刻み。変わった時だけ文字の中身を差し替える(要素ごと書くと後付け機能のDOM監視が毎回反応する)
+  const cur = document.getElementById("music-cur"), txt = fmtTimeFine(rel), tn = cur && cur.firstChild;
+  if (cur && cur.textContent !== txt) tn && tn.nodeType === 3 && !tn.nextSibling ? tn.nodeValue = txt : cur.textContent = txt;
   const seek = document.getElementById("music-seek");
   if (seek && effectiveDur && !seek.matches(":active")) {
-    seek.max = effectiveDur;
+    if (seek.max !== String(effectiveDur)) seek.max = effectiveDur;
     seek.value = rel;
   }
   if (view.name === "part") updatePartLoopPlayhead();
