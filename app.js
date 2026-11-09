@@ -23,7 +23,7 @@ const SAMPLE_HISTORY_SCHEMA = 3;
 const SAMPLE_SEQUENCE_SCHEMA = 2;
 const SAMPLE_TRANSITION_COLOR_SCHEMA = 1;
 
-const APP_VERSION = "v351"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
+const APP_VERSION = "v352"; // 要望フォーム等で自動送信するアプリ版。sw.jsのCACHEと一致させる
 const TRICK_LIBRARY_LABEL = "シーケンスライブラリ";
 const RUN_VIDEO_LIMIT = 5; // アプリ全体。6本目は自動削除せず、保存時に入れ替える
 const RUN_VIDEO_BPS = 1500000; // 標準画質。振り返りやすさと容量の釣り合いを取る
@@ -54,7 +54,7 @@ const ITEM_LINE_COLOR_LABELS = {
 //   no-cors で投げるため応答を読めず、届いていなくても「送信しました」と出てしまう。
 //   受け口を用意できるまでは、確実に届くメールに任せる(FEEDBACK_GAS_SETUP.md 参照)。
 const FEEDBACK_ENDPOINT = "";
-const FEEDBACK_MAILTO = "circusarata@gmail.com"; // フォールバック送信先
+const FEEDBACK_MAILTO = "info@pygmix.com"; // フォールバック送信先
 
 // ---------- 状態 ----------
 let state = { v: 1, routines: [], sessions: [] };

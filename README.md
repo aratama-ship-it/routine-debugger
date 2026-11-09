@@ -38,4 +38,4 @@
 
 ## お問い合わせ
 
-circusarata@gmail.com
+info@pygmix.com
