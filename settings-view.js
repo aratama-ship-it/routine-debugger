@@ -62,6 +62,7 @@ window.renderSettings = function renderSettings() {
       <button class="btn ghost" onclick="document.getElementById('zip-verify-file').click()">ZIPを検証する(復元しない)</button>
       <input type="file" id="zip-verify-file" accept=".zip,application/zip" class="hidden" onchange="verifyFullBackup(this)">
       <button class="btn ghost" onclick="openDocPage('backup.html')">データの守り方を読む</button>
+      ${window.showMoveGuide ? `<button class="btn ghost" onclick="showMoveGuide()">${uiLanguage() === "en" ? "Moving to the iPhone app" : uiLanguage() === "zh" ? "移轉到 iPhone App 的方式" : "iPhone アプリへの移り方"}</button>` : ""}
     </div>
     <div class="card">
       <h2>記録の書き出し(表計算用)${infoBtn("csv")}</h2>
